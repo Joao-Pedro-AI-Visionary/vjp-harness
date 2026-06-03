@@ -147,12 +147,15 @@ node .harness/tools/bsd.js --reset
 ## Agentes de IA (integração real)
 
 Os 4 agentes rodam de verdade (`tools/agents.js` + `tools/llm.js`), **provider-agnostic**:
-adapters para `openai` (compatível — CLIProxyAPI/OpenAI/…), `anthropic` e `ollama`.
+use **qualquer** provider — OpenAI, DeepSeek, Kimi, GLM, MiniMax, Groq, OpenRouter,
+Together (todos via adapter `openai`), Anthropic ou Ollama local. Presets prontos +
+override por ENV, sem fixar nada globalmente.
 
 ```bash
-# 1. configure o backend (pine o modelo + aponte a key via env)
-$EDITOR .harness/config/agents.json          # llm.provider, baseUrl, model, apiKeyEnv
-export VJP_LLM_API_KEY=...                    # a env nomeada em apiKeyEnv
+# 1. escolha o provider via ENV (sem editar arquivo) — troque quando quiser
+export VJP_LLM_PRESET=deepseek            # ou kimi, glm, openrouter, ollama, cliproxy...
+export VJP_LLM_MODEL=deepseek-chat
+export VJP_LLM_API_KEY=sk-...             # ollama não precisa
 
 # 2. valide a conectividade
 node .harness/tools/bsd.js --check-llm
@@ -163,6 +166,9 @@ node .harness/tools/bsd.js --execute minha-feature
 # (mecânica sem LLM, para testar o fluxo)
 node .harness/tools/bsd.js --execute minha-feature --dry-run
 ```
+
+> Fixar um modelo é **opcional** (só pra reproduzir um projeto) — não há provider
+> default obrigatório. Presets em [`template/config/agents.json`](./template/config/agents.json).
 
 Cada agente recebe `AGENT_RULES.md` + `.gbrain/*.md` como contexto e devolve JSON
 estruturado. O EXECUTOR não recebe shell — só conteúdo de arquivos, aplicados na

@@ -15,12 +15,33 @@
 import fs from 'fs';
 import path from 'path';
 
+// Resolve a config efetiva do LLM combinando, em ordem de precedência:
+//   1) overrides por ENV (VJP_LLM_*)  — para "rodar em qualquer lugar" sem editar arquivo
+//   2) preset selecionado (cfg.llm.preset ou VJP_LLM_PRESET) — provider+baseUrl nomeados
+//   3) bloco cfg.llm do agents.json
+// Nada de modelo "pinado" obrigatório: o modelo é livre (qualquer provider OpenAI-compatible,
+// anthropic ou ollama). Fixar um modelo é OPCIONAL e só serve p/ reproduzir um projeto.
 export function loadLlmConfig(harnessDir) {
   const p = path.join(harnessDir, 'config', 'agents.json');
   if (!fs.existsSync(p)) throw new Error(`config/agents.json não encontrado em ${p}`);
   const cfg = JSON.parse(fs.readFileSync(p, 'utf8'));
-  if (!cfg.llm || !cfg.llm.provider) throw new Error('config/agents.json: bloco "llm.provider" ausente');
-  return cfg;
+  const presets = cfg.presets || {};
+  const llm = { ...(cfg.llm || {}) };
+
+  const presetName = process.env.VJP_LLM_PRESET || llm.preset;
+  if (presetName) {
+    const pr = presets[presetName];
+    if (!pr) throw new Error(`Preset LLM desconhecido: "${presetName}" (disponíveis: ${Object.keys(presets).join(', ') || 'nenhum'})`);
+    Object.assign(llm, { provider: pr.provider, baseUrl: pr.baseUrl }, pr.model ? { model: pr.model } : {});
+  }
+  // ENV overrides (ganham de tudo)
+  if (process.env.VJP_LLM_PROVIDER) llm.provider = process.env.VJP_LLM_PROVIDER;
+  if (process.env.VJP_LLM_BASE_URL) llm.baseUrl = process.env.VJP_LLM_BASE_URL;
+  if (process.env.VJP_LLM_MODEL) llm.model = process.env.VJP_LLM_MODEL;
+  if (process.env.VJP_LLM_API_KEY_ENV) llm.apiKeyEnv = process.env.VJP_LLM_API_KEY_ENV;
+
+  if (!llm.provider) throw new Error('Provider LLM não definido. Use um preset, cfg.llm.provider ou VJP_LLM_PROVIDER.');
+  return { ...cfg, llm };
 }
 
 function resolveModel(cfg, agentId) {
@@ -109,8 +130,8 @@ export async function chat({ system, user, cfg, agentId }) {
 }
 
 export async function checkConnectivity(cfg) {
-  if (!cfg.llm.model || cfg.llm.model === 'REPLACE_WITH_PINNED_MODEL') {
-    return { ok: false, detail: 'modelo não pinado em config/agents.json (llm.model)' };
+  if (!cfg.llm.model) {
+    return { ok: false, detail: 'nenhum modelo definido — set llm.model, um preset com model, ou VJP_LLM_MODEL' };
   }
   if (cfg.llm.apiKeyEnv && !process.env[cfg.llm.apiKeyEnv] && cfg.llm.provider !== 'ollama') {
     return { ok: false, detail: `env ${cfg.llm.apiKeyEnv} não setada (API key)` };

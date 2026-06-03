@@ -1,4 +1,4 @@
-version: "1.4.0"
+version: "1.5.0"
 project:
   name: "__PROJECT_NAME__"
   description: "Ecossistema de engenharia orientado a IA"

@@ -11,30 +11,53 @@
 | `anthropic` | `{baseUrl}/v1/messages` | Claude API direta |
 | `ollama` | `{baseUrl}/api/chat` | modelos locais |
 
-## Configuração — `config/agents.json`
-```json
-{
-  "llm": {
-    "provider": "openai",
-    "baseUrl": "http://localhost:8317/v1",
-    "model": "REPLACE_WITH_PINNED_MODEL",
-    "apiKeyEnv": "VJP_LLM_API_KEY",
-    "temperature": 0,
-    "maxTokens": 4096,
-    "timeoutMs": 180000
-  },
-  "agents": { "planner": {"model": null}, "researcher": {"model": null}, "executor": {"model": null}, "reviewer": {"model": null} },
-  "pipeline": { "maxRetries": 2, "testCommand": "npm test", "autoMerge": true }
-}
+## Presets — use qualquer provider
+O harness é portável: qualquer provider OpenAI-compatible funciona pelo adapter `openai`. Já vêm prontos em `config/agents.json`:
+
+| Preset | provider | baseUrl |
+|---|---|---|
+| `cliproxy` | openai | `http://localhost:8317/v1` (suas subs via CLIProxyAPI) |
+| `openai` | openai | `https://api.openai.com/v1` |
+| `deepseek` | openai | `https://api.deepseek.com/v1` |
+| `kimi` | openai | `https://api.moonshot.cn/v1` |
+| `glm` | openai | `https://open.bigmodel.cn/api/paas/v4` |
+| `minimax` | openai | `https://api.minimaxi.com/v1` |
+| `openrouter` | openai | `https://openrouter.ai/api/v1` |
+| `groq` | openai | `https://api.groq.com/openai/v1` |
+| `together` | openai | `https://api.together.xyz/v1` |
+| `anthropic` | anthropic | `https://api.anthropic.com` |
+| `ollama` | ollama | `http://localhost:11434` |
+
+## Trocar de provider — duas formas
+
+**A) Por ENV (sem editar arquivo — ideal pra "rodar em qualquer lugar"):**
+```bash
+export VJP_LLM_PRESET=deepseek
+export VJP_LLM_MODEL=deepseek-chat
+export VJP_LLM_API_KEY=sk-...
+node .harness/tools/bsd.js --check-llm
+```
+Outro dia, outro provider — só trocar as envs:
+```bash
+export VJP_LLM_PRESET=kimi      VJP_LLM_MODEL=kimi-k2-0905-preview
+export VJP_LLM_PRESET=openrouter VJP_LLM_MODEL=z-ai/glm-4.6
+export VJP_LLM_PRESET=ollama    VJP_LLM_MODEL=qwen3:8b   # local, sem key
 ```
 
-- **Pine `llm.model`** — modelo fixo = determinismo. Override por agente em `agents.<id>.model`.
-- **API key vem da env** nomeada em `apiKeyEnv` (ex: `export VJP_LLM_API_KEY=...`). Nunca commite a key.
-- `temperature: 0` para reprodutibilidade.
+**B) No `config/agents.json`** (fixa por projeto):
+```json
+"llm": { "preset": "deepseek", "model": "deepseek-chat", "apiKeyEnv": "VJP_LLM_API_KEY" }
+```
+
+Precedência: **ENV > preset > bloco `llm`**. Override de modelo por agente em `agents.<id>.model`.
+
+- **Modelo é livre** — fixar é OPCIONAL e só serve pra reproduzir um projeto. Não há provider "default obrigatório".
+- **API key sempre por ENV** (nome em `apiKeyEnv`). Nunca commitada.
+- `temperature: 0` por padrão (reprodutibilidade).
 
 ## Verificar conectividade
 ```bash
-node .harness/tools/bsd.js --check-llm    # valida provider+model+key com um ping
+node .harness/tools/bsd.js --check-llm    # valida provider+baseUrl+model+key com um ping
 ```
 
 ## Fluxo dos agentes
