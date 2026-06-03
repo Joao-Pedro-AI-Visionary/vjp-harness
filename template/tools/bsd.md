@@ -1,6 +1,6 @@
 # BSD — Build Spec Development (Orquestrador)
 
-**Tier:** core · **Versão pinada:** `1.1.0` · **Origem:** bundled (`.harness/tools/bsd.js`)
+**Tier:** core · **Versão pinada:** `1.2.0` · **Origem:** bundled — baseado em `garrytan/gstack` (https://github.com/garrytan/gstack) · **Destino:** `.harness/tools/bsd.js`
 
 ## Responsabilidade
 Executa automaticamente as tasks geradas pelo GSD. Elimina execução manual após o `tasks.md`. Pipeline transacional por task, isolado em Git Worktree, crash-safe.

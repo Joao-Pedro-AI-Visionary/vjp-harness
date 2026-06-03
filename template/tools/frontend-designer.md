@@ -1,20 +1,20 @@
 # Frontend Designer
 
-**Tier:** skill · **Versão pinada:** `1.55.1.0` (via gstack) · **Origem:** família de skills `design-*` do gstack (`garrytan/gstack`)
+**Tier:** skill · **Versão pinada:** `main` · **Origem:** git `anthropics/skills` (`frontend-design`, https://github.com/anthropics/skills) · **Destino:** `.harness/tools/frontend-designer.md`
 
 ## Responsabilidade
-UI, UX, responsividade, design system, acessibilidade. Implementado pelas skills do gstack: `design-consultation`, `design-html`, `design-review`, `design-shotgun`, `plan-design-review`.
+UI, UX, responsividade, design system, acessibilidade. Spec/skill `frontend-design` do repositório `anthropics/skills`.
 
 ## Quando usar
 Dashboards · landing pages · formulários · apps administrativos · mobile. Alimenta o agente **Researcher** quando há impacto em `web/`, `frontend/` ou `mobile/` (ver `harness.yaml` → `mcp.playwright.trigger_directories`).
 
 ## Instalação
-Incluído no gstack — sem instalação separada. Garanta o gstack pinado (ver [`gstack.md`](./gstack.md)).
+Skill/Spec de `anthropics/skills` (caminho `frontend-design`). A spec é vendorizada como este próprio doc em `.harness/tools/frontend-designer.md`.
 
 ## Verificação
 ```bash
-test -d ~/.claude/skills/design-html && echo OK    # ou via --doctor (type: skill)
+test -f .harness/tools/frontend-designer.md && echo OK    # via --doctor (type: file)
 ```
 
 ## Determinismo
-Herda o pin do gstack (`c43c850cae77`).
+Pinado ao ref do `anthropics/skills`. Atualize ao sincronizar a spec.

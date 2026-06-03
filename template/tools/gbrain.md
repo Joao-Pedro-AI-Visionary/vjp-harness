@@ -1,6 +1,6 @@
 # GBrain — Memória Persistente
 
-**Tier:** core · **Versão pinada:** `1.55.1.0` (via gstack) · **Origem:** binário bun distribuído com o gstack (`garrytan/gstack`)
+**Tier:** core · **Versão pinada:** `0.35.1.0` (tag `eval-run-v0.35.1.0-baseline`) · **Origem:** git `garrytan/gbrain` (https://github.com/garrytan/gbrain) · **Destino:** `.harness/tools/gbrain/` (persiste em `.gbrain/`)
 
 ## Responsabilidade
 Memória persistente do projeto: decisões arquiteturais, bugs recorrentes, soluções, contexto de negócio, padrões internos. Os agentes **consultam** o GBrain antes de propor design.

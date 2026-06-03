@@ -1,6 +1,6 @@
 # RTK — Rust Token Killer
 
-**Tier:** core · **Versão pinada:** `0.39.0` · **Origem:** binário (org `rtk-ai`, https://github.com/rtk-ai)
+**Tier:** core · **Versão pinada:** `0.39.0` · **Origem:** git `rtk-ai/rtk` (https://github.com/rtk-ai/rtk) · **Destino:** `.harness/tools/rtk/`
 
 ## Responsabilidade
 Proxy CLI otimizador de tokens (60–90% de economia em operações de dev): compressão de contexto, seleção inteligente de arquivos, cache de contexto, resumos incrementais.

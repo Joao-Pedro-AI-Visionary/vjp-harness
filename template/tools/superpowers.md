@@ -1,6 +1,6 @@
 # Superpowers
 
-**Tier:** skill · **Versão pinada:** `v5.1.0` @ commit `f2cbfbefebbf` · **Origem:** git `obra/superpowers` (https://github.com/obra/superpowers)
+**Tier:** skill · **Versão pinada:** `v5.1.0` @ commit `f2cbfbefebbf` · **Origem:** git `obra/superpowers` (https://github.com/obra/superpowers) · **Destino:** `.harness/tools/superpowers/`
 
 ## Responsabilidade
 Skill avançada para: TDD, debugging avançado, refatoração, revisão arquitetural, investigação de bugs, estratégias de implementação.

@@ -1,6 +1,6 @@
 # PostgreSQL MCP
 
-**Tier:** mcp · **Versão pinada:** `0.6.2` · **Origem:** npm `@modelcontextprotocol/server-postgres`
+**Tier:** mcp · **Versão pinada:** `0.6.2` · **Origem:** git `modelcontextprotocol/servers` (https://github.com/modelcontextprotocol/servers) · artefato npm `@modelcontextprotocol/server-postgres` · **Destino:** runtime (injetado no Claude/Cursor)
 
 ## Responsabilidade
 Inspecionar schema, validar queries, verificar índices, analisar relacionamentos e validar plano de execução (`EXPLAIN`). Usado pelo agente **Reviewer**.

@@ -1,6 +1,6 @@
 # Playwright MCP
 
-**Tier:** mcp · **Versão pinada:** `0.0.75` · **Origem:** npm `@playwright/mcp`
+**Tier:** mcp · **Versão pinada:** `0.0.75` · **Origem:** git `modelcontextprotocol/servers` (https://github.com/modelcontextprotocol/servers) · artefato npm `@playwright/mcp` · **Destino:** runtime (injetado no Claude/Cursor)
 
 ## Responsabilidade
 Automação E2E, testes de interface, fluxos completos, simulação de usuário real. Usado pelo agente **Reviewer** quando rotas frontend são expostas/modificadas.

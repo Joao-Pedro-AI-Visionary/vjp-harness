@@ -1,4 +1,4 @@
-version: "1.1.0"
+version: "1.2.0"
 project:
   name: "__PROJECT_NAME__"
   description: "Ecossistema de engenharia orientado a IA"
@@ -27,13 +27,16 @@ tools:
     path: ".harness/tools/node_modules/@opengsd/get-shit-done-redux/bin/gsd-sdk.js"
   rtk:
     version: "0.39.0"
-    source: "binary:rtk-ai"
-  gstack:
-    version: "1.55.1.0"
-    source: "git:garrytan/gstack@c43c850cae77"
+    source: "git:rtk-ai/rtk"
+  gbrain:
+    version: "0.35.1.0"
+    source: "git:garrytan/gbrain@eval-run-v0.35.1.0-baseline"
   superpowers:
     version: "5.1.0"
     source: "git:obra/superpowers@v5.1.0"
+  frontend_designer:
+    version: "main"
+    source: "git:anthropics/skills@frontend-design"
 
 agents:
   planner:

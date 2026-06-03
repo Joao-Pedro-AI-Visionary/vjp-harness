@@ -63,23 +63,23 @@ node .harness/tools/bsd.js --doctor --strict   # falha também em opcionais ause
 node .harness/tools/verify.js --json           # saída para CI (exit 1 se obrigatório falhar)
 ```
 
-### Componentes (pinados)
+### Componentes (pinados — Registro Definitivo)
 
-| Componente | Origem | Versão |
+| Componente | Repositório oficial | Versão |
 |---|---|---|
-| BSD | bundled | `1.1.0` |
-| RTK | binário `rtk-ai` | `0.39.0` |
-| GBrain | gstack (bun) | `1.55.1.0` |
-| Repomix | npm `repomix` | `0.2.14` |
-| GSD Redux | npm `@opengsd/get-shit-done-redux` | `1.1.0` |
-| GStack | git `garrytan/gstack` | `1.55.1.0` @ `c43c850` |
-| Superpowers | git `obra/superpowers` | `v5.1.0` |
-| Frontend Designer | gstack `design-*` | `1.55.1.0` |
-| PostgreSQL MCP | npm `@modelcontextprotocol/server-postgres` | `0.6.2` |
-| Playwright MCP | npm `@playwright/mcp` | `0.0.75` |
+| BSD | baseado em `garrytan/gstack` | `1.2.0` |
+| RTK | `rtk-ai/rtk` | `0.39.0` |
+| GBrain | `garrytan/gbrain` | `0.35.1.0` |
+| Repomix | `yamadashy/repomix` (npm) | `0.2.14` |
+| GSD Redux | `open-gsd/get-shit-done-redux` (npm) | `1.1.0` |
+| Superpowers | `obra/superpowers` | `v5.1.0` |
+| PostgreSQL MCP | `modelcontextprotocol/servers` | `0.6.2` |
+| Playwright MCP | `modelcontextprotocol/servers` | `0.0.75` |
+| Frontend Designer | `anthropics/skills` (`frontend-design`) | `main` |
 
 > Núcleo obrigatório (BSD, Repomix, GSD Redux) é totalmente determinístico via
 > `package-lock.json`. Opcionais são reportados pelo doctor sem bloquear.
+> Matriz completa + notas de pinagem em [`template/REGISTRY.md`](./template/REGISTRY.md).
 
 ---
 

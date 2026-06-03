@@ -1,6 +1,6 @@
 # Open GSD Redux
 
-**Tier:** core · **Versão pinada:** `1.1.0` · **Origem:** npm `@opengsd/get-shit-done-redux`
+**Tier:** core · **Versão pinada:** `1.1.0` · **Origem:** npm `@opengsd/get-shit-done-redux` (repo `open-gsd/get-shit-done-redux`, https://github.com/open-gsd/get-shit-done-redux)
 
 ## Responsabilidade
 Planejamento e estruturação spec-driven. Transforma intenção em artefatos: `spec.md`, `design.md`, `tasks.md`, `roadmap.md`.
