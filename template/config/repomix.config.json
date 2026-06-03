@@ -1,0 +1,24 @@
+{
+  "output": {
+    "filePath": ".harness/context/repo-packed.md",
+    "style": "markdown",
+    "removeComments": true,
+    "removeEmptyLines": true
+  },
+  "include": ["src/**/*"],
+  "ignore": {
+    "useGitignore": true,
+    "useDefaultPatterns": true,
+    "customPatterns": [
+      "node_modules/**",
+      "dist/**",
+      "build/**",
+      "coverage/**",
+      ".harness/**",
+      ".gbrain/**",
+      ".bsd/**",
+      ".git/**",
+      "*.log"
+    ]
+  }
+}

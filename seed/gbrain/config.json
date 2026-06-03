@@ -1,0 +1,4 @@
+{
+  "engine": "pglite",
+  "database_path": "__GBRAIN_DB_PATH__"
+}

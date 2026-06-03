@@ -1,0 +1,54 @@
+version: "1.0.0"
+project:
+  name: "__PROJECT_NAME__"
+  description: "Ecossistema de engenharia orientado a IA"
+
+paths:
+  harness_root: ".harness"
+  tools_dir: ".harness/tools"
+  config_dir: ".harness/config"
+  context_dir: ".harness/context"
+  gbrain_dir: ".gbrain"
+  bsd_dir: ".bsd"
+
+tools:
+  repomix:
+    version: "0.2.14"
+    path: ".harness/tools/node_modules/repomix/bin/repomix.cjs"
+    config: ".harness/config/repomix.config.json"
+  gsd:
+    version: "1.1.0"
+    path: ".harness/tools/node_modules/@opengsd/get-shit-done-redux/bin/gsd-sdk.js"
+
+agents:
+  planner:
+    enabled: true
+    role: "Análise de Risco e Planejamento"
+  researcher:
+    enabled: true
+    role: "Mapeamento de Impacto e Exploração"
+  executor:
+    enabled: true
+    role: "Escrita de Código e Testes TDD"
+  reviewer:
+    enabled: true
+    role: "Validação estrita de Qualidade e Segurança"
+
+mcp:
+  postgresql:
+    enabled: true
+    port: 5432
+    trigger_extensions:
+      - ".repository.ts"
+      - ".entity.ts"
+      - "prisma"
+  playwright:
+    enabled: true
+    trigger_directories:
+      - "web"
+      - "frontend"
+      - "mobile"
+
+pipeline:
+  max_retries: 2
+  allow_worktrees: true

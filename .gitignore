@@ -1,0 +1,5 @@
+# O repo distribui apenas o motor + seeds. Nada de node_modules ou estado.
+template/tools/node_modules/
+**/node_modules/
+*.log
+.DS_Store
