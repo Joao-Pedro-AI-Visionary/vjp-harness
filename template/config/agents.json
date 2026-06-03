@@ -1,10 +1,10 @@
 {
-  "_comment": "Config provider-agnostic dos agentes. Use em QUALQUER lugar: escolha um preset (ou aponte provider/baseUrl direto), e defina o modelo. Tudo pode ser sobrescrito por ENV sem editar este arquivo: VJP_LLM_PRESET, VJP_LLM_PROVIDER, VJP_LLM_BASE_URL, VJP_LLM_MODEL, VJP_LLM_API_KEY_ENV. A API key vem da env nomeada em apiKeyEnv (nunca commite a key). Fixar um modelo é OPCIONAL — só serve para reproduzir um projeto.",
+  "_comment": "Config provider-agnostic dos agentes. Use em QUALQUER lugar: escolha um preset (ou aponte provider/baseUrl direto), e defina o modelo. Tudo pode ser sobrescrito por ENV sem editar este arquivo: VJP_LLM_PRESET, VJP_LLM_PROVIDER, VJP_LLM_BASE_URL, VJP_LLM_MODEL, VJP_LLM_API_KEY_ENV. A API key vem da env nomeada em apiKeyEnv (nunca commite a key). Fixar um modelo é OPCIONAL — só serve para reproduzir um projeto. temperature=null OMITE o campo (modelos novos como Opus 4.8 rejeitam temperature); use 0 só em modelos que aceitam.",
   "llm": {
     "preset": "cliproxy",
     "model": "",
     "apiKeyEnv": "VJP_LLM_API_KEY",
-    "temperature": 0,
+    "temperature": null,
     "maxTokens": 4096,
     "timeoutMs": 180000
   },

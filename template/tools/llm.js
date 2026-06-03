@@ -61,6 +61,11 @@ async function withTimeout(promiseFactory, ms) {
   finally { clearTimeout(t); }
 }
 
+// temperature só entra se for número (modelos novos como Opus 4.8 rejeitam o campo).
+function sampling(cfg) {
+  return typeof cfg.llm.temperature === 'number' ? { temperature: cfg.llm.temperature } : {};
+}
+
 async function callOpenAI(cfg, agentId, system, user) {
   const base = (cfg.llm.baseUrl || 'https://api.openai.com/v1').replace(/\/$/, '');
   const res = await withTimeout((signal) => fetch(`${base}/chat/completions`, {
@@ -69,7 +74,7 @@ async function callOpenAI(cfg, agentId, system, user) {
     body: JSON.stringify({
       model: resolveModel(cfg, agentId),
       messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
-      temperature: cfg.llm.temperature ?? 0,
+      ...sampling(cfg),
       max_tokens: cfg.llm.maxTokens ?? 4096,
     }),
     signal,
@@ -92,7 +97,7 @@ async function callAnthropic(cfg, agentId, system, user) {
       model: resolveModel(cfg, agentId),
       system,
       messages: [{ role: 'user', content: user }],
-      temperature: cfg.llm.temperature ?? 0,
+      ...sampling(cfg),
       max_tokens: cfg.llm.maxTokens ?? 4096,
     }),
     signal,
@@ -111,7 +116,7 @@ async function callOllama(cfg, agentId, system, user) {
       model: resolveModel(cfg, agentId),
       messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
       stream: false,
-      options: { temperature: cfg.llm.temperature ?? 0 },
+      options: sampling(cfg),
     }),
     signal,
   }), cfg.llm.timeoutMs ?? 180000);
