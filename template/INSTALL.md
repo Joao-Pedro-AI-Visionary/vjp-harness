@@ -1,0 +1,64 @@
+# V-JP Harness — Instalação determinística
+
+Montagem reprodutível em qualquer máquina. Cada passo é pinado e verificável.
+
+## 0. Pré-requisitos
+
+| Requisito | Mínimo | Verificar |
+|---|---|---|
+| Node.js | ≥ 18 | `node --version` |
+| git | qualquer | `git --version` (opcional, habilita worktrees) |
+
+## 1. Núcleo determinístico (obrigatório)
+
+Instalado automaticamente pelo `install.sh` na raiz do repo `vjp-harness`:
+
+```bash
+cd meu-projeto
+bash /caminho/para/vjp-harness/install.sh --name meu-projeto
+```
+
+Isso, de forma determinística:
+1. Copia o motor para `.harness/` (BSD + configs + registry).
+2. Roda **`npm ci`** em `.harness/tools` (instala Repomix `0.2.14`, GSD Redux `1.1.0`, Postgres MCP `0.6.2`, Playwright MCP `0.0.75` a partir do `package-lock.json` — árvore idêntica byte-a-byte).
+3. Faz o scaffold de `.gbrain/` (memória) e `.bsd/` (estado).
+4. Roda o **doctor** (`verify.js`) e reporta o determinismo.
+
+> `npm ci` (não `npm install`) é o que garante reprodutibilidade: ele exige o lockfile e falha se houver divergência.
+
+## 2. Componentes opcionais (sob demanda)
+
+Instale só o que o projeto usar. Cada um é pinado — ver [`REGISTRY.md`](./REGISTRY.md).
+
+### RTK (Rust Token Killer) — `0.39.0`
+Binário externo (org `rtk-ai`). Verifique: `rtk --version`. Ver [`tools/rtk.md`](./tools/rtk.md).
+
+### GStack — `1.55.1.0` @ `c43c850cae77`
+Plataforma operacional (skills + gbrain). Instale o plugin a partir de `garrytan/gstack` **no commit pinado**. Ver [`tools/gstack.md`](./tools/gstack.md).
+
+### GBrain — via gstack
+```bash
+# dentro do Claude Code, com gstack instalado:
+/setup-gbrain
+```
+Registra o MCP `gbrain`. Ver [`tools/gbrain.md`](./tools/gbrain.md).
+
+### Superpowers — `v5.1.0`
+Plugin a partir de `obra/superpowers` (tag `v5.1.0`). Ver [`tools/superpowers.md`](./tools/superpowers.md).
+
+### MCPs (PostgreSQL / Playwright)
+Já instalados em `.harness/tools` pelo `npm ci`. Para ativar, mescle [`config/mcp.json`](./config/mcp.json) no `~/.claude/settings.json` (ou `.mcp.json` do projeto) e ajuste a connection string. Ver [`tools/postgres-mcp.md`](./tools/postgres-mcp.md) e [`tools/playwright-mcp.md`](./tools/playwright-mcp.md).
+
+## 3. Verificação final
+
+```bash
+node .harness/tools/bsd.js --doctor
+```
+
+- `[req]` em vermelho → montagem **não-determinística**, corrija antes de operar.
+- `[opt]` ausente → ok, instale quando precisar.
+
+Para CI:
+```bash
+node .harness/tools/verify.js --json   # exit 1 se algum obrigatório falhar
+```

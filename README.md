@@ -1,99 +1,141 @@
 # V-JP Harness
 
-Ecossistema de engenharia orientado a IA — empacotado para uso em qualquer projeto.
+Ecossistema de engenharia de software orientado a IA — empacotado para instalação **determinística** em qualquer projeto.
 
-Orquestra um pipeline determinístico, isolado e *crash-safe* sobre 4 agentes
-(**PLANNER → RESEARCHER → EXECUTOR → REVIEWER**), com memória persistente
-(`.gbrain/`) e estado auditável (`.bsd/`).
+Combina compressão de contexto, memória persistente, planejamento spec-driven, execução autônoma, revisão automática e especialização por agentes — transformando a IA de gerador de código em um sistema que **planeja, pesquisa, implementa, revisa, aprende e evolui**.
 
 ---
 
-## Instalação num projeto
+## Arquitetura
 
-Clone este repositório uma vez e rode o instalador apontando para o projeto-alvo:
+```mermaid
+flowchart TD
+    Repo["Repositório"] --> Repomix["Repomix"]
+    Repomix --> RTK["RTK"]
+    RTK --> GSD["GSD Redux"]
+    GBrain["GBrain (Memória)"] --> GSD
+    GSD --> BSD["BSD (Orquestrador)"]
+    BSD --> Planner["Planner"]
+    BSD --> Researcher["Researcher"]
+    BSD --> Executor["Executor"]
+    Executor --> Reviewer["Reviewer"]
+    Reviewer --> GBrain
+    Superpowers["Superpowers"] --> Planner
+    FrontendDesigner["Frontend Designer"] --> Researcher
+    MCPs["MCPs (Postgres/Playwright)"] --> Reviewer
+```
+
+O **GStack** é a camada operacional que conecta RTK, GBrain, GSD Redux e BSD numa arquitetura coesa e reutilizável.
+
+---
+
+## Instalação determinística
 
 ```bash
-git clone <url-deste-repo> vjp-harness
+git clone https://github.com/Joao-Pedro-AI-Visionary/vjp-harness.git
 cd meu-projeto
-bash /caminho/para/vjp-harness/install.sh
+bash /caminho/para/vjp-harness/install.sh --name meu-projeto
 ```
 
-Ou instalando num diretório específico:
-
-```bash
-bash /caminho/para/vjp-harness/install.sh --target ~/projetos/api --name api
-```
-
-O instalador é **idempotente**: roda quantas vezes quiser. Ele preserva
-`.gbrain/` e `.bsd/` existentes e só sobrescreve o motor com `--force`.
-
-### Opções do `install.sh`
+O instalador é **idempotente** e usa `npm ci` (lockfile) para o núcleo. Detalhes completos em [`template/INSTALL.md`](./template/INSTALL.md).
 
 | Flag | Efeito |
 |---|---|
 | `--target <dir>` | Projeto-alvo (default: diretório atual) |
-| `--name <nome>` | Nome do projeto em `harness.yaml` (default: basename do alvo) |
-| `--no-install` | Copia os arquivos sem rodar `npm install` |
-| `--force` | Sobrescreve um `.harness/` existente |
-| `--yes` / `-y` | Modo não-interativo (CI) |
-| `--help` | Ajuda |
+| `--name <nome>` | Nome do projeto em `harness.yaml` |
+| `--no-install` | Copia sem rodar `npm ci` |
+| `--force` | Sobrescreve `.harness/` existente |
+| `--yes` / `-y` | Não-interativo (CI) |
 
-**Pré-requisitos:** Node ≥ 18 e (opcional) `git` para worktrees isoladas.
-Sem git, o orquestrador cai num modo de diretório isolado (fallback).
+**Pré-requisitos:** Node ≥ 18; `git` opcional (habilita worktrees isoladas).
 
 ---
 
-## O que é instalado no projeto
+## Determinismo (o núcleo do projeto)
+
+Toda dependência é **pinada** e **verificável**. A fonte da verdade é
+[`template/registry.json`](./template/registry.json) (espelhada em
+[`REGISTRY.md`](./template/REGISTRY.md)), consumida pelo verificador:
+
+```bash
+node .harness/tools/bsd.js --doctor            # checa cada componente vs versão pinada
+node .harness/tools/bsd.js --doctor --strict   # falha também em opcionais ausentes
+node .harness/tools/verify.js --json           # saída para CI (exit 1 se obrigatório falhar)
+```
+
+### Componentes (pinados)
+
+| Componente | Origem | Versão |
+|---|---|---|
+| BSD | bundled | `1.1.0` |
+| RTK | binário `rtk-ai` | `0.39.0` |
+| GBrain | gstack (bun) | `1.55.1.0` |
+| Repomix | npm `repomix` | `0.2.14` |
+| GSD Redux | npm `@opengsd/get-shit-done-redux` | `1.1.0` |
+| GStack | git `garrytan/gstack` | `1.55.1.0` @ `c43c850` |
+| Superpowers | git `obra/superpowers` | `v5.1.0` |
+| Frontend Designer | gstack `design-*` | `1.55.1.0` |
+| PostgreSQL MCP | npm `@modelcontextprotocol/server-postgres` | `0.6.2` |
+| Playwright MCP | npm `@playwright/mcp` | `0.0.75` |
+
+> Núcleo obrigatório (BSD, Repomix, GSD Redux) é totalmente determinístico via
+> `package-lock.json`. Opcionais são reportados pelo doctor sem bloquear.
+
+---
+
+## Estrutura instalada no projeto
 
 ```
 meu-projeto/
-├── .harness/            # MOTOR (versionável)
-│   ├── harness.yaml         # manifesto: agentes, MCPs, tools pinadas, pipeline
-│   ├── AGENT_RULES.md       # regras de sistema dos 4 agentes
+├── .harness/                 # MOTOR (versionável)
+│   ├── harness.yaml              # manifesto: agentes, MCPs, tools pinadas
+│   ├── registry.json             # ← fonte da verdade determinística
+│   ├── REGISTRY.md  INSTALL.md   # matriz de instalação + guia
+│   ├── AGENT_RULES.md            # regras dos 4 agentes
 │   ├── tools/
-│   │   ├── bsd.js           # orquestrador CLI (Build Spec Development)
-│   │   └── package.json     # repomix + gsd (versões travadas)
-│   └── config/repomix.config.json
-├── .gbrain/             # MEMÓRIA persistente dos agentes (preencher!)
-│   ├── project.md  architecture.md  patterns.md
-│   ├── decisions.md  lessons.md  bugs.md  commands.md
-│   └── config.json
-└── .bsd/                # ESTADO de execução (gerado em runtime)
-    ├── STATE.md  history.jsonl  worktrees/
+│   │   ├── bsd.js                # orquestrador (--execute/--continue/--status/--reset/--doctor)
+│   │   ├── verify.js             # verificador de determinismo
+│   │   ├── package.json + lock   # tools pinadas (npm ci)
+│   │   └── *.md                  # doc de cada componente
+│   ├── config/{repomix,mcp}.json
+│   └── context/                  # contexto compactado (regenerável)
+├── .gbrain/                  # MEMÓRIA persistente (8 arquivos + PGLite)
+└── .bsd/                     # ESTADO de execução (STATE.md, history.jsonl, worktrees/)
 ```
-
-`node_modules`, `context/` e o estado de runtime entram automaticamente no
-`.gitignore` do projeto. Versione `.harness/` (motor) e `.gbrain/*.md` (memória).
 
 ---
 
-## Comandos (CLI BSD)
+## Pipeline por task (BSD)
+
+```
+PLANNER → RESEARCHER → EXECUTOR → REVIEWER → APPROVED?
+  └ Sim → próxima task        └ Não → retry em worktree (máx. 2) → aborta + STATE.md
+```
 
 ```bash
-node .harness/tools/bsd.js --execute <feature>   # inicia o pipeline transacional
-node .harness/tools/bsd.js --continue            # retoma o último pipeline
-node .harness/tools/bsd.js --status              # painel de progresso + histórico
-node .harness/tools/bsd.js --reset               # limpa worktrees e histórico
+node .harness/tools/bsd.js --execute <feature>
+node .harness/tools/bsd.js --continue
+node .harness/tools/bsd.js --status
+node .harness/tools/bsd.js --reset
 ```
 
 ---
 
-## Primeiros passos após instalar
+## Princípios
 
-1. Edite `.gbrain/project.md` e `.gbrain/architecture.md` com o contexto real do projeto — os agentes consultam isso antes de propor qualquer design.
-2. Ajuste a stack homologada em `AGENT_RULES.md` se não for NestJS/Prisma.
-3. Rode `node .harness/tools/bsd.js --status`.
+1. Contexto mínimo, informação máxima. 2. Planejar antes de implementar.
+3. Pesquisar antes de modificar. 4. Revisar antes de aprovar.
+5. Registrar decisões. 6. Aprender com erros. 7. Automatizar o repetitivo.
+8. Agentes especializados. 9. Preservar histórico. 10. Evoluir o conhecimento.
 
 ---
 
 ## ⚠️ Estado atual
 
-O orquestrador `bsd.js` implementa o **esqueleto transacional completo**
-(worktrees, logging crash-safe, STATE.md, retomada, retry), mas as etapas dos
-agentes (`PLANNER/RESEARCHER/EXECUTOR/REVIEWER`) ainda são **stubs simulados**
-(`setTimeout`). A integração real com agentes de IA é o próximo passo —
-o contrato (`AGENT_RULES.md` + `.gbrain/`) já está definido para isso.
+O `bsd.js` implementa o **esqueleto transacional completo** (worktrees, logging
+crash-safe, STATE.md, retomada, retry, doctor). As etapas dos 4 agentes
+(`PLANNER/RESEARCHER/EXECUTOR/REVIEWER`) ainda são **stubs simulados** — a
+integração real com agentes de IA é o próximo passo. O contrato
+(`AGENT_RULES.md` + `.gbrain/` + `registry.json`) já está definido.
 
-## Versão
-
-Ver [`VERSION`](./VERSION).
+Versão: ver [`VERSION`](./VERSION).

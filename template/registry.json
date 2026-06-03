@@ -1,0 +1,117 @@
+{
+  "schemaVersion": "1.0",
+  "harnessVersion": "1.1.0",
+  "description": "Registro determinístico de componentes do V-JP Harness. Fonte da verdade para instalação e verificação. Toda versão é pinada; o verificador (tools/verify.js) falha em drift.",
+  "components": [
+    {
+      "id": "bsd",
+      "name": "BSD (Build Spec Development)",
+      "tier": "core",
+      "priority": 1,
+      "required": true,
+      "source": { "type": "bundled", "path": ".harness/tools/bsd.js" },
+      "version": "1.1.0",
+      "install": "Incluído no harness (template/tools/bsd.js).",
+      "verify": { "type": "file", "path": "tools/bsd.js" }
+    },
+    {
+      "id": "rtk",
+      "name": "RTK (Rust Token Killer)",
+      "tier": "core",
+      "priority": 2,
+      "required": false,
+      "source": { "type": "binary", "org": "rtk-ai", "url": "https://github.com/rtk-ai" },
+      "version": "0.39.0",
+      "install": "Binário rtk-ai instalado em ~/.local/bin/rtk. Ver tools/rtk.md.",
+      "verify": { "type": "command", "cmd": "rtk --version", "expect": "0.39.0" }
+    },
+    {
+      "id": "gbrain",
+      "name": "GBrain (Memória Persistente)",
+      "tier": "core",
+      "priority": 3,
+      "required": false,
+      "source": { "type": "gstack", "repo": "garrytan/gstack", "note": "binário bun distribuído com o gstack" },
+      "version": "1.55.1.0",
+      "install": "Via skill /setup-gbrain do gstack. Binário em ~/.bun/bin/gbrain. Ver tools/gbrain.md.",
+      "verify": { "type": "command", "cmd": "gbrain --version", "expect": "" }
+    },
+    {
+      "id": "repomix",
+      "name": "Repomix",
+      "tier": "core",
+      "priority": 4,
+      "required": true,
+      "source": { "type": "npm", "package": "repomix" },
+      "version": "0.2.14",
+      "install": "npm ci em .harness/tools (pinado no package.json).",
+      "verify": { "type": "file", "path": "tools/node_modules/repomix/bin/repomix.cjs" }
+    },
+    {
+      "id": "gsd-redux",
+      "name": "Open GSD Redux",
+      "tier": "core",
+      "priority": 5,
+      "required": true,
+      "source": { "type": "npm", "package": "@opengsd/get-shit-done-redux" },
+      "version": "1.1.0",
+      "install": "npm ci em .harness/tools (pinado no package.json).",
+      "verify": { "type": "file", "path": "tools/node_modules/@opengsd/get-shit-done-redux/bin/gsd-sdk.js" }
+    },
+    {
+      "id": "gstack",
+      "name": "GStack (camada operacional)",
+      "tier": "platform",
+      "priority": 6,
+      "required": false,
+      "source": { "type": "git", "repo": "garrytan/gstack", "url": "https://github.com/garrytan/gstack", "commit": "c43c850cae77" },
+      "version": "1.55.1.0",
+      "install": "Plugin/marketplace do Claude Code a partir de garrytan/gstack (pin commit c43c850cae77). Ver tools/gstack.md.",
+      "verify": { "type": "skill", "path": "gstack" }
+    },
+    {
+      "id": "superpowers",
+      "name": "Superpowers",
+      "tier": "skill",
+      "priority": 7,
+      "required": false,
+      "source": { "type": "git", "repo": "obra/superpowers", "url": "https://github.com/obra/superpowers", "tag": "v5.1.0", "commit": "f2cbfbefebbf" },
+      "version": "5.1.0",
+      "install": "Plugin do Claude Code a partir de obra/superpowers (pin tag v5.1.0). Ver tools/superpowers.md.",
+      "verify": { "type": "skill", "path": "superpowers" }
+    },
+    {
+      "id": "frontend-designer",
+      "name": "Frontend Designer",
+      "tier": "skill",
+      "priority": 8,
+      "required": false,
+      "source": { "type": "gstack", "repo": "garrytan/gstack", "note": "família de skills design-* do gstack" },
+      "version": "1.55.1.0",
+      "install": "Incluído no gstack (skills design-consultation, design-html, design-review, design-shotgun). Ver tools/frontend-designer.md.",
+      "verify": { "type": "skill", "path": "design-html" }
+    },
+    {
+      "id": "postgres-mcp",
+      "name": "PostgreSQL MCP",
+      "tier": "mcp",
+      "priority": 9,
+      "required": false,
+      "source": { "type": "npm", "package": "@modelcontextprotocol/server-postgres" },
+      "version": "0.6.2",
+      "install": "npm ci em .harness/tools (pinado). Registrar via config/mcp.json. Ver tools/postgres-mcp.md.",
+      "verify": { "type": "file", "path": "tools/node_modules/@modelcontextprotocol/server-postgres/dist/index.js" }
+    },
+    {
+      "id": "playwright-mcp",
+      "name": "Playwright MCP",
+      "tier": "mcp",
+      "priority": 10,
+      "required": false,
+      "source": { "type": "npm", "package": "@playwright/mcp" },
+      "version": "0.0.75",
+      "install": "npm ci em .harness/tools (pinado). Registrar via config/mcp.json. Ver tools/playwright-mcp.md.",
+      "verify": { "type": "file", "path": "tools/node_modules/@playwright/mcp/package.json" }
+    }
+  ]
+}

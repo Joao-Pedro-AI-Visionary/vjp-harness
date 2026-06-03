@@ -250,6 +250,7 @@ async function main() {
     console.log(`  node .harness/tools/bsd.js --continue           : Retoma último pipeline`);
     console.log(`  node .harness/tools/bsd.js --status             : Exibe painel de status atual`);
     console.log(`  node .harness/tools/bsd.js --reset              : Limpa worktrees e histórico`);
+    console.log(`  node .harness/tools/bsd.js --doctor             : Verifica determinismo (registry.json)`);
     process.exit(0);
   }
 
@@ -275,6 +276,11 @@ async function main() {
 
     case '--reset':
       await resetHarness();
+      break;
+
+    case '--doctor':
+      // Delega ao verificador de determinismo (registry.json)
+      execSync(`node "${path.join(__dirname, 'verify.js')}" ${args.slice(1).join(' ')}`, { stdio: 'inherit' });
       break;
 
     default:

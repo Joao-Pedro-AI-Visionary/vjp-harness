@@ -1,0 +1,18 @@
+{
+  "_comment": "Config MCP do V-JP Harness. Versões pinadas via .harness/tools (npm ci). Mescle em ~/.claude/settings.json ou .mcp.json do projeto. NÃO use @latest — quebra determinismo.",
+  "mcpServers": {
+    "postgres": {
+      "command": "node",
+      "args": [
+        ".harness/tools/node_modules/@modelcontextprotocol/server-postgres/dist/index.js",
+        "postgresql://localhost:5432/__DB_NAME__"
+      ]
+    },
+    "playwright": {
+      "command": "node",
+      "args": [
+        ".harness/tools/node_modules/@playwright/mcp/cli.js"
+      ]
+    }
+  }
+}

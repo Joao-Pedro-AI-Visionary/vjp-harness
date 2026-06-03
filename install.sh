@@ -98,7 +98,10 @@ mkdir -p "$HARNESS_DIR"
 cp -R "$TEMPLATE_DIR/." "$HARNESS_DIR/"
 # substituição de placeholders
 sed -i "s|__PROJECT_NAME__|$PROJECT_NAME|g" "$HARNESS_DIR/harness.yaml"
-ok "Motor copiado (harness.yaml, AGENT_RULES.md, tools/, config/)"
+# diretório de contexto (regenerável)
+mkdir -p "$HARNESS_DIR/context"
+[ -f "$SEED_DIR/context/README.md" ] && cp "$SEED_DIR/context/README.md" "$HARNESS_DIR/context/README.md"
+ok "Motor copiado (harness.yaml, registry.json, REGISTRY.md, INSTALL.md, AGENT_RULES.md, tools/, config/)"
 
 # ---- scaffold do .gbrain (preserva existente) ----
 GBRAIN_DIR="$TARGET/.gbrain"
@@ -131,20 +134,35 @@ add_ignore() { grep -qxF "$1" "$GITIGNORE" 2>/dev/null || echo "$1" >> "$GITIGNO
 if [ -e "$GITIGNORE" ] || [ -d "$TARGET/.git" ]; then
   info "Atualizando .gitignore ..."
   add_ignore ".harness/tools/node_modules/"
-  add_ignore ".harness/context/"
+  add_ignore ".harness/context/repo-packed.md"
   add_ignore ".bsd/worktrees/"
   add_ignore ".bsd/history.jsonl"
   add_ignore ".gbrain/brain.pglite/"
   ok ".gitignore atualizado"
 fi
 
-# ---- instalação das ferramentas pinadas ----
+# ---- instalação determinística das ferramentas pinadas ----
 if [ "$DO_INSTALL" -eq 1 ]; then
-  info "Instalando ferramentas pinadas (repomix, gsd) ..."
-  ( cd "$HARNESS_DIR/tools" && npm install --no-audit --no-fund --loglevel=error )
-  ok "Ferramentas instaladas em .harness/tools/node_modules/"
+  if [ -f "$HARNESS_DIR/tools/package-lock.json" ]; then
+    info "Instalando ferramentas pinadas via npm ci (lockfile — determinístico) ..."
+    ( cd "$HARNESS_DIR/tools" && npm ci --no-audit --no-fund --loglevel=error )
+  else
+    warn "Sem package-lock.json — usando npm install (menos determinístico)."
+    ( cd "$HARNESS_DIR/tools" && npm install --no-audit --no-fund --loglevel=error )
+  fi
+  ok "Ferramentas instaladas (repomix, gsd, postgres-mcp, playwright-mcp)"
 else
-  warn "npm install pulado (--no-install). Rode depois: (cd .harness/tools && npm install)"
+  warn "npm install pulado (--no-install). Rode depois: (cd .harness/tools && npm ci)"
+fi
+
+# ---- verificação de determinismo (doctor) ----
+if [ "$DO_INSTALL" -eq 1 ]; then
+  info "Verificando determinismo (registry.json) ..."
+  if ( cd "$TARGET" && node .harness/tools/verify.js ); then
+    :
+  else
+    warn "Doctor reportou pendências (opcionais ausentes não bloqueiam). Veja acima e REGISTRY.md."
+  fi
 fi
 
 printf "\n${C_BOLD}${C_GREEN}✔ Harness instalado em %s${C_RESET}\n" "$TARGET"
