@@ -128,6 +128,12 @@ async function createWorktree(feature) {
   if (isGitRepo()) {
     try { execSync(`git branch -D ${branch}`, { cwd: ROOT_DIR, stdio: 'ignore' }); } catch {}
     execSync(`git worktree add -b ${branch} "${worktreePath}"`, { cwd: ROOT_DIR, stdio: 'ignore' });
+    // worktree não herda node_modules — linka o do projeto p/ o testCommand resolver deps/binários
+    const rootNM = path.join(ROOT_DIR, 'node_modules');
+    const wtNM = path.join(worktreePath, 'node_modules');
+    if (fsSync.existsSync(rootNM) && !fsSync.existsSync(wtNM)) {
+      try { fsSync.symlinkSync(rootNM, wtNM, 'dir'); } catch {}
+    }
     return { worktreePath, branch, gitMode: true };
   }
   await fs.mkdir(worktreePath, { recursive: true });
