@@ -1,0 +1,23 @@
+{
+  "_comment": "Config provider-agnostic dos agentes do V-JP Harness. O código (tools/llm.js) tem adapters para openai (compatível: CLIProxyAPI/OpenAI/Together/etc.), anthropic e ollama. Pine o modelo para determinismo. A API key vem da env nomeada em apiKeyEnv (nunca commite a key).",
+  "llm": {
+    "provider": "openai",
+    "baseUrl": "http://localhost:8317/v1",
+    "model": "REPLACE_WITH_PINNED_MODEL",
+    "apiKeyEnv": "VJP_LLM_API_KEY",
+    "temperature": 0,
+    "maxTokens": 4096,
+    "timeoutMs": 180000
+  },
+  "agents": {
+    "planner": { "model": null },
+    "researcher": { "model": null },
+    "executor": { "model": null },
+    "reviewer": { "model": null }
+  },
+  "pipeline": {
+    "maxRetries": 2,
+    "testCommand": "npm test",
+    "autoMerge": true
+  }
+}

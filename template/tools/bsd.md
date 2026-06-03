@@ -14,11 +14,14 @@ PLANNER → RESEARCHER → EXECUTOR → REVIEWER → APPROVED?
 
 ## Comandos
 ```bash
-node .harness/tools/bsd.js --execute <feature>   # inicia pipeline
-node .harness/tools/bsd.js --continue            # retoma
-node .harness/tools/bsd.js --status              # painel STATE.md
-node .harness/tools/bsd.js --reset               # limpa worktrees/histórico
-node .harness/tools/bsd.js --doctor [--strict|--json]   # verifica determinismo
+node .harness/tools/bsd.js --execute <feature>            # pipeline real (4 agentes)
+node .harness/tools/bsd.js --execute <feature> --dry-run  # mecânica sem LLM
+node .harness/tools/bsd.js --check-llm                    # testa o backend LLM
+node .harness/tools/bsd.js --continue                     # retoma
+node .harness/tools/bsd.js --status                       # painel STATE.md
+node .harness/tools/bsd.js --reset                        # limpa worktrees/histórico
+node .harness/tools/bsd.js --doctor [--strict|--json]     # verifica determinismo
+node .harness/tools/bsd.js --vendor [--only <id>]         # clona componentes git pinados
 ```
 
 ## Estado
@@ -31,5 +34,13 @@ node .harness/tools/bsd.js --doctor [--strict|--json]   # verifica determinismo
 test -f .harness/tools/bsd.js && echo OK
 ```
 
-## ⚠️ Estado atual
-O esqueleto transacional é completo (worktrees, logging, retomada, retry). As etapas dos 4 agentes ainda são **stubs simulados** (`setTimeout`) — a integração real com os agentes de IA é o próximo passo. O contrato (`AGENT_RULES.md` + `.gbrain/`) já está definido.
+## Agentes (integração real)
+Os 4 agentes rodam de verdade via `tools/agents.js` + `tools/llm.js` (provider-agnostic). Cada um monta o system prompt a partir de `AGENT_RULES.md` + memória `.gbrain/` e devolve JSON estruturado:
+- **PLANNER** → `{risk, strategy, needsResearch, acceptanceCriteria}`
+- **RESEARCHER** → `{impactedFiles, approach, dependencies}`
+- **EXECUTOR** → `{files:[{path,content}], commitMessage}` — o orquestrador escreve os arquivos na worktree (com proteção contra path traversal) e commita.
+- **REVIEWER** → `{approved, reason, requiredChanges}` — gate objetivo = resultado dos testes (`pipeline.testCommand`).
+
+Loop: até `pipeline.maxRetries` tentativas Executor→testes→Reviewer; se aprovado e `autoMerge`, faz `git merge --no-ff` na branch principal e limpa a worktree. Caso contrário, aborta e registra em `STATE.md`.
+
+Configuração em [`../config/agents.json`](../config/agents.json). Ver [`agents.md`](./agents.md).

@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.1",
-  "harnessVersion": "1.3.0",
+  "harnessVersion": "1.4.0",
   "description": "Registro determinístico de componentes do V-JP Harness. Fonte da verdade para instalação e verificação. Toda versão é pinada; o verificador (tools/verify.js) falha em drift. Repositórios canônicos conforme o Registro Definitivo V-JP.",
   "components": [
     {
@@ -15,7 +15,7 @@
         "url": "https://github.com/garrytan/gstack"
       },
       "dest": ".harness/tools/bsd.js",
-      "version": "1.3.0",
+      "version": "1.4.0",
       "install": "Incluído no harness (template/tools/bsd.js). Baseado em garrytan/gstack.",
       "verify": {
         "type": "file",

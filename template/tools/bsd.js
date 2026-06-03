@@ -6,12 +6,16 @@
  */
 
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
+import { loadLlmConfig, checkConnectivity } from './llm.js';
+import { buildContext, runPlanner, runResearcher, runExecutor, runReviewer, DRY } from './agents.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const HARNESS_DIR = path.resolve(__dirname, '..');
 
 // Definição de Cores ANSI
 const COLORS = {
@@ -112,52 +116,159 @@ function isGitRepo() {
   }
 }
 
-// Execução transacional de Feature
-async function executeFeature(feature) {
-  console.log(`${COLORS.bright}${COLORS.cyan}=== Iniciando Execução Transacional: ${feature} ===${COLORS.reset}\n`);
-  
+// Cria a git worktree isolada (ou diretório de fallback). Retorna {worktreePath, branch, gitMode}.
+async function createWorktree(feature) {
+  const worktreePath = path.join(WORKTREES_DIR, feature);
+  const branch = `bsd-feature-${feature}`;
+  // limpa worktree anterior da mesma feature (idempotência)
+  if (fsSync.existsSync(worktreePath)) {
+    try { execSync(`git worktree remove --force "${worktreePath}"`, { cwd: ROOT_DIR, stdio: 'ignore' }); } catch {}
+    await fs.rm(worktreePath, { recursive: true, force: true });
+  }
+  if (isGitRepo()) {
+    try { execSync(`git branch -D ${branch}`, { cwd: ROOT_DIR, stdio: 'ignore' }); } catch {}
+    execSync(`git worktree add -b ${branch} "${worktreePath}"`, { cwd: ROOT_DIR, stdio: 'ignore' });
+    return { worktreePath, branch, gitMode: true };
+  }
+  await fs.mkdir(worktreePath, { recursive: true });
+  return { worktreePath, branch, gitMode: false };
+}
+
+// Aplica as escritas de arquivo do EXECUTOR na worktree (com proteção contra path traversal).
+async function applyFiles(worktreePath, files) {
+  const applied = [];
+  for (const f of files || []) {
+    if (!f || typeof f.path !== 'string' || typeof f.content !== 'string') continue;
+    const rel = f.path.replace(/^\/+/, '');
+    const abs = path.resolve(worktreePath, rel);
+    if (!abs.startsWith(path.resolve(worktreePath) + path.sep)) {
+      throw new Error(`Caminho fora da worktree recusado: ${f.path}`);
+    }
+    await fs.mkdir(path.dirname(abs), { recursive: true });
+    await fs.writeFile(abs, f.content, 'utf8');
+    applied.push(rel);
+  }
+  return applied;
+}
+
+// Roda os testes na worktree. Retorna {passed, output}.
+function runTests(cwd, testCommand) {
+  try {
+    const out = execSync(testCommand, { cwd, stdio: ['ignore', 'pipe', 'pipe'], timeout: 600000 }).toString();
+    return { passed: true, output: out };
+  } catch (e) {
+    return { passed: false, output: `${e.stdout || ''}\n${e.stderr || ''}\n${e.message}` };
+  }
+}
+
+// Execução transacional de Feature (pipeline real: PLANNER → RESEARCHER → EXECUTOR → REVIEWER)
+async function executeFeature(feature, opts = {}) {
+  const dryRun = !!opts.dryRun;
+  console.log(`${COLORS.bright}${COLORS.cyan}=== Execução Transacional: ${feature}${dryRun ? ' (dry-run)' : ''} ===${COLORS.reset}\n`);
   await initDirs();
-  await logHistory('START_FEATURE', feature, 'All', 'running', { message: 'Iniciando pipeline transacional' });
-  
-  const tasks = ['Mapear Estrutura', 'Criar Worktree', 'Executar Planner', 'Executar Researcher', 'Executar Executor', 'Executar Reviewer'];
-  const totalSteps = tasks.length;
+  await logHistory('START_FEATURE', feature, 'All', 'running', { dryRun });
 
-  for (let i = 0; i < totalSteps; i++) {
-    const task = tasks[i];
-    console.log(`${COLORS.yellow}[Passo ${i+1}/${totalSteps}] ${task}...${COLORS.reset}`);
-    await logHistory('STEP_START', feature, task, 'running');
-    await updateStateMarkdown(feature, task, 'running', i, totalSteps);
+  // Config + contexto
+  let cfg, ctx;
+  try {
+    cfg = loadLlmConfig(HARNESS_DIR);
+  } catch (e) {
+    if (!dryRun) { console.log(`${COLORS.red}Config inválida: ${e.message}${COLORS.reset}`); process.exit(1); }
+    cfg = { pipeline: { maxRetries: 2, testCommand: 'node -e "process.exit(0)"', autoMerge: true } };
+  }
+  ctx = buildContext(HARNESS_DIR, ROOT_DIR);
+  const maxRetries = cfg.pipeline?.maxRetries ?? 2;
+  const testCommand = dryRun ? 'node -e "process.exit(0)"' : (cfg.pipeline?.testCommand || 'npm test');
+  const autoMerge = cfg.pipeline?.autoMerge !== false;
 
-    // Simula tempo de processamento ou integração real
-    if (task === 'Criar Worktree') {
-      const worktreePath = path.join(WORKTREES_DIR, feature);
-      if (isGitRepo()) {
+  const step = async (name, idx, total, fn) => {
+    console.log(`${COLORS.yellow}[${idx}/${total}] ${name}...${COLORS.reset}`);
+    await logHistory('STEP_START', feature, name, 'running');
+    await updateStateMarkdown(feature, name, 'running', idx - 1, total);
+    const r = await fn();
+    await logHistory('STEP_SUCCESS', feature, name, 'success');
+    return r;
+  };
+
+  try {
+    const TOTAL = 4 + maxRetries; // estimativa para a barra de progresso
+    // 1. Worktree
+    const { worktreePath, branch, gitMode } = await step('Criar Worktree', 1, TOTAL, () => createWorktree(feature));
+    console.log(`  ${COLORS.dim}Worktree: ${worktreePath} (${gitMode ? 'git' : 'fallback'})${COLORS.reset}`);
+
+    // 2. Planner
+    const plan = await step('Planner (risco/estratégia)', 2, TOTAL,
+      () => dryRun ? DRY.planner() : runPlanner({ feature, ctx, cfg }));
+    console.log(`  ${COLORS.dim}Risco: ${plan.risk} · ${plan.strategy}${COLORS.reset}`);
+
+    // 3. Researcher
+    const research = await step('Researcher (impacto)', 3, TOTAL,
+      () => dryRun ? DRY.researcher() : runResearcher({ feature, plan, ctx, cfg }));
+    console.log(`  ${COLORS.dim}Arquivos impactados: ${(research.impactedFiles || []).join(', ') || '—'}${COLORS.reset}`);
+
+    // 4. Loop Executor → testes → Reviewer (máx. maxRetries tentativas)
+    let approved = false, feedback = '', lastReview = null, attempt = 0;
+    while (attempt < maxRetries && !approved) {
+      attempt++;
+      const executor = await step(`Executor (tentativa ${attempt}/${maxRetries})`, 3 + attempt, TOTAL,
+        () => dryRun ? DRY.executor({ feature }) : runExecutor({ feature, plan, research, ctx, cfg, feedback }));
+      const applied = await applyFiles(worktreePath, executor.files);
+      console.log(`  ${COLORS.dim}Escreveu ${applied.length} arquivo(s): ${applied.join(', ')}${COLORS.reset}`);
+      if (gitMode && applied.length) {
         try {
-          console.log(`  ${COLORS.dim}Criando Git Worktree em: ${worktreePath}${COLORS.reset}`);
-          execSync(`git worktree add -b bsd-feature-${feature} "${worktreePath}"`, { cwd: ROOT_DIR, stdio: 'ignore' });
-          await logHistory('WORKTREE_CREATED', feature, task, 'success', { path: worktreePath, mode: 'git-worktree' });
-        } catch (e) {
-          console.log(`  ${COLORS.red}Falha ao criar Git Worktree. Usando diretório isolado de fallback.${COLORS.reset}`);
-          await fs.mkdir(worktreePath, { recursive: true });
-          await logHistory('WORKTREE_CREATED', feature, task, 'success', { path: worktreePath, mode: 'fallback-directory', error: e.message });
-        }
-      } else {
-        console.log(`  ${COLORS.dim}Git não inicializado. Criando diretório de trabalho isolado em: ${worktreePath}${COLORS.reset}`);
-        await fs.mkdir(worktreePath, { recursive: true });
-        await logHistory('WORKTREE_CREATED', feature, task, 'success', { path: worktreePath, mode: 'fallback-directory' });
+          execSync('git add -A', { cwd: worktreePath, stdio: 'ignore' });
+          execSync(`git commit -m ${JSON.stringify(executor.commitMessage || `bsd: ${feature} (tentativa ${attempt})`)}`, { cwd: worktreePath, stdio: 'ignore' });
+        } catch (e) { console.log(`  ${COLORS.dim}(nada para commitar)${COLORS.reset}`); }
       }
-    } else {
-      // Simulação rápida para demonstração de orquestração
-      await new Promise(resolve => setTimeout(resolve, 800));
+
+      const test = runTests(worktreePath, testCommand);
+      console.log(`  ${COLORS.dim}Testes: ${test.passed ? COLORS.green + 'PASSOU' : COLORS.red + 'FALHOU'}${COLORS.reset}`);
+      await logHistory('TEST_RESULT', feature, `Executor#${attempt}`, test.passed ? 'success' : 'failed', { applied });
+
+      lastReview = dryRun ? DRY.reviewer({ testPassed: test.passed })
+        : await runReviewer({ feature, executor, testPassed: test.passed, testOutput: test.output, ctx, cfg });
+      approved = !!lastReview.approved && test.passed;
+      if (!approved) {
+        feedback = `${lastReview.requiredChanges || lastReview.reason || ''}\nSaída dos testes:\n${String(test.output).slice(0, 1200)}`;
+        console.log(`  ${COLORS.red}Reviewer reprovou: ${lastReview.reason || 'ver testes'}${COLORS.reset}`);
+        await logHistory('REVIEW', feature, `Reviewer#${attempt}`, 'failed', { reason: lastReview.reason });
+      } else {
+        await logHistory('REVIEW', feature, `Reviewer#${attempt}`, 'success', {});
+      }
     }
 
-    await logHistory('STEP_SUCCESS', feature, task, 'success');
-  }
+    if (!approved) {
+      await updateStateMarkdown(feature, `Abortada após ${maxRetries} tentativas`, 'failed', TOTAL, TOTAL);
+      await logHistory('END_FEATURE', feature, 'All', 'failed', { reason: lastReview?.reason || 'reprovado', attempts: attempt });
+      console.log(`\n${COLORS.bright}${COLORS.red}✗ Feature "${feature}" abortada após ${attempt} tentativa(s). Veja .bsd/STATE.md.${COLORS.reset}`);
+      process.exit(1);
+    }
 
-  await updateStateMarkdown(feature, 'Concluído', 'success', totalSteps, totalSteps);
-  await logHistory('END_FEATURE', feature, 'All', 'success', { message: 'Pipeline concluído com sucesso' });
-  console.log(`\n${COLORS.bright}${COLORS.green}✔ Feature "${feature}" executada com 100% de sucesso!${COLORS.reset}`);
-  console.log(`${COLORS.dim}Painel atualizado em: ${STATE_FILE}${COLORS.reset}`);
+    // 5. Merge na branch principal (se aprovado)
+    if (gitMode && autoMerge) {
+      console.log(`${COLORS.yellow}[merge] Integrando ${branch} na branch principal...${COLORS.reset}`);
+      try {
+        execSync(`git merge --no-ff -m ${JSON.stringify(`bsd: merge ${feature}`)} ${branch}`, { cwd: ROOT_DIR, stdio: 'ignore' });
+        execSync(`git worktree remove --force "${worktreePath}"`, { cwd: ROOT_DIR, stdio: 'ignore' });
+        execSync(`git branch -d ${branch}`, { cwd: ROOT_DIR, stdio: 'ignore' });
+        await logHistory('MERGE', feature, 'All', 'success', { branch });
+      } catch (e) {
+        console.log(`${COLORS.red}Merge falhou (conflito?): ${e.message}. Worktree preservada em ${worktreePath}.${COLORS.reset}`);
+        await logHistory('MERGE', feature, 'All', 'failed', { error: e.message });
+      }
+    } else if (gitMode) {
+      console.log(`${COLORS.dim}autoMerge desligado — mudanças ficam na branch ${branch}.${COLORS.reset}`);
+    }
+
+    await updateStateMarkdown(feature, 'Concluído', 'success', TOTAL, TOTAL);
+    await logHistory('END_FEATURE', feature, 'All', 'success', {});
+    console.log(`\n${COLORS.bright}${COLORS.green}✔ Feature "${feature}" concluída e aprovada!${COLORS.reset}`);
+  } catch (e) {
+    await updateStateMarkdown(feature, `Erro: ${e.message}`, 'failed', 1, 1);
+    await logHistory('END_FEATURE', feature, 'All', 'failed', { error: e.message });
+    console.log(`\n${COLORS.bright}${COLORS.red}✗ Pipeline falhou: ${e.message}${COLORS.reset}`);
+    process.exit(1);
+  }
 }
 
 // Retomar pipeline a partir de histórico
@@ -250,6 +361,8 @@ async function main() {
     console.log(`  node .harness/tools/bsd.js --continue           : Retoma último pipeline`);
     console.log(`  node .harness/tools/bsd.js --status             : Exibe painel de status atual`);
     console.log(`  node .harness/tools/bsd.js --reset              : Limpa worktrees e histórico`);
+    console.log(`  node .harness/tools/bsd.js --execute <feature> --dry-run : Pipeline sem LLM (testa a mecânica)`);
+    console.log(`  node .harness/tools/bsd.js --check-llm          : Testa conectividade do backend LLM`);
     console.log(`  node .harness/tools/bsd.js --doctor             : Verifica determinismo (registry.json)`);
     console.log(`  node .harness/tools/bsd.js --vendor             : Clona componentes git pinados (rtk/gbrain/superpowers)`);
     process.exit(0);
@@ -259,13 +372,22 @@ async function main() {
 
   switch (command) {
     case '--execute':
-      const featureName = args[1];
+      const featureName = args[1] && !args[1].startsWith('--') ? args[1] : null;
       if (!featureName) {
         console.log(`${COLORS.red}Erro: Especifique o nome da feature. Exemplo: --execute auth-service${COLORS.reset}`);
         process.exit(1);
       }
-      await executeFeature(featureName);
+      await executeFeature(featureName, { dryRun: args.includes('--dry-run') });
       break;
+
+    case '--check-llm': {
+      const cfg = loadLlmConfig(HARNESS_DIR);
+      const r = await checkConnectivity(cfg);
+      console.log(r.ok
+        ? `${COLORS.green}✔ LLM OK${COLORS.reset} — ${r.detail}`
+        : `${COLORS.red}✗ LLM indisponível${COLORS.reset} — ${r.detail}`);
+      process.exit(r.ok ? 0 : 1);
+    }
 
     case '--continue':
       await continuePipeline();

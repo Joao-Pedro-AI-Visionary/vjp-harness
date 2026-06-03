@@ -144,12 +144,29 @@ node .harness/tools/bsd.js --reset
 
 ---
 
-## ⚠️ Estado atual
+## Agentes de IA (integração real)
 
-O `bsd.js` implementa o **esqueleto transacional completo** (worktrees, logging
-crash-safe, STATE.md, retomada, retry, doctor). As etapas dos 4 agentes
-(`PLANNER/RESEARCHER/EXECUTOR/REVIEWER`) ainda são **stubs simulados** — a
-integração real com agentes de IA é o próximo passo. O contrato
-(`AGENT_RULES.md` + `.gbrain/` + `registry.json`) já está definido.
+Os 4 agentes rodam de verdade (`tools/agents.js` + `tools/llm.js`), **provider-agnostic**:
+adapters para `openai` (compatível — CLIProxyAPI/OpenAI/…), `anthropic` e `ollama`.
+
+```bash
+# 1. configure o backend (pine o modelo + aponte a key via env)
+$EDITOR .harness/config/agents.json          # llm.provider, baseUrl, model, apiKeyEnv
+export VJP_LLM_API_KEY=...                    # a env nomeada em apiKeyEnv
+
+# 2. valide a conectividade
+node .harness/tools/bsd.js --check-llm
+
+# 3. rode uma feature (EXECUTOR escreve+commita na worktree; merge se os testes passarem)
+node .harness/tools/bsd.js --execute minha-feature
+
+# (mecânica sem LLM, para testar o fluxo)
+node .harness/tools/bsd.js --execute minha-feature --dry-run
+```
+
+Cada agente recebe `AGENT_RULES.md` + `.gbrain/*.md` como contexto e devolve JSON
+estruturado. O EXECUTOR não recebe shell — só conteúdo de arquivos, aplicados na
+git worktree isolada com proteção contra path traversal; o merge só acontece após
+os testes verdes (`pipeline.testCommand`). Detalhes em [`template/tools/agents.md`](./template/tools/agents.md).
 
 Versão: ver [`VERSION`](./VERSION).
