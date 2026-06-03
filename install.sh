@@ -11,6 +11,7 @@
 #   --target <dir>   Projeto-alvo (default: diretório atual)
 #   --name <nome>    Nome do projeto no harness.yaml (default: basename do alvo)
 #   --no-install     Não roda `npm install` (copia só os arquivos)
+#   --no-vendor      Não clona os componentes git pinados (RTK/GBrain/Superpowers)
 #   --force          Sobrescreve um .harness/ já existente
 #   --yes            Modo não-interativo (CI): assume "sim" em tudo
 #   --help           Mostra esta ajuda
@@ -46,12 +47,13 @@ MIN_NODE_MAJOR=18
 usage() { sed -n '2,22p' "$SOURCE" | sed 's/^# \{0,1\}//'; exit 0; }
 
 # ---- parse de argumentos ----
-TARGET=""; PROJECT_NAME=""; DO_INSTALL=1; FORCE=0; ASSUME_YES=0
+TARGET=""; PROJECT_NAME=""; DO_INSTALL=1; FORCE=0; ASSUME_YES=0; DO_VENDOR=1
 while [ $# -gt 0 ]; do
   case "$1" in
     --target) TARGET="${2:-}"; shift 2;;
     --name)   PROJECT_NAME="${2:-}"; shift 2;;
     --no-install) DO_INSTALL=0; shift;;
+    --no-vendor) DO_VENDOR=0; shift;;
     --force)  FORCE=1; shift;;
     --yes|-y) ASSUME_YES=1; shift;;
     --help|-h) usage;;
@@ -134,6 +136,9 @@ add_ignore() { grep -qxF "$1" "$GITIGNORE" 2>/dev/null || echo "$1" >> "$GITIGNO
 if [ -e "$GITIGNORE" ] || [ -d "$TARGET/.git" ]; then
   info "Atualizando .gitignore ..."
   add_ignore ".harness/tools/node_modules/"
+  add_ignore ".harness/tools/rtk/"
+  add_ignore ".harness/tools/gbrain/"
+  add_ignore ".harness/tools/superpowers/"
   add_ignore ".harness/context/repo-packed.md"
   add_ignore ".bsd/worktrees/"
   add_ignore ".bsd/history.jsonl"
@@ -153,6 +158,18 @@ if [ "$DO_INSTALL" -eq 1 ]; then
   ok "Ferramentas instaladas (repomix, gsd, postgres-mcp, playwright-mcp)"
 else
   warn "npm install pulado (--no-install). Rode depois: (cd .harness/tools && npm ci)"
+fi
+
+# ---- vendorização determinística dos componentes git ----
+if [ "$DO_VENDOR" -eq 1 ]; then
+  if command -v git >/dev/null 2>&1; then
+    info "Vendorizando componentes git pinados (RTK/GBrain/Superpowers) ..."
+    ( cd "$TARGET" && node .harness/tools/vendor.js ) || warn "Vendorização com pendências (rede?). Rode depois: node .harness/tools/bsd.js --vendor"
+  else
+    warn "git ausente — vendorização pulada."
+  fi
+else
+  warn "Vendorização pulada (--no-vendor). Rode depois: node .harness/tools/bsd.js --vendor"
 fi
 
 # ---- verificação de determinismo (doctor) ----

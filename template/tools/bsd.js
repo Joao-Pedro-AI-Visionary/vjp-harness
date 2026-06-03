@@ -251,6 +251,7 @@ async function main() {
     console.log(`  node .harness/tools/bsd.js --status             : Exibe painel de status atual`);
     console.log(`  node .harness/tools/bsd.js --reset              : Limpa worktrees e histórico`);
     console.log(`  node .harness/tools/bsd.js --doctor             : Verifica determinismo (registry.json)`);
+    console.log(`  node .harness/tools/bsd.js --vendor             : Clona componentes git pinados (rtk/gbrain/superpowers)`);
     process.exit(0);
   }
 
@@ -281,6 +282,11 @@ async function main() {
     case '--doctor':
       // Delega ao verificador de determinismo (registry.json)
       execSync(`node "${path.join(__dirname, 'verify.js')}" ${args.slice(1).join(' ')}`, { stdio: 'inherit' });
+      break;
+
+    case '--vendor':
+      // Delega à vendorização determinística (clone pinado dos componentes git)
+      execSync(`node "${path.join(__dirname, 'vendor.js')}" ${args.slice(1).join(' ')}`, { stdio: 'inherit' });
       break;
 
     default:

@@ -12,10 +12,11 @@ Memória persistente do projeto: decisões arquiteturais, bugs recorrentes, solu
 `GBrain → GSD` (informa o planejamento) e `Reviewer → GBrain` (registra aprendizados ao fim de cada task).
 
 ## Instalação
+Fonte clonada pinada (tag `eval-run-v0.35.1.0-baseline`, commit `3933eb6a7915`, shallow ~51MB) em `.harness/tools/gbrain/` pelo `install.sh`. Para o binário runnable + MCP:
 ```bash
-/setup-gbrain      # skill do gstack — instala o binário e registra o MCP
+/setup-gbrain      # registra o MCP; binário em ~/.bun/bin/gbrain (gbrain serve)
 ```
-MCP de referência: `gbrain serve` (binário em `~/.bun/bin/gbrain`).
+Re-vendorize com `node .harness/tools/bsd.js --vendor --only gbrain`.
 
 ## Verificação
 ```bash

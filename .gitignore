@@ -1,5 +1,9 @@
 # O repo distribui apenas o motor + seeds. Nada de node_modules ou estado.
 template/tools/node_modules/
 **/node_modules/
+# guarda: clones vendorizados nunca entram no repo do harness
+template/tools/rtk/
+template/tools/gbrain/
+template/tools/superpowers/
 *.log
 .DS_Store

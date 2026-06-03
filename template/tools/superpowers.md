@@ -9,10 +9,7 @@ Skill avançada para: TDD, debugging avançado, refatoração, revisão arquitet
 Bugs complexos · refatorações grandes · arquitetura crítica · problemas difíceis de reproduzir. Alimenta o agente **Planner**.
 
 ## Instalação
-Plugin do Claude Code a partir de `obra/superpowers`, na **tag pinada**:
-```
-obra/superpowers @ v5.1.0
-```
+Fonte clonada pinada (tag `v5.1.0`, commit `f2cbfbefebbf`) em `.harness/tools/superpowers/` pelo `install.sh` (`vendor.js`). Re-vendorize com `node .harness/tools/bsd.js --vendor --only superpowers`. Para ativar como plugin do Claude Code, aponte para o clone pinado.
 
 ## Verificação
 ```bash

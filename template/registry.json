@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.1",
-  "harnessVersion": "1.2.0",
+  "harnessVersion": "1.3.0",
   "description": "Registro determinístico de componentes do V-JP Harness. Fonte da verdade para instalação e verificação. Toda versão é pinada; o verificador (tools/verify.js) falha em drift. Repositórios canônicos conforme o Registro Definitivo V-JP.",
   "components": [
     {
@@ -9,11 +9,18 @@
       "tier": "core",
       "priority": 1,
       "required": true,
-      "source": { "type": "bundled", "basedOn": "garrytan/gstack", "url": "https://github.com/garrytan/gstack" },
+      "source": {
+        "type": "bundled",
+        "basedOn": "garrytan/gstack",
+        "url": "https://github.com/garrytan/gstack"
+      },
       "dest": ".harness/tools/bsd.js",
-      "version": "1.2.0",
+      "version": "1.3.0",
       "install": "Incluído no harness (template/tools/bsd.js). Baseado em garrytan/gstack.",
-      "verify": { "type": "file", "path": "tools/bsd.js" }
+      "verify": {
+        "type": "file",
+        "path": "tools/bsd.js"
+      }
     },
     {
       "id": "rtk",
@@ -21,11 +28,22 @@
       "tier": "core",
       "priority": 2,
       "required": false,
-      "source": { "type": "git", "repo": "rtk-ai/rtk", "url": "https://github.com/rtk-ai/rtk" },
+      "source": {
+        "type": "git",
+        "repo": "rtk-ai/rtk",
+        "url": "https://github.com/rtk-ai/rtk",
+        "tag": "v0.39.0",
+        "commit": "2fbc7514f696"
+      },
       "dest": ".harness/tools/rtk/",
+      "vendor": true,
       "version": "0.39.0",
-      "install": "Engine/CLI de rtk-ai/rtk (binário em ~/.local/bin/rtk). Ver tools/rtk.md.",
-      "verify": { "type": "command", "cmd": "rtk --version", "expect": "0.39.0" }
+      "install": "Engine/CLI de rtk-ai/rtk. Clonado pinado (tag v0.39.0) em .harness/tools/rtk/ pelo install.sh. Binário runnable em ~/.local/bin/rtk. Ver tools/rtk.md.",
+      "verify": {
+        "type": "command",
+        "cmd": "rtk --version",
+        "expect": "0.39.0"
+      }
     },
     {
       "id": "gbrain",
@@ -33,12 +51,23 @@
       "tier": "core",
       "priority": 3,
       "required": false,
-      "source": { "type": "git", "repo": "garrytan/gbrain", "url": "https://github.com/garrytan/gbrain", "tag": "eval-run-v0.35.1.0-baseline" },
+      "source": {
+        "type": "git",
+        "repo": "garrytan/gbrain",
+        "url": "https://github.com/garrytan/gbrain",
+        "tag": "eval-run-v0.35.1.0-baseline",
+        "commit": "3933eb6a7915"
+      },
       "dest": ".harness/tools/gbrain/",
       "persists": ".gbrain/",
+      "vendor": true,
       "version": "0.35.1.0",
-      "install": "Engine de memória de garrytan/gbrain. Via skill /setup-gbrain (binário bun). Persiste em .gbrain/. Ver tools/gbrain.md.",
-      "verify": { "type": "command", "cmd": "gbrain --version", "expect": "" }
+      "install": "Engine de memória de garrytan/gbrain. Clonado pinado (tag eval-run-v0.35.1.0-baseline, shallow ~51MB) em .harness/tools/gbrain/ pelo install.sh. Runnable via /setup-gbrain (binário bun). Persiste em .gbrain/. Ver tools/gbrain.md.",
+      "verify": {
+        "type": "command",
+        "cmd": "gbrain --version",
+        "expect": ""
+      }
     },
     {
       "id": "repomix",
@@ -46,11 +75,19 @@
       "tier": "core",
       "priority": 4,
       "required": true,
-      "source": { "type": "npm", "package": "repomix", "repo": "yamadashy/repomix", "url": "https://github.com/yamadashy/repomix" },
+      "source": {
+        "type": "npm",
+        "package": "repomix",
+        "repo": "yamadashy/repomix",
+        "url": "https://github.com/yamadashy/repomix"
+      },
       "dest": ".harness/tools/",
       "version": "0.2.14",
       "install": "npm ci em .harness/tools (pinado no package.json).",
-      "verify": { "type": "file", "path": "tools/node_modules/repomix/bin/repomix.cjs" }
+      "verify": {
+        "type": "file",
+        "path": "tools/node_modules/repomix/bin/repomix.cjs"
+      }
     },
     {
       "id": "gsd-redux",
@@ -58,11 +95,19 @@
       "tier": "core",
       "priority": 5,
       "required": true,
-      "source": { "type": "npm", "package": "@opengsd/get-shit-done-redux", "repo": "open-gsd/get-shit-done-redux", "url": "https://github.com/open-gsd/get-shit-done-redux" },
+      "source": {
+        "type": "npm",
+        "package": "@opengsd/get-shit-done-redux",
+        "repo": "open-gsd/get-shit-done-redux",
+        "url": "https://github.com/open-gsd/get-shit-done-redux"
+      },
       "dest": ".harness/tools/",
       "version": "1.1.0",
       "install": "npm ci em .harness/tools (pinado no package.json).",
-      "verify": { "type": "file", "path": "tools/node_modules/@opengsd/get-shit-done-redux/bin/gsd-sdk.js" }
+      "verify": {
+        "type": "file",
+        "path": "tools/node_modules/@opengsd/get-shit-done-redux/bin/gsd-sdk.js"
+      }
     },
     {
       "id": "superpowers",
@@ -70,11 +115,21 @@
       "tier": "skill",
       "priority": 6,
       "required": false,
-      "source": { "type": "git", "repo": "obra/superpowers", "url": "https://github.com/obra/superpowers", "tag": "v5.1.0", "commit": "f2cbfbefebbf" },
+      "source": {
+        "type": "git",
+        "repo": "obra/superpowers",
+        "url": "https://github.com/obra/superpowers",
+        "tag": "v5.1.0",
+        "commit": "f2cbfbefebbf"
+      },
       "dest": ".harness/tools/superpowers/",
+      "vendor": true,
       "version": "5.1.0",
-      "install": "CLI/Engine de obra/superpowers (plugin Claude Code, tag v5.1.0). Ver tools/superpowers.md.",
-      "verify": { "type": "skill", "path": "superpowers" }
+      "install": "CLI/Engine de obra/superpowers. Clonado pinado (tag v5.1.0) em .harness/tools/superpowers/ pelo install.sh. Ver tools/superpowers.md.",
+      "verify": {
+        "type": "skill",
+        "path": "superpowers"
+      }
     },
     {
       "id": "postgres-mcp",
@@ -82,11 +137,19 @@
       "tier": "mcp",
       "priority": 7,
       "required": false,
-      "source": { "type": "git", "repo": "modelcontextprotocol/servers", "url": "https://github.com/modelcontextprotocol/servers", "package": "@modelcontextprotocol/server-postgres" },
+      "source": {
+        "type": "git",
+        "repo": "modelcontextprotocol/servers",
+        "url": "https://github.com/modelcontextprotocol/servers",
+        "package": "@modelcontextprotocol/server-postgres"
+      },
       "dest": "runtime (injetado no Claude/Cursor via config/mcp.json)",
       "version": "0.6.2",
       "install": "Servidor MCP de modelcontextprotocol/servers. Pinado via npm ci (@modelcontextprotocol/server-postgres@0.6.2); injetado no runtime via config/mcp.json. Ver tools/postgres-mcp.md.",
-      "verify": { "type": "file", "path": "tools/node_modules/@modelcontextprotocol/server-postgres/dist/index.js" }
+      "verify": {
+        "type": "file",
+        "path": "tools/node_modules/@modelcontextprotocol/server-postgres/dist/index.js"
+      }
     },
     {
       "id": "playwright-mcp",
@@ -94,11 +157,20 @@
       "tier": "mcp",
       "priority": 8,
       "required": false,
-      "source": { "type": "git", "repo": "modelcontextprotocol/servers", "url": "https://github.com/modelcontextprotocol/servers", "package": "@playwright/mcp", "note": "artefato de install determinístico: npm @playwright/mcp" },
+      "source": {
+        "type": "git",
+        "repo": "modelcontextprotocol/servers",
+        "url": "https://github.com/modelcontextprotocol/servers",
+        "package": "@playwright/mcp",
+        "note": "artefato de install determinístico: npm @playwright/mcp"
+      },
       "dest": "runtime (injetado no Claude/Cursor via config/mcp.json)",
       "version": "0.0.75",
       "install": "Servidor MCP. Pinado via npm ci (@playwright/mcp@0.0.75); injetado no runtime via config/mcp.json. Ver tools/playwright-mcp.md.",
-      "verify": { "type": "file", "path": "tools/node_modules/@playwright/mcp/package.json" }
+      "verify": {
+        "type": "file",
+        "path": "tools/node_modules/@playwright/mcp/package.json"
+      }
     },
     {
       "id": "frontend-designer",
@@ -106,11 +178,19 @@
       "tier": "skill",
       "priority": 9,
       "required": false,
-      "source": { "type": "git", "repo": "anthropics/skills", "url": "https://github.com/anthropics/skills", "path": "frontend-design" },
+      "source": {
+        "type": "git",
+        "repo": "anthropics/skills",
+        "url": "https://github.com/anthropics/skills",
+        "path": "frontend-design"
+      },
       "dest": ".harness/tools/frontend-designer.md",
       "version": "main",
       "install": "Skill/Spec de anthropics/skills (frontend-design). Ver tools/frontend-designer.md.",
-      "verify": { "type": "file", "path": "tools/frontend-designer.md" }
+      "verify": {
+        "type": "file",
+        "path": "tools/frontend-designer.md"
+      }
     }
   ]
 }

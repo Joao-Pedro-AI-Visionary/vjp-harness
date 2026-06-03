@@ -61,7 +61,21 @@ Toda dependência é **pinada** e **verificável**. A fonte da verdade é
 node .harness/tools/bsd.js --doctor            # checa cada componente vs versão pinada
 node .harness/tools/bsd.js --doctor --strict   # falha também em opcionais ausentes
 node .harness/tools/verify.js --json           # saída para CI (exit 1 se obrigatório falhar)
+node .harness/tools/bsd.js --vendor            # clona componentes git pinados (assert de commit)
+node .harness/tools/bsd.js --vendor --only superpowers   # vendoriza um só
 ```
+
+### Vendorização determinística
+
+O `install.sh` clona os componentes git **pinados no commit** para dentro de `.harness/tools/`:
+
+| Componente | Repo | Ref | Destino |
+|---|---|---|---|
+| RTK | `rtk-ai/rtk` | `v0.39.0` @ `2fbc7514f696` | `.harness/tools/rtk/` |
+| GBrain | `garrytan/gbrain` | `eval-run-v0.35.1.0-baseline` @ `3933eb6a7915` | `.harness/tools/gbrain/` |
+| Superpowers | `obra/superpowers` | `v5.1.0` @ `f2cbfbefebbf` | `.harness/tools/superpowers/` |
+
+`vendor.js` faz shallow clone na tag e **asserta o commit** (`startsWith`) — se a tag se mover, reporta DRIFT. Idempotente (pula se já no commit certo). Os clones entram no `.gitignore` do projeto (reproduzíveis pelo ref). Pule com `--no-vendor`.
 
 ### Componentes (pinados — Registro Definitivo)
 

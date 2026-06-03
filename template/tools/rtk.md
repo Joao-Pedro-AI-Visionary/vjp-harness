@@ -9,7 +9,7 @@ Proxy CLI otimizador de tokens (60–90% de economia em operações de dev): com
 `Repomix → RTK → GSD Redux`. Recebe o pacote bruto do Repomix e entrega contexto otimizado para o planejamento.
 
 ## Instalação
-Binário externo. No ambiente de referência: `~/.local/bin/rtk`. Reinstale a mesma versão para reprodutibilidade.
+Fonte clonada pinada (tag `v0.39.0`, commit `2fbc7514f696`) em `.harness/tools/rtk/` pelo `install.sh` (`vendor.js`). O binário runnable fica em `~/.local/bin/rtk`. Re-vendorize com `node .harness/tools/bsd.js --vendor --only rtk`.
 
 ## Verificação
 ```bash
