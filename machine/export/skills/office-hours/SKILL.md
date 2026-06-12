@@ -1,0 +1,1 @@
+/home/jp/.claude/skills/gstack/office-hours/SKILL.md

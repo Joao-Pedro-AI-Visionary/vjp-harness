@@ -1,0 +1,1 @@
+/home/jp/.claude/skills/gstack/make-pdf/SKILL.md

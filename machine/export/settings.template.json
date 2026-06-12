@@ -1,0 +1,80 @@
+{
+  "env": {
+    "CLAUDE_CODE_USE_OPENAI": "1",
+    "OPENAI_BASE_URL": "http://localhost:3099/v1",
+    "OPENAI_API_KEY": "gqwen",
+    "OPENAI_MODEL": "coder-model"
+  },
+  "model": "claude-fable-5[1m]",
+  "fallbackModel": ["claude-opus-4-8", "claude-sonnet-4-6"],
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/jp/.local/bin/rtk hook claude"
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "/home/jp/.nvm/versions/node/v24.15.0/bin/node /home/jp/.claude/statusline-context.js"
+  },
+  "enabledPlugins": {
+    "vercel@claude-plugins-official": true
+  },
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "light-ansi",
+  "allowedTools": [
+    "Bash",
+    "Read",
+    "Glob",
+    "Grep",
+    "Edit",
+    "Write",
+    "NotebookEdit",
+    "Agent",
+    "TaskCreate",
+    "TaskUpdate",
+    "TaskList",
+    "TaskGet",
+    "TaskOutput",
+    "TaskStop",
+    "WebFetch",
+    "WebSearch",
+    "AskUserQuestion",
+    "Skill",
+    "EnterPlanMode",
+    "ExitPlanMode",
+    "Monitor",
+    "CronCreate",
+    "CronDelete",
+    "CronList"
+  ],
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest"
+      ]
+    },
+    "gbrain": {
+      "command": "/home/jp/.bun/bin/gbrain",
+      "args": [
+        "serve"
+      ]
+    },
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp@3.2.0"
+      ]
+    }
+  }
+}

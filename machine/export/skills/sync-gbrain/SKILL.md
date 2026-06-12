@@ -1,0 +1,1 @@
+/home/jp/.claude/skills/gstack/sync-gbrain/SKILL.md

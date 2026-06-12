@@ -1,0 +1,1 @@
+/home/jp/.claude/skills/gstack/scrape/SKILL.md

@@ -32,17 +32,17 @@
         "type": "git",
         "repo": "rtk-ai/rtk",
         "url": "https://github.com/rtk-ai/rtk",
-        "tag": "v0.39.0",
-        "commit": "2fbc7514f696"
+        "tag": "v0.42.3",
+        "commit": "de78d70aee86"
       },
       "dest": ".harness/tools/rtk/",
       "vendor": true,
-      "version": "0.39.0",
-      "install": "Engine/CLI de rtk-ai/rtk. Clonado pinado (tag v0.39.0) em .harness/tools/rtk/ pelo install.sh. Binário runnable em ~/.local/bin/rtk. Ver tools/rtk.md.",
+      "version": "0.42.3",
+      "install": "Engine/CLI de rtk-ai/rtk. Clonado pinado (tag v0.42.3) em .harness/tools/rtk/ pelo install.sh. Binário runnable em ~/.local/bin/rtk (release musl estática). Ver tools/rtk.md.",
       "verify": {
         "type": "command",
         "cmd": "rtk --version",
-        "expect": "0.39.0"
+        "expect": "0.42.3"
       }
     },
     {
@@ -145,6 +145,8 @@
       },
       "dest": "runtime (injetado no Claude/Cursor via config/mcp.json)",
       "version": "0.6.2",
+      "deprecated": true,
+      "securityNote": "SQL injection (CVE 2026) e pacote descontinuado upstream. Usar SOMENTE read-only e nunca contra produção. Preferir supabase-mcp em projetos Supabase.",
       "install": "Servidor MCP de modelcontextprotocol/servers. Pinado via npm ci (@modelcontextprotocol/server-postgres@0.6.2); injetado no runtime via config/mcp.json. Ver tools/postgres-mcp.md.",
       "verify": {
         "type": "file",
@@ -182,14 +184,36 @@
         "type": "git",
         "repo": "anthropics/skills",
         "url": "https://github.com/anthropics/skills",
-        "path": "frontend-design"
+        "path": "skills/frontend-design",
+        "commit": "575462609294"
       },
       "dest": ".harness/tools/frontend-designer.md",
-      "version": "main",
-      "install": "Skill/Spec de anthropics/skills (frontend-design). Ver tools/frontend-designer.md.",
+      "version": "2026-06-12",
+      "install": "Skill/Spec de anthropics/skills (skills/frontend-design, pinada no commit 575462609294). Também instalada globalmente em ~/.claude/skills/frontend-design. Ver tools/frontend-designer.md.",
       "verify": {
         "type": "file",
         "path": "tools/frontend-designer.md"
+      }
+    },
+    {
+      "id": "supabase-mcp",
+      "name": "Supabase MCP",
+      "tier": "mcp",
+      "priority": 10,
+      "required": false,
+      "source": {
+        "type": "npm",
+        "package": "@supabase/mcp-server-supabase",
+        "repo": "supabase-community/supabase-mcp",
+        "url": "https://github.com/supabase-community/supabase-mcp"
+      },
+      "dest": "runtime (injetado no Claude/Cursor via config/mcp.json)",
+      "version": "0.8.2",
+      "install": "Substituto recomendado do postgres-mcp em projetos Supabase (oficial, pooling+auth corretos, sem o CVE do server-postgres). npx -y @supabase/mcp-server-supabase@0.8.2 com SUPABASE_ACCESS_TOKEN via env.",
+      "verify": {
+        "type": "command",
+        "cmd": "npx -y @supabase/mcp-server-supabase@0.8.2 --help",
+        "expect": ""
       }
     }
   ]

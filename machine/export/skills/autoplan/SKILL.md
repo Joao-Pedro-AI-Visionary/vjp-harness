@@ -1,0 +1,1 @@
+/home/jp/.claude/skills/gstack/autoplan/SKILL.md
