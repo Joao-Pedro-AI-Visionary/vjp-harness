@@ -7,3 +7,7 @@ template/tools/gbrain/
 template/tools/superpowers/
 *.log
 .DS_Store
+
+# segredos locais de transporte — nunca commitar
+machine/SECRETS.local.txt
+*.local.txt
