@@ -1,4 +1,5 @@
-version: "1.6.0"
+version: "1.7.0"
+author: "João Pedro (V-JP) <dev.jp.991@gmail.com> · github.com/Joao-Pedro-AI-Visionary"
 project:
   name: "__PROJECT_NAME__"
   description: "Ecossistema de engenharia orientado a IA"
@@ -26,7 +27,7 @@ tools:
     version: "1.1.0"
     path: ".harness/tools/node_modules/@opengsd/get-shit-done-redux/bin/gsd-sdk.js"
   rtk:
-    version: "0.39.0"
+    version: "0.42.3"
     source: "git:rtk-ai/rtk"
   gbrain:
     version: "0.35.1.0"
@@ -53,15 +54,26 @@ agents:
     role: "Validação estrita de Qualidade e Segurança"
 
 mcp:
-  postgresql:
+  # v1.7.0: server-postgres (vulnerável) substituído por Postgres MCP Pro (crystaldba).
+  postgres:
     enabled: true
-    version: "0.6.2"
-    package: "@modelcontextprotocol/server-postgres"
+    version: "0.3.0"
+    package: "crystaldba/postgres-mcp"
+    run: "uvx postgres-mcp==0.3.0 --access-mode=restricted   # ou docker crystaldba/postgres-mcp:0.3.0"
     port: 5432
     trigger_extensions:
       - ".repository.ts"
       - ".entity.ts"
       - "prisma"
+  codebase_memory:
+    enabled: true
+    version: "0.8.1"
+    package: "codebase-memory-mcp"
+    path: ".harness/tools/node_modules/codebase-memory-mcp/bin.js"
+    trigger_extensions:
+      - ".ts"
+      - ".tsx"
+      - ".cs"
   playwright:
     enabled: true
     version: "0.0.75"
