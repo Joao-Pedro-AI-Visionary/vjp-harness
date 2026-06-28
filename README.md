@@ -1,7 +1,7 @@
 # V-JP Harness
 
 > **Autor:** João Pedro (V-JP) · [github.com/Joao-Pedro-AI-Visionary](https://github.com/Joao-Pedro-AI-Visionary) · dev.jp.991@gmail.com
-> **Versão:** 1.7.0 · Licença MIT · *método de engenharia de software orientado a IA*
+> **Versão:** 1.7.1 · Licença MIT · *método de engenharia de software orientado a IA*
 
 Ecossistema de engenharia de software orientado a IA — empacotado para instalação **determinística** em qualquer projeto.
 
@@ -77,7 +77,7 @@ O `install.sh` clona os componentes git **pinados no commit** para dentro de `.h
 
 | Componente | Repo | Ref | Destino |
 |---|---|---|---|
-| RTK | `rtk-ai/rtk` | `v0.42.3` @ `de78d70aee86` | `.harness/tools/rtk/` |
+| RTK | `rtk-ai/rtk` | `v0.42.4` @ `8a7dd7e5570d` | `.harness/tools/rtk/` |
 | GBrain | `garrytan/gbrain` | `eval-run-v0.35.1.0-baseline` @ `3933eb6a7915` | `.harness/tools/gbrain/` |
 | Superpowers | `obra/superpowers` | `v5.1.0` @ `f2cbfbefebbf` | `.harness/tools/superpowers/` |
 
@@ -88,7 +88,7 @@ O `install.sh` clona os componentes git **pinados no commit** para dentro de `.h
 | Componente | Repositório oficial | Versão |
 |---|---|---|
 | BSD | baseado em `garrytan/gstack` | `1.6.0` |
-| RTK | `rtk-ai/rtk` | `0.42.3` |
+| RTK | `rtk-ai/rtk` | `0.42.4` |
 | GBrain | `garrytan/gbrain` | `0.35.1.0` |
 | Repomix | `yamadashy/repomix` (npm) | `0.2.14` |
 | GSD Redux | `open-gsd/get-shit-done-redux` (npm) | `1.1.0` |

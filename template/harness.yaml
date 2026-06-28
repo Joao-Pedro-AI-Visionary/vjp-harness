@@ -1,4 +1,4 @@
-version: "1.7.0"
+version: "1.7.1"
 author: "João Pedro (V-JP) <dev.jp.991@gmail.com> · github.com/Joao-Pedro-AI-Visionary"
 project:
   name: "__PROJECT_NAME__"
@@ -27,7 +27,7 @@ tools:
     version: "1.1.0"
     path: ".harness/tools/node_modules/@opengsd/get-shit-done-redux/bin/gsd-sdk.js"
   rtk:
-    version: "0.42.3"
+    version: "0.42.4"
     source: "git:rtk-ai/rtk"
   gbrain:
     version: "0.35.1.0"
