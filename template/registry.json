@@ -1,12 +1,12 @@
 {
   "schemaVersion": "1.1",
-  "harnessVersion": "1.8.0",
+  "harnessVersion": "1.9.0",
   "author": "João Pedro (V-JP) <dev.jp.991@gmail.com> · github.com/Joao-Pedro-AI-Visionary",
   "description": "Registro determinístico de componentes do V-JP Harness. Fonte da verdade para instalação e verificação. Toda versão é pinada; o verificador (tools/verify.js) falha em drift. Repositórios canônicos conforme o Registro Definitivo V-JP.",
   "components": [
     {
       "id": "bsd",
-      "name": "BSD (Build Spec Development)",
+      "name": "Orquestrador (BSD)",
       "tier": "core",
       "priority": 1,
       "required": true,
@@ -25,7 +25,7 @@
     },
     {
       "id": "rtk",
-      "name": "RTK (Rust Token Killer)",
+      "name": "Compressor de Contexto (RTK)",
       "tier": "core",
       "priority": 2,
       "required": false,
@@ -48,7 +48,7 @@
     },
     {
       "id": "gbrain",
-      "name": "GBrain (Memória Persistente)",
+      "name": "Memória Persistente (GBrain)",
       "tier": "core",
       "priority": 3,
       "required": false,
@@ -72,7 +72,7 @@
     },
     {
       "id": "repomix",
-      "name": "Repomix",
+      "name": "Empacotador de Repositório (Repomix)",
       "tier": "core",
       "priority": 4,
       "required": true,
@@ -92,7 +92,7 @@
     },
     {
       "id": "gsd-redux",
-      "name": "Open GSD Redux",
+      "name": "Planejador Spec-Driven (GSD Redux)",
       "tier": "core",
       "priority": 5,
       "required": true,
@@ -112,7 +112,7 @@
     },
     {
       "id": "superpowers",
-      "name": "Superpowers",
+      "name": "Padrões Reutilizáveis / Skills (Superpowers)",
       "tier": "skill",
       "priority": 6,
       "required": false,
@@ -134,7 +134,7 @@
     },
     {
       "id": "postgres-mcp",
-      "name": "PostgreSQL MCP",
+      "name": "Validador de Banco — legado (PostgreSQL MCP)",
       "tier": "mcp",
       "priority": 7,
       "required": false,
@@ -158,7 +158,7 @@
     },
     {
       "id": "playwright-mcp",
-      "name": "Playwright MCP",
+      "name": "Validador de UI / E2E (Playwright MCP)",
       "tier": "mcp",
       "priority": 8,
       "required": false,
@@ -179,7 +179,7 @@
     },
     {
       "id": "frontend-designer",
-      "name": "Frontend Designer",
+      "name": "Guia de Design de UI (Frontend Designer)",
       "tier": "skill",
       "priority": 9,
       "required": false,
@@ -200,7 +200,7 @@
     },
     {
       "id": "supabase-mcp",
-      "name": "Supabase MCP",
+      "name": "Banco Supabase — opcional (Supabase MCP)",
       "tier": "mcp",
       "priority": 10,
       "required": false,
@@ -221,7 +221,7 @@
     },
     {
       "id": "codebase-memory-mcp",
-      "name": "Codebase Memory MCP",
+      "name": "Mapa de Código / Grafo de Símbolos (Codebase Memory MCP)",
       "tier": "mcp",
       "priority": 11,
       "required": false,
@@ -244,7 +244,7 @@
     },
     {
       "id": "postgres-mcp-pro",
-      "name": "Postgres MCP Pro (crystaldba)",
+      "name": "Validador de Banco — EXPLAIN/índices (Postgres MCP Pro / crystaldba)",
       "tier": "mcp",
       "priority": 12,
       "required": false,
