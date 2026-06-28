@@ -41,10 +41,18 @@ ok()    { printf "${C_GREEN}✔${C_RESET} %s\n" "$1"; }
 warn()  { printf "${C_YELLOW}⚠${C_RESET} %s\n" "$1"; }
 err()   { printf "${C_RED}✗ %s${C_RESET}\n" "$1" >&2; }
 die()   { err "$1"; exit 1; }
+sed_in_place() {
+  local expr="$1"; shift
+  if sed --version >/dev/null 2>&1; then
+    sed -i "$expr" "$@"
+  else
+    sed -i '' "$expr" "$@"
+  fi
+}
 
 MIN_NODE_MAJOR=18
 
-usage() { sed -n '2,22p' "$SOURCE" | sed 's/^# \{0,1\}//'; exit 0; }
+usage() { awk '/^set -euo pipefail/{exit} NR>=2{sub(/^# ?/,""); print}' "$SOURCE"; exit 0; }
 
 # ---- parse de argumentos ----
 TARGET=""; PROJECT_NAME=""; DO_INSTALL=1; FORCE=0; ASSUME_YES=0; DO_VENDOR=1
@@ -99,7 +107,7 @@ info "Copiando motor para .harness/ ..."
 mkdir -p "$HARNESS_DIR"
 cp -R "$TEMPLATE_DIR/." "$HARNESS_DIR/"
 # substituição de placeholders
-sed -i "s|__PROJECT_NAME__|$PROJECT_NAME|g" "$HARNESS_DIR/harness.yaml"
+sed_in_place "s|__PROJECT_NAME__|$PROJECT_NAME|g" "$HARNESS_DIR/harness.yaml"
 # diretório de contexto (regenerável)
 mkdir -p "$HARNESS_DIR/context"
 [ -f "$SEED_DIR/context/README.md" ] && cp "$SEED_DIR/context/README.md" "$HARNESS_DIR/context/README.md"
@@ -113,8 +121,8 @@ else
   info "Criando .gbrain/ a partir dos seeds ..."
   mkdir -p "$GBRAIN_DIR"
   cp -R "$SEED_DIR/gbrain/." "$GBRAIN_DIR/"
-  sed -i "s|__PROJECT_NAME__|$PROJECT_NAME|g" "$GBRAIN_DIR/project.md"
-  sed -i "s|__GBRAIN_DB_PATH__|$GBRAIN_DIR/brain.pglite|g" "$GBRAIN_DIR/config.json"
+  sed_in_place "s|__PROJECT_NAME__|$PROJECT_NAME|g" "$GBRAIN_DIR/project.md"
+  sed_in_place "s|__GBRAIN_DB_PATH__|$GBRAIN_DIR/brain.pglite|g" "$GBRAIN_DIR/config.json"
   ok ".gbrain/ criado (memória persistente dos agentes)"
 fi
 
@@ -155,7 +163,8 @@ if [ "$DO_INSTALL" -eq 1 ]; then
     warn "Sem package-lock.json — usando npm install (menos determinístico)."
     ( cd "$HARNESS_DIR/tools" && npm install --no-audit --no-fund --loglevel=error )
   fi
-  ok "Ferramentas instaladas (repomix, gsd, postgres-mcp, playwright-mcp)"
+  ok "Ferramentas instaladas (repomix, gsd, codebase-memory-mcp, playwright-mcp)"
+  info "Postgres MCP Pro (crystaldba) roda fora do npm: 'uvx postgres-mcp==0.3.0' ou Docker. Ver tools/postgres-mcp.md."
 else
   warn "npm install pulado (--no-install). Rode depois: (cd .harness/tools && npm ci)"
 fi

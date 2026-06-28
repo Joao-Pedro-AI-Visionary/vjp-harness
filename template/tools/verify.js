@@ -84,7 +84,9 @@ function main() {
     process.exit(2);
   }
   const reg = JSON.parse(fs.readFileSync(REGISTRY, 'utf8'));
-  const components = [...reg.components].sort((a, b) => a.priority - b.priority);
+  // Componentes marcados `removed` (ex.: server-postgres na v1.7.0) ficam no registro
+  // como histórico/ADR, mas não são verificados (não estão mais instalados).
+  const components = [...reg.components].filter((c) => !c.removed).sort((a, b) => a.priority - b.priority);
 
   const rows = components.map((c) => {
     const r = checkComponent(c);
