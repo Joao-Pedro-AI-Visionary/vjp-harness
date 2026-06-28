@@ -11,6 +11,13 @@ Memória persistente do projeto: decisões arquiteturais, bugs recorrentes, solu
 ## Papel no pipeline
 `GBrain → GSD` (informa o planejamento) e `Reviewer → GBrain` (registra aprendizados ao fim de cada task).
 
+## Captura nativa de decisão (v1.7.0)
+Para combater a dor "esqueci de gravar a decisão" **sem** depender de uma camada de auto-captura externa não-determinística (rohitg00/agentmemory foi **avaliado e rejeitado** — ver `.gbrain/decisions.md`), o harness traz um helper nativo e determinístico:
+```bash
+node .harness/tools/gbrain-decision.js "<o quê>" --alt "<alternativa descartada>" --why "<porquê>"
+```
+Faz append **idempotente** em `.gbrain/decisions.md` no formato defensável do método V-JP. Há ainda um Stop hook opt-in (`machine/hooks/gbrain-decision-reminder.sh`) que lembra de registrar a decisão do dia quando houve mudança de código. Prova viva: `node .harness/tools/gbrain-decision.test.mjs`.
+
 ## Instalação
 Fonte clonada pinada (tag `eval-run-v0.35.1.0-baseline`, commit `3933eb6a7915`, shallow ~51MB) em `.harness/tools/gbrain/` pelo `install.sh`. Para o binário runnable + MCP:
 ```bash

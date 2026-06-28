@@ -1,11 +1,22 @@
 {
-  "_comment": "Config MCP do V-JP Harness. Versões pinadas via .harness/tools (npm ci). Mescle em ~/.claude/settings.json ou .mcp.json do projeto. NÃO use @latest — quebra determinismo.",
+  "_comment": "Config MCP do V-JP Harness (por João Pedro / V-JP). Versões pinadas. Mescle em ~/.claude/settings.json ou .mcp.json do projeto. NÃO use @latest — quebra determinismo. Estes MCPs servem a CAMADA INTERATIVA (Claude Code/Cursor seguindo AGENT_RULES); o BSD headless não é cliente MCP.",
   "mcpServers": {
     "postgres": {
+      "_comment": "Postgres MCP Pro (crystaldba) v0.3.0 — substitui o vulnerável server-postgres (v1.7.0). Restricted = read-only seguro p/ produção; troque p/ unrestricted em dev/homolog. Requer uvx (Python 3.12+) OU use a alternativa Docker abaixo. Extensões úteis: pg_stat_statements + hypopg (EXPLAIN com cost model + índice hipotético).",
+      "command": "uvx",
+      "args": [
+        "postgres-mcp==0.3.0",
+        "--access-mode=restricted"
+      ],
+      "env": {
+        "DATABASE_URI": "postgresql://localhost:5432/__DB_NAME__"
+      }
+    },
+    "codebase-memory": {
+      "_comment": "Codebase Memory MCP v0.8.1 (DeusData) — grafo de símbolos p/ o RESEARCHER. Pinado via npm ci. Complementa Repomix+RTK.",
       "command": "node",
       "args": [
-        ".harness/tools/node_modules/@modelcontextprotocol/server-postgres/dist/index.js",
-        "postgresql://localhost:5432/__DB_NAME__"
+        ".harness/tools/node_modules/codebase-memory-mcp/bin.js"
       ]
     },
     "playwright": {

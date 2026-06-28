@@ -1,8 +1,13 @@
 # V-JP Harness
 
+> **Autor:** João Pedro (V-JP) · [github.com/Joao-Pedro-AI-Visionary](https://github.com/Joao-Pedro-AI-Visionary) · dev.jp.991@gmail.com
+> **Versão:** 1.7.0 · Licença MIT · *método de engenharia de software orientado a IA*
+
 Ecossistema de engenharia de software orientado a IA — empacotado para instalação **determinística** em qualquer projeto.
 
 Combina compressão de contexto, memória persistente, planejamento spec-driven, execução autônoma, revisão automática e especialização por agentes — transformando a IA de gerador de código em um sistema que **planeja, pesquisa, implementa, revisa, aprende e evolui**.
+
+> Este harness é o método de engenharia pessoal de **João Pedro (V-JP)**. Use, estude e adapte (MIT) — mantendo o crédito de autoria.
 
 ---
 
@@ -22,7 +27,8 @@ flowchart TD
     Reviewer --> GBrain
     Superpowers["Superpowers"] --> Planner
     FrontendDesigner["Frontend Designer"] --> Researcher
-    MCPs["MCPs (Postgres/Playwright)"] --> Reviewer
+    CodebaseMem["Codebase Memory MCP"] --> Researcher
+    MCPs["MCPs (Postgres Pro/Playwright)"] --> Reviewer
 ```
 
 O **GStack** é a camada operacional que conecta RTK, GBrain, GSD Redux e BSD numa arquitetura coesa e reutilizável.
@@ -71,7 +77,7 @@ O `install.sh` clona os componentes git **pinados no commit** para dentro de `.h
 
 | Componente | Repo | Ref | Destino |
 |---|---|---|---|
-| RTK | `rtk-ai/rtk` | `v0.39.0` @ `2fbc7514f696` | `.harness/tools/rtk/` |
+| RTK | `rtk-ai/rtk` | `v0.42.3` @ `de78d70aee86` | `.harness/tools/rtk/` |
 | GBrain | `garrytan/gbrain` | `eval-run-v0.35.1.0-baseline` @ `3933eb6a7915` | `.harness/tools/gbrain/` |
 | Superpowers | `obra/superpowers` | `v5.1.0` @ `f2cbfbefebbf` | `.harness/tools/superpowers/` |
 
@@ -81,15 +87,17 @@ O `install.sh` clona os componentes git **pinados no commit** para dentro de `.h
 
 | Componente | Repositório oficial | Versão |
 |---|---|---|
-| BSD | baseado em `garrytan/gstack` | `1.2.0` |
-| RTK | `rtk-ai/rtk` | `0.39.0` |
+| BSD | baseado em `garrytan/gstack` | `1.6.0` |
+| RTK | `rtk-ai/rtk` | `0.42.3` |
 | GBrain | `garrytan/gbrain` | `0.35.1.0` |
 | Repomix | `yamadashy/repomix` (npm) | `0.2.14` |
 | GSD Redux | `open-gsd/get-shit-done-redux` (npm) | `1.1.0` |
 | Superpowers | `obra/superpowers` | `v5.1.0` |
-| PostgreSQL MCP | `modelcontextprotocol/servers` | `0.6.2` |
+| ~~PostgreSQL MCP~~ | ~~`modelcontextprotocol/servers`~~ | ❌ removido v1.7.0 |
 | Playwright MCP | `modelcontextprotocol/servers` | `0.0.75` |
 | Frontend Designer | `anthropics/skills` (`frontend-design`) | `main` |
+| 🆕 Codebase Memory MCP | `DeusData/codebase-memory-mcp` (npm) | `0.8.1` |
+| 🆕 Postgres MCP Pro | `crystaldba/postgres-mcp` (pip/Docker) | `0.3.0` |
 
 > Núcleo obrigatório (BSD, Repomix, GSD Redux) é totalmente determinístico via
 > `package-lock.json`. Opcionais são reportados pelo doctor sem bloquear.
@@ -174,5 +182,23 @@ Cada agente recebe `AGENT_RULES.md` + `.gbrain/*.md` como contexto e devolve JSO
 estruturado. O EXECUTOR não recebe shell — só conteúdo de arquivos, aplicados na
 git worktree isolada com proteção contra path traversal; o merge só acontece após
 os testes verdes (`pipeline.testCommand`). Detalhes em [`template/tools/agents.md`](./template/tools/agents.md).
+
+---
+
+## Novidades — v1.7.0 (por João Pedro / V-JP)
+
+Avaliação criteriosa de 3 achados de uma varredura (jun/2026) + 1 manutenção. Critério: **rejeição justificada > adoção apressada**. Spec/tasks e racional completo em [`upgrades/v1.7.0/`](./upgrades/v1.7.0/); decisões em [`.gbrain/decisions.md`](./.gbrain/decisions.md).
+
+**Entrou:**
+- 🆕 **Codebase Memory MCP** (`DeusData/codebase-memory-mcp@0.8.1`) — reforça o Researcher com grafo de símbolos (diff→impacto, dead code, call graph). Cobre TS e C#. **Complementa** Repomix+RTK.
+- 🆕 **Postgres MCP Pro** (`crystaldba/postgres-mcp@0.3.0`) — substitui o `server-postgres` (SQLi, arquivado). EXPLAIN com cost model + índice hipotético (HypoPG); modo restricted seguro p/ produção. Gate barato complementar: `prisma migrate diff/validate`.
+- 🆕 **Captura nativa de decisão** (`tools/gbrain-decision.js` + Stop hook opt-in) — append idempotente em `.gbrain/decisions.md`. Resolve a dor do GBrain manual **sem** dependência externa.
+- 🛡️ **Gate de merge por sinal concreto** no BSD (padrão Janitor/Bernstein): teste verde manda; aprovação do LLM não sobrepõe teste falho.
+
+**Ficou de fora (rejeição justificada):**
+- ❌ **agentmemory** — instável, token-burn reaberto, MCP não-determinístico que fere a tese do harness e não alcança o BSD headless. Dor resolvida nativamente.
+- ❌ **Substituir Repomix+RTK** / **refatorar o scheduling do BSD** (já é determinístico) / **FSM+audit estilo Bernstein** — fora do escopo "enxuto".
+
+---
 
 Versão: ver [`VERSION`](./VERSION).

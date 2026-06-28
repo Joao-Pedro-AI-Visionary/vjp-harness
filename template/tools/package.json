@@ -1,13 +1,15 @@
 {
   "name": "vjp-harness-tools",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "private": true,
   "type": "module",
-  "description": "Ferramentas pinadas do V-JP Harness (instalação determinística via npm ci)",
+  "description": "Ferramentas pinadas do V-JP Harness (instalação determinística via npm ci) — por João Pedro (V-JP)",
+  "author": "João Pedro (V-JP) <dev.jp.991@gmail.com>",
+  "license": "MIT",
   "dependencies": {
     "repomix": "0.2.14",
     "@opengsd/get-shit-done-redux": "1.1.0",
-    "@modelcontextprotocol/server-postgres": "0.6.2",
-    "@playwright/mcp": "0.0.75"
+    "@playwright/mcp": "0.0.75",
+    "codebase-memory-mcp": "0.8.1"
   }
 }

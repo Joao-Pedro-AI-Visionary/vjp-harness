@@ -233,7 +233,10 @@ async function executeFeature(feature, opts = {}) {
 
       lastReview = dryRun ? DRY.reviewer({ testPassed: test.passed })
         : await runReviewer({ feature, executor, testPassed: test.passed, testOutput: test.output, ctx, cfg });
-      approved = !!lastReview.approved && test.passed;
+      // Gate por SINAL CONCRETO (padrão Janitor/Bernstein, v1.7.0): o teste verde é o
+      // autorizador objetivo do merge. A aprovação do Reviewer (juízo do LLM) NUNCA
+      // sobrepõe teste falho — exigimos `aprovado E testes verdes`, nesta ordem de força.
+      approved = test.passed && !!lastReview.approved;
       if (!approved) {
         feedback = `${lastReview.requiredChanges || lastReview.reason || ''}\nSaída dos testes:\n${String(test.output).slice(0, 1200)}`;
         console.log(`  ${COLORS.red}Reviewer reprovou: ${lastReview.reason || 'ver testes'}${COLORS.reset}`);
