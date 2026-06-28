@@ -1,7 +1,7 @@
 # V-JP Harness
 
 > **Autor:** João Pedro (V-JP) · [github.com/Joao-Pedro-AI-Visionary](https://github.com/Joao-Pedro-AI-Visionary) · dev.jp.991@gmail.com
-> **Versão:** 1.9.0 · Licença MIT · *método de engenharia de software orientado a IA*
+> **Versão:** 1.9.1 · Licença MIT · *método de engenharia de software orientado a IA*
 
 Ecossistema de engenharia de software orientado a IA — empacotado para instalação **determinística** em qualquer projeto.
 
@@ -21,7 +21,7 @@ flowchart TD
     Empac --> Compr["Compressor de Contexto (RTK)"]
     Compr --> Plan["Planejador Spec-Driven (GSD)"]
     Mem["Memória Persistente (GBrain)"] --> Plan
-    Plan --> Orq["Orquestrador (BSD)"]
+    Plan --> Orq["Maestro (BSD)"]
     Orq --> Planner["Planejador"]
     Orq --> Researcher["Pesquisador"]
     Orq --> Executor["Executor"]
@@ -33,7 +33,7 @@ flowchart TD
     Val["Validadores de Banco/UI (Postgres Pro · Playwright)"] --> Reviewer
 ```
 
-O **Núcleo** (antes "GStack") é a camada operacional que conecta o Compressor de Contexto, a Memória Persistente, o Planejador Spec-Driven e o **Orquestrador** numa arquitetura coesa e reutilizável.
+O **Núcleo** (antes "GStack") é a camada operacional que conecta o Compressor de Contexto, a Memória Persistente, o Planejador Spec-Driven e o **Maestro** numa arquitetura coesa e reutilizável.
 
 ---
 
@@ -43,7 +43,7 @@ A superfície do harness fala por **papel**; o nome técnico é só a origem (cr
 
 | Papel (o que faz) | Procedência | Seu? |
 |---|---|:--:|
-| **Orquestrador** — conduz o pipeline de 4 agentes | BSD (base `garrytan/gstack`) | 🟢 |
+| **Maestro** — conduz o pipeline de 4 agentes | BSD (base `garrytan/gstack`) | 🟢 |
 | **Núcleo** — a camada que amarra tudo | conceito V-JP (antes "GStack") | 🟢 |
 | **Registro de Decisões** — grava ADRs no histórico | `tools/gbrain-decision.js` | 🟢 |
 | **Compressor de Contexto** — mais sinal por janela | RTK | 🔵 |
@@ -112,7 +112,7 @@ O `install.sh` clona os componentes git **pinados no commit** para dentro de `.h
 
 | Papel | Procedência (repositório) | Versão |
 |---|---|---|
-| Orquestrador | BSD — base `garrytan/gstack` | `1.6.0` |
+| Maestro | BSD — base `garrytan/gstack` | `1.6.0` |
 | Compressor de Contexto | `rtk-ai/rtk` (RTK) | `0.42.4` |
 | Memória Persistente | `garrytan/gbrain` (GBrain) | `0.35.1.0` |
 | Empacotador de Repositório | `yamadashy/repomix` (Repomix, npm) | `0.2.14` |
@@ -124,7 +124,7 @@ O `install.sh` clona os componentes git **pinados no commit** para dentro de `.h
 | 🆕 Mapa de Código | `DeusData/codebase-memory-mcp` (npm) | `0.8.1` |
 | 🆕 Validador de Banco (EXPLAIN/índices) | `crystaldba/postgres-mcp` (Postgres MCP Pro, pip/Docker) | `0.3.0` |
 
-> Núcleo obrigatório (Orquestrador, Empacotador, Planejador) é totalmente determinístico via
+> Núcleo obrigatório (Maestro, Empacotador, Planejador) é totalmente determinístico via
 > `package-lock.json`. Opcionais são reportados pelo doctor sem bloquear.
 > Matriz completa + notas de pinagem em [`template/REGISTRY.md`](./template/REGISTRY.md).
 
@@ -152,14 +152,14 @@ meu-projeto/
 
 ---
 
-## Pipeline por task (Orquestrador)
+## Pipeline por task (Maestro)
 
 ```
 PLANEJADOR → PESQUISADOR → EXECUTOR → REVISOR → APROVADO?
   └ Sim → próxima task        └ Não → retry em worktree (máx. 2) → aborta + STATE.md
 ```
 
-> O comando segue sendo `bsd.js` (CLI/IDs estáveis por compatibilidade); "Orquestrador" é o nome de papel.
+> O comando segue sendo `bsd.js` (CLI/IDs estáveis por compatibilidade); "Maestro" é o nome de papel.
 
 ```bash
 node .harness/tools/bsd.js --execute <feature>
@@ -231,7 +231,8 @@ Avaliação criteriosa de 3 achados de uma varredura (jun/2026) + 1 manutenção
 - **v1.7.2** — Postgres MCP Pro (crystaldba) **validado ao vivo** (EXPLAIN cost model + índice hipotético HypoPG via Docker contra Postgres efêmero): `Seq Scan 2281 → Index Scan 241`; recomendação de índice `2281 → 8.1` (283x). Regra 7 provada de ponta a ponta.
 - **v1.7.3** — corrige o `verify` do Postgres MCP Pro (`postgres-mcp` não tem `--version`; usa `--help` + token `access-mode`). Com `uv` instalado, doctor fica **11/11**.
 - **v1.8.0** — o harness passa a **testar a si mesmo**: suíte `node:test` (zero dependência) cobrindo o gate de merge, o verificador, a captura de decisão e a guarda anti path-traversal (23 testes); **CI** (`.github/workflows/doctor.yml`) roda testes + `verify.js` em cada PR; caso de uso real abaixo.
-- **v1.9.0** — **nomes por papel**: toda peça nomeada pelo que faz ("Orquestrador", "Compressor de Contexto", "Memória Persistente"…), com o projeto de origem como **procedência** entre parênteses (atribuição honesta + determinismo). Só mudança de exibição — CLI, IDs e arquivos seguem estáveis (zero quebra). Ver a tabela de vocabulário.
+- **v1.9.0** — **nomes por papel**: toda peça nomeada pelo que faz ("Maestro", "Compressor de Contexto", "Memória Persistente"…), com o projeto de origem como **procedência** entre parênteses (atribuição honesta + determinismo). Só mudança de exibição — CLI, IDs e arquivos seguem estáveis (zero quebra). Ver a tabela de vocabulário.
+- **v1.9.1** — o orquestrador agora se chama **Maestro** (conduz a "orquestra" dos 4 agentes); o nome técnico `BSD` segue como procedência e o comando `bsd.js` inalterado.
 
 ---
 
