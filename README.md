@@ -1,7 +1,7 @@
 # V-JP Harness
 
 > **Autor:** João Pedro (V-JP) · [github.com/Joao-Pedro-AI-Visionary](https://github.com/Joao-Pedro-AI-Visionary) · dev.jp.991@gmail.com
-> **Versão:** 1.8.0 · Licença MIT · *método de engenharia de software orientado a IA*
+> **Versão:** 1.9.0 · Licença MIT · *método de engenharia de software orientado a IA*
 
 Ecossistema de engenharia de software orientado a IA — empacotado para instalação **determinística** em qualquer projeto.
 
@@ -9,29 +9,54 @@ Combina compressão de contexto, memória persistente, planejamento spec-driven,
 
 > Este harness é o método de engenharia pessoal de **João Pedro (V-JP)**. Use, estude e adapte (MIT) — mantendo o crédito de autoria.
 
+> **Nomes por papel:** desde a v1.9.0 cada peça é nomeada **pelo que faz**; o nome do projeto de origem fica entre parênteses como **procedência** (atribuição honesta + determinismo auditável). Ver a tabela de vocabulário abaixo.
+
 ---
 
 ## Arquitetura
 
 ```mermaid
 flowchart TD
-    Repo["Repositório"] --> Repomix["Repomix"]
-    Repomix --> RTK["RTK"]
-    RTK --> GSD["GSD Redux"]
-    GBrain["GBrain (Memória)"] --> GSD
-    GSD --> BSD["BSD (Orquestrador)"]
-    BSD --> Planner["Planner"]
-    BSD --> Researcher["Researcher"]
-    BSD --> Executor["Executor"]
-    Executor --> Reviewer["Reviewer"]
-    Reviewer --> GBrain
-    Superpowers["Superpowers"] --> Planner
-    FrontendDesigner["Frontend Designer"] --> Researcher
-    CodebaseMem["Codebase Memory MCP"] --> Researcher
-    MCPs["MCPs (Postgres Pro/Playwright)"] --> Reviewer
+    Repo["Repositório"] --> Empac["Empacotador de Repositório (Repomix)"]
+    Empac --> Compr["Compressor de Contexto (RTK)"]
+    Compr --> Plan["Planejador Spec-Driven (GSD)"]
+    Mem["Memória Persistente (GBrain)"] --> Plan
+    Plan --> Orq["Orquestrador (BSD)"]
+    Orq --> Planner["Planejador"]
+    Orq --> Researcher["Pesquisador"]
+    Orq --> Executor["Executor"]
+    Executor --> Reviewer["Revisor"]
+    Reviewer --> Mem
+    Skills["Padrões Reutilizáveis (Superpowers)"] --> Planner
+    Design["Guia de Design de UI (Frontend Designer)"] --> Researcher
+    Mapa["Mapa de Código (Codebase Memory)"] --> Researcher
+    Val["Validadores de Banco/UI (Postgres Pro · Playwright)"] --> Reviewer
 ```
 
-O **GStack** é a camada operacional que conecta RTK, GBrain, GSD Redux e BSD numa arquitetura coesa e reutilizável.
+O **Núcleo** (antes "GStack") é a camada operacional que conecta o Compressor de Contexto, a Memória Persistente, o Planejador Spec-Driven e o **Orquestrador** numa arquitetura coesa e reutilizável.
+
+---
+
+## 🗂️ Vocabulário — papel ↔ procedência
+
+A superfície do harness fala por **papel**; o nome técnico é só a origem (crédito/licença MIT-Apache).
+
+| Papel (o que faz) | Procedência | Seu? |
+|---|---|:--:|
+| **Orquestrador** — conduz o pipeline de 4 agentes | BSD (base `garrytan/gstack`) | 🟢 |
+| **Núcleo** — a camada que amarra tudo | conceito V-JP (antes "GStack") | 🟢 |
+| **Registro de Decisões** — grava ADRs no histórico | `tools/gbrain-decision.js` | 🟢 |
+| **Compressor de Contexto** — mais sinal por janela | RTK | 🔵 |
+| **Empacotador de Repositório** — visão do todo | Repomix | 🔵 |
+| **Memória Persistente** — estado entre sessões | GBrain | 🔵 |
+| **Planejador Spec-Driven** — código nasce de spec | GSD Redux | 🔵 |
+| **Padrões Reutilizáveis / Skills** | Superpowers | 🔵 |
+| **Mapa de Código** — grafo de símbolos/impacto | Codebase Memory MCP | 🔵 |
+| **Validador de Banco** — EXPLAIN + índice hipotético | Postgres MCP Pro (`crystaldba`) | 🔵 |
+| **Validador de UI / E2E** | Playwright MCP | 🔵 |
+| **Guia de Design de UI** | Frontend Designer | 🔵 |
+
+🟢 = componente do V-JP (renomeável livremente) · 🔵 = ferramenta de terceiro (nome mantido como crédito).
 
 ---
 
@@ -85,21 +110,21 @@ O `install.sh` clona os componentes git **pinados no commit** para dentro de `.h
 
 ### Componentes (pinados — Registro Definitivo)
 
-| Componente | Repositório oficial | Versão |
+| Papel | Procedência (repositório) | Versão |
 |---|---|---|
-| BSD | baseado em `garrytan/gstack` | `1.6.0` |
-| RTK | `rtk-ai/rtk` | `0.42.4` |
-| GBrain | `garrytan/gbrain` | `0.35.1.0` |
-| Repomix | `yamadashy/repomix` (npm) | `0.2.14` |
-| GSD Redux | `open-gsd/get-shit-done-redux` (npm) | `1.1.0` |
-| Superpowers | `obra/superpowers` | `v5.1.0` |
-| ~~PostgreSQL MCP~~ | ~~`modelcontextprotocol/servers`~~ | ❌ removido v1.7.0 |
-| Playwright MCP | `modelcontextprotocol/servers` | `0.0.75` |
-| Frontend Designer | `anthropics/skills` (`frontend-design`) | `main` |
-| 🆕 Codebase Memory MCP | `DeusData/codebase-memory-mcp` (npm) | `0.8.1` |
-| 🆕 Postgres MCP Pro | `crystaldba/postgres-mcp` (pip/Docker) | `0.3.0` |
+| Orquestrador | BSD — base `garrytan/gstack` | `1.6.0` |
+| Compressor de Contexto | `rtk-ai/rtk` (RTK) | `0.42.4` |
+| Memória Persistente | `garrytan/gbrain` (GBrain) | `0.35.1.0` |
+| Empacotador de Repositório | `yamadashy/repomix` (Repomix, npm) | `0.2.14` |
+| Planejador Spec-Driven | `open-gsd/get-shit-done-redux` (GSD, npm) | `1.1.0` |
+| Padrões Reutilizáveis / Skills | `obra/superpowers` (Superpowers) | `v5.1.0` |
+| ~~Validador de Banco (legado)~~ | ~~`modelcontextprotocol/servers`~~ | ❌ removido v1.7.0 |
+| Validador de UI / E2E | `modelcontextprotocol/servers` (Playwright MCP) | `0.0.75` |
+| Guia de Design de UI | `anthropics/skills` (Frontend Designer) | `main` |
+| 🆕 Mapa de Código | `DeusData/codebase-memory-mcp` (npm) | `0.8.1` |
+| 🆕 Validador de Banco (EXPLAIN/índices) | `crystaldba/postgres-mcp` (Postgres MCP Pro, pip/Docker) | `0.3.0` |
 
-> Núcleo obrigatório (BSD, Repomix, GSD Redux) é totalmente determinístico via
+> Núcleo obrigatório (Orquestrador, Empacotador, Planejador) é totalmente determinístico via
 > `package-lock.json`. Opcionais são reportados pelo doctor sem bloquear.
 > Matriz completa + notas de pinagem em [`template/REGISTRY.md`](./template/REGISTRY.md).
 
@@ -127,12 +152,14 @@ meu-projeto/
 
 ---
 
-## Pipeline por task (BSD)
+## Pipeline por task (Orquestrador)
 
 ```
-PLANNER → RESEARCHER → EXECUTOR → REVIEWER → APPROVED?
+PLANEJADOR → PESQUISADOR → EXECUTOR → REVISOR → APROVADO?
   └ Sim → próxima task        └ Não → retry em worktree (máx. 2) → aborta + STATE.md
 ```
+
+> O comando segue sendo `bsd.js` (CLI/IDs estáveis por compatibilidade); "Orquestrador" é o nome de papel.
 
 ```bash
 node .harness/tools/bsd.js --execute <feature>
@@ -204,6 +231,7 @@ Avaliação criteriosa de 3 achados de uma varredura (jun/2026) + 1 manutenção
 - **v1.7.2** — Postgres MCP Pro (crystaldba) **validado ao vivo** (EXPLAIN cost model + índice hipotético HypoPG via Docker contra Postgres efêmero): `Seq Scan 2281 → Index Scan 241`; recomendação de índice `2281 → 8.1` (283x). Regra 7 provada de ponta a ponta.
 - **v1.7.3** — corrige o `verify` do Postgres MCP Pro (`postgres-mcp` não tem `--version`; usa `--help` + token `access-mode`). Com `uv` instalado, doctor fica **11/11**.
 - **v1.8.0** — o harness passa a **testar a si mesmo**: suíte `node:test` (zero dependência) cobrindo o gate de merge, o verificador, a captura de decisão e a guarda anti path-traversal (23 testes); **CI** (`.github/workflows/doctor.yml`) roda testes + `verify.js` em cada PR; caso de uso real abaixo.
+- **v1.9.0** — **nomes por papel**: toda peça nomeada pelo que faz ("Orquestrador", "Compressor de Contexto", "Memória Persistente"…), com o projeto de origem como **procedência** entre parênteses (atribuição honesta + determinismo). Só mudança de exibição — CLI, IDs e arquivos seguem estáveis (zero quebra). Ver a tabela de vocabulário.
 
 ---
 

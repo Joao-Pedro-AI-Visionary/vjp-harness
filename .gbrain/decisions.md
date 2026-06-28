@@ -51,3 +51,7 @@
 - **Decisão:** v1.8.0 Sug.12 — Exemplo real no README (honesto, sem métrica inventada)
 - **Alternativa descartada:** Inventar números do tipo 'feature X em N min com Y% menos refatoração'
 - **Porquê:** Não tenho medição; fabricar seria desonesto. Uso o próprio self-upgrade v1.7.x como caso real verificável no git (worktree→spec→prova viva→decisões; crystaldba validado ao vivo; instalado em 6 projetos).
+## 2026-06-28 — v1.9.0 — Nomes por papel (estratégia B): superfície descritiva, procedência entre parênteses
+- **Decisão:** v1.9.0 — Nomes por papel (estratégia B): superfície descritiva, procedência entre parênteses
+- **Alternativa descartada:** A) só apresentação; C) white-label total escondendo nomes externos; ou renomear CLI/arquivos (bsd.js→orquestrador.js)
+- **Porquê:** Nomes como GBrain/GStack/BSD/RTK não comunicam função a quem chega de fora. Estratégia B: superfície 100% por papel (Orquestrador, Compressor de Contexto, Memória Persistente...), com o projeto de origem como PROCEDÊNCIA entre parênteses — atribuição honesta (licença MIT/Apache) + determinismo auditável. Renomear o que é meu (GStack→Núcleo, BSD→Orquestrador display). CLI/IDs/arquivos ESTÁVEIS (zero quebra). White-label total rejeitado: esconder dep externa fere licença e a própria tese de transparência.
