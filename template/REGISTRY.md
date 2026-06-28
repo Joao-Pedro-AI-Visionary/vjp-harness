@@ -18,7 +18,7 @@ node .harness/tools/bsd.js --doctor --json   # saída para CI
 
 | # | Papel (o que faz) | Tipo | Procedência (repositório) | Versão pinada | Destino no ecossistema | Obrigatório |
 |--:|---|---|---|---|---|:--:|
-| 1 | **Orquestrador** | Core Script | BSD — baseado em [`garrytan/gstack`](https://github.com/garrytan/gstack) | `1.6.0` | `.harness/tools/bsd.js` | ✅ |
+| 1 | **Maestro** | Core Script | BSD — baseado em [`garrytan/gstack`](https://github.com/garrytan/gstack) | `1.6.0` | `.harness/tools/bsd.js` | ✅ |
 | 2 | **Compressor de Contexto** | Engine / CLI | [`rtk-ai/rtk`](https://github.com/rtk-ai/rtk) (RTK) | `0.42.4` | `.harness/tools/rtk/` | ⬜ |
 | 3 | **Memória Persistente** | Engine / Memória | [`garrytan/gbrain`](https://github.com/garrytan/gbrain) (GBrain) | `0.35.1.0` | `.harness/tools/gbrain/` (persiste em `.gbrain/`) | ⬜ |
 | 4 | **Empacotador de Repositório** | CLI (NPM) | [`yamadashy/repomix`](https://github.com/yamadashy/repomix) (Repomix) | `0.2.14` | `.harness/tools/` | ✅ |
@@ -31,7 +31,7 @@ node .harness/tools/bsd.js --doctor --json   # saída para CI
 | 11 | 🆕 **Mapa de Código** | Servidor MCP (NPM) | [`DeusData/codebase-memory-mcp`](https://github.com/DeusData/codebase-memory-mcp) | `0.8.1` | runtime — reforça o **Pesquisador** (TS/C#) | ⬜ |
 | 12 | 🆕 **Validador de Banco (EXPLAIN/índices)** | Servidor MCP (pip/Docker) | [`crystaldba/postgres-mcp`](https://github.com/crystaldba/postgres-mcp) (Postgres MCP Pro) | `0.3.0` | runtime — **Revisor** (EXPLAIN + HypoPG), substitui #7 | ⬜ |
 
-**Obrigatórios (núcleo determinístico):** Orquestrador, Empacotador de Repositório, Planejador Spec-Driven — pinados via `package-lock.json` (`npm ci`).
+**Obrigatórios (núcleo determinístico):** Maestro, Empacotador de Repositório, Planejador Spec-Driven — pinados via `package-lock.json` (`npm ci`).
 **Opcionais:** instalados sob demanda; o `--doctor` os reporta como `[opt]` sem bloquear (a menos que `--strict`).
 **Novidades v1.7.0:** #11 codebase-memory-mcp (npm, pinado), #12 Postgres MCP Pro (substitui o #7 vulnerável; roda via `uvx`/Docker). Detalhes e justificativa em [`../.gbrain/decisions.md`](../.gbrain/decisions.md) e `upgrades/v1.7.0/`.
 

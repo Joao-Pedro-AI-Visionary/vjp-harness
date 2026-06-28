@@ -55,3 +55,7 @@
 - **Decisão:** v1.9.0 — Nomes por papel (estratégia B): superfície descritiva, procedência entre parênteses
 - **Alternativa descartada:** A) só apresentação; C) white-label total escondendo nomes externos; ou renomear CLI/arquivos (bsd.js→orquestrador.js)
 - **Porquê:** Nomes como GBrain/GStack/BSD/RTK não comunicam função a quem chega de fora. Estratégia B: superfície 100% por papel (Orquestrador, Compressor de Contexto, Memória Persistente...), com o projeto de origem como PROCEDÊNCIA entre parênteses — atribuição honesta (licença MIT/Apache) + determinismo auditável. Renomear o que é meu (GStack→Núcleo, BSD→Orquestrador display). CLI/IDs/arquivos ESTÁVEIS (zero quebra). White-label total rejeitado: esconder dep externa fere licença e a própria tese de transparência.
+## 2026-06-28 — v1.9.1 — Orquestrador renomeado para 'Maestro' (escolha do usuário)
+- **Decisão:** v1.9.1 — Orquestrador renomeado para 'Maestro' (escolha do usuário)
+- **Alternativa descartada:** Manter 'Orquestrador' puro, ou outra marca (Forja/Bússola)
+- **Porquê:** Usuário escolheu 'Maestro' — boa metáfora (rege a orquestra dos 4 agentes) e dá identidade. Nome do registry mantém 'Maestro — Orquestrador (BSD)' p/ leitura de fora; BSD/bsd.js inalterados.
