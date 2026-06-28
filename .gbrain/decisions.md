@@ -27,3 +27,7 @@
 - **Decisão:** Validação v1.7.2 — Postgres MCP Pro (crystaldba) confirmado AO VIVO (EXPLAIN + HypoPG via Docker)
 - **Alternativa descartada:** Fechar o item só com a documentação, sem teste contra banco real
 - **Porquê:** Briefing exigia confirmar o EXPLAIN antes de fechar. Sem uvx na máquina, usei Docker+Colima contra Postgres 16 efêmero (100k linhas) e dirigi o MCP por cliente stdio: explain_query baseline=Seq Scan 2281; com hypothetical_indexes=Index Scan 241; analyze_query_indexes=2281→8.1 (283x). Regra 7 provada de ponta a ponta; pendência fechada.
+## 2026-06-28 — Bugfix v1.7.3 — verify do Postgres MCP Pro usava flag --version inexistente
+- **Decisão:** Bugfix v1.7.3 — verify do Postgres MCP Pro usava flag --version inexistente
+- **Alternativa descartada:** Manter --version e aceitar o ✗ permanente no doctor como 'precisa de uvx'
+- **Porquê:** Validação /goal (cenário ruim) revelou que postgres-mcp não tem --version → verify sempre falhava mesmo com uvx. Troquei p/ 'uvx postgres-mcp==0.3.0 --help' (exit 0, contém 'access-mode'); o pin ==0.3.0 garante a versão. Agora o doctor fica 11/11 com uv instalado.

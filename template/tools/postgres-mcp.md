@@ -32,7 +32,8 @@ Registre no cliente mesclando [`../config/mcp.json`](../config/mcp.json) (server
 
 ## Verificação
 ```bash
-uvx postgres-mcp==0.3.0 --version   # espera 0.3.0
+# postgres-mcp NÃO tem --version; o pin ==0.3.0 garante a versão e --help confirma que roda.
+uvx postgres-mcp==0.3.0 --help      # exit 0 + contém "access-mode"  (requer: brew install uv)
 ```
 
 ## Validação ao vivo (v1.7.2)
