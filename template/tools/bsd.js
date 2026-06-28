@@ -140,8 +140,15 @@ async function createWorktree(feature) {
   return { worktreePath, branch, gitMode: false };
 }
 
+// Gate de merge por SINAL CONCRETO (padrão Janitor/Bernstein). Função pura, testável:
+// o merge SÓ é autorizado quando os testes passam E o Reviewer aprova. A aprovação do
+// LLM NUNCA sobrepõe um teste falho. (Afirmação central do BSD — coberta em tests/.)
+export function mergeGate(testPassed, reviewApproved) {
+  return !!testPassed && !!reviewApproved;
+}
+
 // Aplica as escritas de arquivo do EXECUTOR na worktree (com proteção contra path traversal).
-async function applyFiles(worktreePath, files) {
+export async function applyFiles(worktreePath, files) {
   const applied = [];
   for (const f of files || []) {
     if (!f || typeof f.path !== 'string' || typeof f.content !== 'string') continue;
@@ -233,10 +240,8 @@ async function executeFeature(feature, opts = {}) {
 
       lastReview = dryRun ? DRY.reviewer({ testPassed: test.passed })
         : await runReviewer({ feature, executor, testPassed: test.passed, testOutput: test.output, ctx, cfg });
-      // Gate por SINAL CONCRETO (padrão Janitor/Bernstein, v1.7.0): o teste verde é o
-      // autorizador objetivo do merge. A aprovação do Reviewer (juízo do LLM) NUNCA
-      // sobrepõe teste falho — exigimos `aprovado E testes verdes`, nesta ordem de força.
-      approved = test.passed && !!lastReview.approved;
+      // Gate por sinal concreto (ver mergeGate): teste verde manda; LLM não sobrepõe.
+      approved = mergeGate(test.passed, lastReview.approved);
       if (!approved) {
         feedback = `${lastReview.requiredChanges || lastReview.reason || ''}\nSaída dos testes:\n${String(test.output).slice(0, 1200)}`;
         console.log(`  ${COLORS.red}Reviewer reprovou: ${lastReview.reason || 'ver testes'}${COLORS.reset}`);
@@ -426,7 +431,11 @@ async function main() {
   }
 }
 
-main().catch(err => {
-  console.error(`${COLORS.red}Fatal: ${err.message}${COLORS.reset}`);
-  process.exit(1);
-});
+// Só executa a CLI quando rodado diretamente (não ao ser importado por tests/).
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === __filename;
+if (isMain) {
+  main().catch(err => {
+    console.error(`${COLORS.red}Fatal: ${err.message}${COLORS.reset}`);
+    process.exit(1);
+  });
+}
