@@ -38,14 +38,14 @@ function skillDirs() {
   ];
 }
 
-function checkComponent(c) {
+export function checkComponent(c, harnessDir = HARNESS_DIR) {
   const v = c.verify || {};
   // status: ok | drift | missing | unknown
   try {
     switch (v.type) {
       case 'bundled':
       case 'file': {
-        const p = path.join(HARNESS_DIR, v.path);
+        const p = path.join(harnessDir, v.path);
         return fs.existsSync(p)
           ? { status: 'ok', detail: v.path }
           : { status: 'missing', detail: `ausente: ${v.path}` };
@@ -78,20 +78,29 @@ function checkComponent(c) {
   }
 }
 
+// Avalia um registry (objeto já parseado) e devolve { harnessVersion, rows, fail }.
+// Função PURA de I/O de console — testável em tests/ sem spawnar processo.
+// Componentes marcados `removed` (ex.: server-postgres na v1.7.0) ficam no registro
+// como histórico/ADR, mas NÃO são verificados (não estão mais instalados).
+export function evaluateRegistry(reg, { strict = false, harnessDir = HARNESS_DIR } = {}) {
+  const components = [...reg.components].filter((c) => !c.removed).sort((a, b) => a.priority - b.priority);
+  const rows = components.map((c) => {
+    const r = checkComponent(c, harnessDir);
+    return { id: c.id, name: c.name, tier: c.tier, required: !!c.required, version: c.version, ...r };
+  });
+  const reqFail = rows.filter((r) => r.required && r.status !== 'ok');
+  const anyFail = rows.filter((r) => r.status === 'drift' || r.status === 'missing');
+  const fail = strict ? anyFail : reqFail;
+  return { harnessVersion: reg.harnessVersion, rows, fail };
+}
+
 function main() {
   if (!fs.existsSync(REGISTRY)) {
     console.error(`${C.red}✗ registry.json não encontrado em ${REGISTRY}${C.reset}`);
     process.exit(2);
   }
   const reg = JSON.parse(fs.readFileSync(REGISTRY, 'utf8'));
-  // Componentes marcados `removed` (ex.: server-postgres na v1.7.0) ficam no registro
-  // como histórico/ADR, mas não são verificados (não estão mais instalados).
-  const components = [...reg.components].filter((c) => !c.removed).sort((a, b) => a.priority - b.priority);
-
-  const rows = components.map((c) => {
-    const r = checkComponent(c);
-    return { id: c.id, name: c.name, tier: c.tier, required: !!c.required, version: c.version, ...r };
-  });
+  const { rows, fail } = evaluateRegistry(reg, { strict });
 
   if (asJson) {
     console.log(JSON.stringify({ harnessVersion: reg.harnessVersion, results: rows }, null, 2));
@@ -105,10 +114,6 @@ function main() {
     }
   }
 
-  const reqFail = rows.filter((r) => r.required && r.status !== 'ok');
-  const anyFail = rows.filter((r) => r.status === 'drift' || r.status === 'missing');
-  const fail = strict ? anyFail : reqFail;
-
   if (!asJson) {
     console.log('');
     if (fail.length === 0) {
@@ -120,4 +125,7 @@ function main() {
   process.exit(fail.length === 0 ? 0 : 1);
 }
 
-main();
+// Só roda a CLI quando invocado diretamente (não ao ser importado por tests/).
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}

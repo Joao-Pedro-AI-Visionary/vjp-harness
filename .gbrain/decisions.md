@@ -31,3 +31,23 @@
 - **Decisão:** Bugfix v1.7.3 — verify do Postgres MCP Pro usava flag --version inexistente
 - **Alternativa descartada:** Manter --version e aceitar o ✗ permanente no doctor como 'precisa de uvx'
 - **Porquê:** Validação /goal (cenário ruim) revelou que postgres-mcp não tem --version → verify sempre falhava mesmo com uvx. Troquei p/ 'uvx postgres-mcp==0.3.0 --help' (exit 0, contém 'access-mode'); o pin ==0.3.0 garante a versão. Agora o doctor fica 11/11 com uv instalado.
+## 2026-06-28 — v1.8.0 Sug.4 — Auto-testes do harness com node:test (built-in)
+- **Decisão:** v1.8.0 Sug.4 — Auto-testes do harness com node:test (built-in)
+- **Alternativa descartada:** Continuar sem testes próprios, ou usar framework externo (jest/vitest)
+- **Porquê:** Era hipocrisia cobrar testes dos outros e não ter. node:test é built-in (zero dep, combina com o enxuto/determinismo). Cobre mergeGate, evaluateRegistry, gbrain-decision, applyFiles, buildContext. 23 testes verdes.
+## 2026-06-28 — v1.8.0 Sug.5 — Teste de regressão do merge gate (claim central do BSD)
+- **Decisão:** v1.8.0 Sug.5 — Teste de regressão do merge gate (claim central do BSD)
+- **Alternativa descartada:** Deixar a afirmação 'teste verde manda, LLM não sobrepõe' só na documentação
+- **Porquê:** Extraí o gate p/ função pura mergeGate(testPassed,reviewApproved) e testei o caminho LLM-aprova+teste-falha→NÃO-merge. Afirmação central agora é fato testado, não fé.
+## 2026-06-28 — v1.8.0 Sug.6 — CI GitHub Actions (doctor.yml), AJUSTADA p/ não-strict
+- **Decisão:** v1.8.0 Sug.6 — CI GitHub Actions (doctor.yml), AJUSTADA p/ não-strict
+- **Alternativa descartada:** Rodar 'doctor --strict' na CI como sugerido
+- **Porquê:** --strict falharia SEMPRE no runner (opcionais rtk/uvx/skills/vendor ausentes). CI correta: npm ci → npm test (node:test) → verify.js não-strict (só obrigatórios). 'saída p/ CI' deixa de ser boilerplate morto.
+## 2026-06-28 — v1.8.0 Sug.7 — REJEITADA: migrar .gbrain PGLite → node:sqlite
+- **Decisão:** v1.8.0 Sug.7 — REJEITADA: migrar .gbrain PGLite → node:sqlite
+- **Alternativa descartada:** Trocar a memória para node:sqlite nativo
+- **Porquê:** Equívoco: PGLite NÃO é dependência do harness — está dentro do gbrain engine vendorizado (pinado, opcional) e só carrega no /setup-gbrain. O que o BSD lê é .gbrain/*.md (texto, versionável/diffável); SQLite pioraria isso. Trocar = forkar componente de terceiro pinado. node:sqlite fica como nota de futuro se um dia construir store próprio.
+## 2026-06-28 — v1.8.0 Sug.12 — Exemplo real no README (honesto, sem métrica inventada)
+- **Decisão:** v1.8.0 Sug.12 — Exemplo real no README (honesto, sem métrica inventada)
+- **Alternativa descartada:** Inventar números do tipo 'feature X em N min com Y% menos refatoração'
+- **Porquê:** Não tenho medição; fabricar seria desonesto. Uso o próprio self-upgrade v1.7.x como caso real verificável no git (worktree→spec→prova viva→decisões; crystaldba validado ao vivo; instalado em 6 projetos).

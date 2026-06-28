@@ -1,7 +1,7 @@
 # V-JP Harness
 
 > **Autor:** João Pedro (V-JP) · [github.com/Joao-Pedro-AI-Visionary](https://github.com/Joao-Pedro-AI-Visionary) · dev.jp.991@gmail.com
-> **Versão:** 1.7.3 · Licença MIT · *método de engenharia de software orientado a IA*
+> **Versão:** 1.8.0 · Licença MIT · *método de engenharia de software orientado a IA*
 
 Ecossistema de engenharia de software orientado a IA — empacotado para instalação **determinística** em qualquer projeto.
 
@@ -203,6 +203,32 @@ Avaliação criteriosa de 3 achados de uma varredura (jun/2026) + 1 manutenção
 - **v1.7.1** — pin do RTK `0.42.3 → 0.42.4` (alinha com o binário global; elimina drift do doctor).
 - **v1.7.2** — Postgres MCP Pro (crystaldba) **validado ao vivo** (EXPLAIN cost model + índice hipotético HypoPG via Docker contra Postgres efêmero): `Seq Scan 2281 → Index Scan 241`; recomendação de índice `2281 → 8.1` (283x). Regra 7 provada de ponta a ponta.
 - **v1.7.3** — corrige o `verify` do Postgres MCP Pro (`postgres-mcp` não tem `--version`; usa `--help` + token `access-mode`). Com `uv` instalado, doctor fica **11/11**.
+- **v1.8.0** — o harness passa a **testar a si mesmo**: suíte `node:test` (zero dependência) cobrindo o gate de merge, o verificador, a captura de decisão e a guarda anti path-traversal (23 testes); **CI** (`.github/workflows/doctor.yml`) roda testes + `verify.js` em cada PR; caso de uso real abaixo.
+
+---
+
+## 🧪 Qualidade — o harness testa a si mesmo (v1.8.0)
+
+"Determinismo" sem teste é fé. Por isso o motor tem auto-testes (`node:test`, built-in, zero dependência):
+
+```bash
+cd .harness/tools && npm test      # node --test tests/*.test.mjs
+```
+
+Cobertura (`template/tools/tests/`): o **gate de merge** (`mergeGate` — inclui a regressão "LLM aprova + teste falha → NÃO merge", a afirmação central do BSD), o **verificador** (`evaluateRegistry`: obrigatório ausente bloqueia, opcional não, `removed` é ignorado), a **captura de decisão** (append idempotente) e a **guarda anti path-traversal** do EXECUTOR. A CI (`doctor.yml`) roda isso + `verify.js` a cada push/PR.
+
+---
+
+## 📌 Caso de uso real (verificável no git)
+
+O upgrade **v1.7.0 → v1.8.0 foi conduzido pelo próprio método** — não é exemplo hipotético:
+- **Spec antes de código:** `upgrades/v1.7.0/spec.md` + `tasks.md`, com 3 achados avaliados e **2 rejeitados com justificativa** (agentmemory, troca do Repomix+RTK).
+- **Decisões rastreáveis:** cada escolha em [`.gbrain/decisions.md`](./.gbrain/decisions.md) com alternativa + porquê (12 entradas).
+- **Prova viva, não "deu certo":** Postgres MCP Pro validado **ao vivo** (EXPLAIN + índice hipotético contra Postgres real, `2281 → 8.1`), e a própria suíte `node:test` (23 verdes).
+- **Worktrees isoladas + versionamento pinado:** cada patch (1.7.1 → 1.8.0) numa branch, com `verify.js` sem drift, mergeado e tag no GitHub.
+- **Portabilidade:** instalado e verificado (doctor 11/11) em 6 projetos reais numa rodada.
+
+Tudo acima está no histórico do repositório — é o método se aplicando a si mesmo.
 
 ---
 

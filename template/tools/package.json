@@ -1,11 +1,14 @@
 {
   "name": "vjp-harness-tools",
-  "version": "1.7.3",
+  "version": "1.8.0",
   "private": true,
   "type": "module",
   "description": "Ferramentas pinadas do V-JP Harness (instalação determinística via npm ci) — por João Pedro (V-JP)",
   "author": "João Pedro (V-JP) <dev.jp.991@gmail.com>",
   "license": "MIT",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  },
   "dependencies": {
     "repomix": "0.2.14",
     "@opengsd/get-shit-done-redux": "1.1.0",

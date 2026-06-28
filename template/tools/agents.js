@@ -25,7 +25,7 @@ export function buildContext(harnessDir, projectDir) {
   return { rules, gbrain, packed };
 }
 
-function systemPrompt(agentId, ctx, roleInstruction, outputContract) {
+export function systemPrompt(agentId, ctx, roleInstruction, outputContract) {
   return [
     ctx.rules ? `# Regras do Harness (AGENT_RULES.md)\n${ctx.rules}` : '',
     ctx.gbrain ? `# Memória do projeto (.gbrain)\n${ctx.gbrain}` : '',
