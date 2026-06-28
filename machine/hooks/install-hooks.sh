@@ -10,7 +10,7 @@ TARGET="$(cd "${1:-$PWD}" && pwd)"
 [ -f "$TARGET/package.json" ] || { echo "⚠️  $TARGET não tem package.json — hooks são para projetos Node/TS."; exit 1; }
 
 mkdir -p "$TARGET/.claude/hooks"
-install -m755 "$HERE/stop-typecheck.sh" "$HERE/post-lint.sh" "$TARGET/.claude/hooks/"
+install -m755 "$HERE/stop-typecheck.sh" "$HERE/post-lint.sh" "$HERE/gbrain-decision-reminder.sh" "$TARGET/.claude/hooks/"
 
 python3 - "$TARGET/.claude/settings.json" <<'PY'
 import json, os, sys
@@ -32,6 +32,9 @@ ensure("PostToolUse", {
 })
 ensure("Stop", {
     "hooks": [{"type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/stop-typecheck.sh"}],
+})
+ensure("Stop", {
+    "hooks": [{"type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/gbrain-decision-reminder.sh"}],
 })
 
 with open(path, "w") as f:
