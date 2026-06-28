@@ -35,5 +35,11 @@ Registre no cliente mesclando [`../config/mcp.json`](../config/mcp.json) (server
 uvx postgres-mcp==0.3.0 --version   # espera 0.3.0
 ```
 
+## Validação ao vivo (v1.7.2)
+EXPLAIN + índice hipotético **validados de ponta a ponta** via Docker (`crystaldba/postgres-mcp:0.3.0`) contra Postgres 16 efêmero (100k linhas), dirigindo o MCP por um cliente stdio:
+- `explain_query` baseline → `Seq Scan (cost 2281)`;
+- `explain_query` com `hypothetical_indexes:[{table,columns:[status]}]` → `Index Scan (cost 241)`;
+- `analyze_query_indexes` → recomenda índice, custo `2281 → 8.1` (283x), com `CREATE INDEX` pronto.
+
 ## Determinismo / ressalva
 Pin exato `==0.3.0` (uvx) ou tag `:0.3.0` (Docker). **Ressalva** (em `.gbrain/decisions.md`): projeto desacelerou — último commit ~jan/2026, release v0.3.0 de mai/2025. É o Postgres MCP mais popular (MIT); candidato a fork se abandonar.
