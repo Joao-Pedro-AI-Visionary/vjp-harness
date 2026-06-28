@@ -1,6 +1,6 @@
 {
   "name": "vjp-harness-tools",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "private": true,
   "type": "module",
   "description": "Ferramentas pinadas do V-JP Harness (instalação determinística via npm ci) — por João Pedro (V-JP)",

@@ -17,7 +17,7 @@ node .harness/tools/bsd.js --doctor --json   # saída para CI
 | # | Componente | Tipo | Repositório oficial | Versão pinada | Destino no ecossistema | Obrigatório |
 |--:|---|---|---|---|---|:--:|
 | 1 | **BSD** | Core Script | baseado em [`garrytan/gstack`](https://github.com/garrytan/gstack) | `1.6.0` | `.harness/tools/bsd.js` | ✅ |
-| 2 | **RTK** | Engine / CLI | [`rtk-ai/rtk`](https://github.com/rtk-ai/rtk) | `0.42.3` | `.harness/tools/rtk/` | ⬜ |
+| 2 | **RTK** | Engine / CLI | [`rtk-ai/rtk`](https://github.com/rtk-ai/rtk) | `0.42.4` | `.harness/tools/rtk/` | ⬜ |
 | 3 | **GBrain** | Engine / Memória | [`garrytan/gbrain`](https://github.com/garrytan/gbrain) | `0.35.1.0` | `.harness/tools/gbrain/` (persiste em `.gbrain/`) | ⬜ |
 | 4 | **Repomix** | CLI (NPM) | [`yamadashy/repomix`](https://github.com/yamadashy/repomix) | `0.2.14` | `.harness/tools/` | ✅ |
 | 5 | **GSD Redux** | CLI (NPM) | [`open-gsd/get-shit-done-redux`](https://github.com/open-gsd/get-shit-done-redux) | `1.1.0` | `.harness/tools/` | ✅ |

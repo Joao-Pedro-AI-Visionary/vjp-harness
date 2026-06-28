@@ -19,3 +19,7 @@
 - **Decisão:** Manutenção — Substituir server-postgres (vulnerável) por Postgres MCP Pro crystaldba v0.3.0 + gate Prisma
 - **Alternativa descartada:** Validar migration só via prisma migrate diff/validate (sem MCP), ou usar Supabase MCP (item 97 do briefing)
 - **Porquê:** server-postgres tem SQL injection e foi arquivado. crystaldba é Postgres puro (Prisma/EC2), seguro (modo restricted), com EXPLAIN cost model + índice hipotético HypoPG (útil ao índice parcial pendente). Supabase NÃO é a stack principal (item 97 é erro de digitação, confirmado pelo usuário). Mantém prisma diff/validate como gate barato. Ressalva: crystaldba desacelerou (release v0.3.0 mai/2025) — candidato a fork.
+## 2026-06-28 — Manutenção v1.7.1 — Bumpar pin do RTK 0.42.3 → 0.42.4
+- **Decisão:** Manutenção v1.7.1 — Bumpar pin do RTK 0.42.3 → 0.42.4
+- **Alternativa descartada:** Manter 0.42.3 e fazer downgrade do binário global da máquina para casar o pin
+- **Porquê:** O binário global já roda 0.42.4 (release legítima, tag v0.42.4 @ 8a7dd7e5570d). Alinhar o pin ao que de fato roda elimina o drift do doctor sem downgrade. Determinismo preservado: tag+commit pinados.
