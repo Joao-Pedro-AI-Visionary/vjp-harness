@@ -121,6 +121,35 @@ if [ -d "$TEMPLATE_DIR/agents" ]; then
   ok "Subagentes instalados em .claude/agents/ (backend/frontend/db/integration-verifier/nfr-performance-planner)"
 fi
 
+# ---- aponta o CLAUDE.md do projeto p/ a lei do harness (bloco gerenciado, idempotente) ----
+if command -v python3 >/dev/null 2>&1; then
+  python3 - "$TARGET/CLAUDE.md" <<'PY'
+import sys, os, re
+path = sys.argv[1]
+START, END = "<!-- vjp-harness:start -->", "<!-- vjp-harness:end -->"
+block = f"""{START}
+## 🧬 V-JP Harness (lei operacional)
+Este projeto usa o **V-JP Harness**. Antes de codar, leia e siga **`.harness/AGENT_RULES.md`** — o método: contrato-primeiro, especialistas back/db/front, **verificação ponta-a-ponta front→API→DB** (nada é "pronto" sem o fluxo real testado), NFR/fila no início, spec-driven, worktree isolada, prova viva.
+Subagentes especialistas em **`.claude/agents/`**: backend-specialist, frontend-specialist, db-migration-specialist, integration-verifier, nfr-performance-planner.
+Determinismo: `node .harness/tools/bsd.js --doctor`. Checagem do motor (grátis, local): `(cd .harness/tools && npm run check)`.
+{END}"""
+old = ""
+if os.path.exists(path):
+    with open(path, encoding="utf-8") as f:
+        old = f.read()
+if START in old and END in old:
+    new = re.sub(re.escape(START) + r".*?" + re.escape(END), block, old, flags=re.S)
+else:
+    new = (old.rstrip() + "\n\n" + block + "\n") if old.strip() else (block + "\n")
+with open(path, "w", encoding="utf-8") as f:
+    f.write(new)
+print("ok")
+PY
+  ok "CLAUDE.md do projeto aponta para .harness/AGENT_RULES.md (bloco gerenciado)"
+else
+  warn "python3 ausente — pulei a injeção no CLAUDE.md (faça manualmente: aponte para .harness/AGENT_RULES.md)."
+fi
+
 # ---- scaffold do .gbrain (preserva existente) ----
 GBRAIN_DIR="$TARGET/.gbrain"
 if [ -d "$GBRAIN_DIR" ]; then

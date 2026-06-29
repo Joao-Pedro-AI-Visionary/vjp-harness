@@ -1,13 +1,14 @@
 {
   "name": "vjp-harness-tools",
-  "version": "1.10.0",
+  "version": "1.10.1",
   "private": true,
   "type": "module",
   "description": "Ferramentas pinadas do V-JP Harness (instalação determinística via npm ci) — por João Pedro (V-JP)",
   "author": "João Pedro (V-JP) <dev.jp.991@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "check": "node --test tests/*.test.mjs && node verify.js"
   },
   "dependencies": {
     "repomix": "0.2.14",
