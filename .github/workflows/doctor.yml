@@ -8,11 +8,16 @@ name: doctor
 # (rtk global, uvx/Postgres MCP Pro, gbrain/superpowers vendorizados, skills em ~/.claude),
 # que não existem num runner limpo. O gate de CT é: obrigatórios OK + auto-testes verdes.
 
+# MANUAL por padrão (workflow_dispatch): em repo PRIVADO sem minutos de Actions,
+# todo push dava startup_failure. A checagem de cada commit é LOCAL e grátis:
+#   (cd .harness/tools && npm run check)   # = node:test + verify.js
+# Se o repo virar público (Actions grátis/ilimitado) ou o billing for ajustado,
+# descomente os gatilhos push/pull_request abaixo.
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
+  # push:
+  #   branches: [main]
+  # pull_request:
 
 jobs:
   doctor:
