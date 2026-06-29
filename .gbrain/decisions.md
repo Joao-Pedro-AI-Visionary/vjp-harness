@@ -59,3 +59,7 @@
 - **Decisão:** v1.9.1 — Orquestrador renomeado para 'Maestro' (escolha do usuário)
 - **Alternativa descartada:** Manter 'Orquestrador' puro, ou outra marca (Forja/Bússola)
 - **Porquê:** Usuário escolheu 'Maestro' — boa metáfora (rege a orquestra dos 4 agentes) e dá identidade. Nome do registry mantém 'Maestro — Orquestrador (BSD)' p/ leitura de fora; BSD/bsd.js inalterados.
+## 2026-06-28 — v1.10.0 — Especialistas Front/Back/DB + Contrato-primeiro + Verificação E2E + NFR (Nível 3)
+- **Decisão:** v1.10.0 — Especialistas Front/Back/DB + Contrato-primeiro + Verificação E2E + NFR (Nível 3)
+- **Alternativa descartada:** Manter 1 executor genérico; ou só verificador E2E (Nível 1); ou só especialistas builders sem contrato/verificação
+- **Porquê:** Dor recorrente: back 'pronto' mas front quebra/não persiste/pesado/sem fila. Causa: nenhuma verificação do fluxo real front→API→DB nem decisão de NFR. Solução Nível 3: contrato-primeiro (fonte da verdade Back↔Front), executores especialistas por camada (backend/db/frontend) cientes do contrato+NFR, subagentes interativos (.claude/agents/) que usam Playwright+Postgres MCP p/ verificar fluxo e PERSISTÊNCIA reais, e Planejador de NFR que decide fila/async no início. Headless ganha passos NFR+Contrato; helpers puros (nfrSummary/contractGaps) testados. CLI/IDs estáveis.

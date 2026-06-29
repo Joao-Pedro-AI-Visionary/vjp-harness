@@ -1,7 +1,7 @@
 # V-JP Harness
 
 > **Autor:** João Pedro (V-JP) · [github.com/Joao-Pedro-AI-Visionary](https://github.com/Joao-Pedro-AI-Visionary) · dev.jp.991@gmail.com
-> **Versão:** 1.9.1 · Licença MIT · *método de engenharia de software orientado a IA*
+> **Versão:** 1.10.0 · Licença MIT · *método de engenharia de software orientado a IA*
 
 Ecossistema de engenharia de software orientado a IA — empacotado para instalação **determinística** em qualquer projeto.
 
@@ -155,7 +155,7 @@ meu-projeto/
 ## Pipeline por task (Maestro)
 
 ```
-PLANEJADOR → PESQUISADOR → EXECUTOR → REVISOR → APROVADO?
+PLANEJADOR → NFR → CONTRATO → PESQUISADOR → EXECUTOR(back→db→front) → REVISOR → APROVADO?
   └ Sim → próxima task        └ Não → retry em worktree (máx. 2) → aborta + STATE.md
 ```
 
@@ -167,6 +167,19 @@ node .harness/tools/bsd.js --continue
 node .harness/tools/bsd.js --status
 node .harness/tools/bsd.js --reset
 ```
+
+---
+
+## 🎯 Especialistas Front/Back/DB + verificação ponta-a-ponta (Nível 3, v1.10.0)
+
+Resolve a falha clássica: *"o back foi feito, mas no front dá erro / não persiste / está pesado / não tem fila"*. A regra: **nada é "pronto" sem o fluxo real front→API→DB verificado.**
+
+- **Contrato-primeiro:** back e front consomem o MESMO contrato (endpoints, DTO in/out, status, o que persiste) → some o "front quebra".
+- **Executores especialistas** por camada: `backend` (NestJS/Prisma + persistência real), `db` (migration + índices via EXPLAIN/HypoPG), `frontend` (consome contrato + E2E Playwright).
+- **Planejador de NFR** no início: decide fila/assíncrono/paralelismo/idempotência (operação pesada/lote não pode ser síncrona).
+- **Verificador de Integração:** roda o fluxo real e confirma a **linha persistida no banco** (Postgres MCP) + UI sem erro (Playwright) + caminhos ruins + performance. Aprovação do LLM não substitui esse sinal.
+
+Na **camada interativa** (Claude Code/Cursor — onde os MCPs funcionam), os especialistas vêm como **subagentes** instalados em `.claude/agents/`: `backend-specialist`, `frontend-specialist`, `db-migration-specialist`, `nfr-performance-planner`, `integration-verifier`. No **pipeline headless**, os builders recebem contrato+NFR e o frontend gera o teste E2E que o `testCommand` roda.
 
 ---
 
@@ -233,6 +246,7 @@ Avaliação criteriosa de 3 achados de uma varredura (jun/2026) + 1 manutenção
 - **v1.8.0** — o harness passa a **testar a si mesmo**: suíte `node:test` (zero dependência) cobrindo o gate de merge, o verificador, a captura de decisão e a guarda anti path-traversal (23 testes); **CI** (`.github/workflows/doctor.yml`) roda testes + `verify.js` em cada PR; caso de uso real abaixo.
 - **v1.9.0** — **nomes por papel**: toda peça nomeada pelo que faz ("Maestro", "Compressor de Contexto", "Memória Persistente"…), com o projeto de origem como **procedência** entre parênteses (atribuição honesta + determinismo). Só mudança de exibição — CLI, IDs e arquivos seguem estáveis (zero quebra). Ver a tabela de vocabulário.
 - **v1.9.1** — o orquestrador agora se chama **Maestro** (conduz a "orquestra" dos 4 agentes); o nome técnico `BSD` segue como procedência e o comando `bsd.js` inalterado.
+- **v1.10.0** — **especialistas Front/Back/DB + contrato-primeiro + verificação ponta-a-ponta + NFR** (Nível 3): pipeline ganha passos NFR e Contrato e executores por camada; subagentes em `.claude/agents/`; verificador de integração confirma persistência real (Postgres) + UI (Playwright). Mata "back feito mas o front quebra / não persiste / pesado / sem fila". 31 testes verdes.
 
 ---
 

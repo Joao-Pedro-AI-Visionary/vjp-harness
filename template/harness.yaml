@@ -1,4 +1,4 @@
-version: "1.9.1"
+version: "1.10.0"
 author: "João Pedro (V-JP) <dev.jp.991@gmail.com> · github.com/Joao-Pedro-AI-Visionary"
 project:
   name: "__PROJECT_NAME__"
@@ -43,15 +43,29 @@ agents:
   planner:
     enabled: true
     role: "Análise de Risco e Planejamento"
+  nfr_planner:
+    enabled: true
+    role: "Requisitos não-funcionais: fila/assíncrono/paralelismo/performance (antes do código)"
+  contract:
+    enabled: true
+    role: "Contrato de API — fonte da verdade compartilhada Back↔Front"
   researcher:
     enabled: true
     role: "Mapeamento de Impacto e Exploração"
   executor:
     enabled: true
-    role: "Escrita de Código e Testes TDD"
+    role: "Escrita de Código e Testes TDD (especialista por camada: backend/db/frontend)"
   reviewer:
     enabled: true
-    role: "Validação estrita de Qualidade e Segurança"
+    role: "Validação estrita: contrato, persistência, E2E, performance, NFR"
+
+# Subagentes especialistas (camada interativa Claude Code) — instalados em .claude/agents/
+specialists:
+  backend-specialist: { enabled: true, role: "NestJS/Prisma conforme contrato + persistência real" }
+  db-migration-specialist: { enabled: true, role: "Migrations + índices (EXPLAIN/HypoPG)" }
+  frontend-specialist: { enabled: true, role: "Consome contrato + E2E Playwright" }
+  nfr-performance-planner: { enabled: true, role: "Fila/assíncrono/idempotência/perf" }
+  integration-verifier: { enabled: true, role: "Fluxo real front→API→DB + persistência" }
 
 mcp:
   # v1.7.0: server-postgres (vulnerável) substituído por Postgres MCP Pro (crystaldba).
