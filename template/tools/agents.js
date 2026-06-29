@@ -62,43 +62,115 @@ export function runResearcher({ feature, plan, ctx, cfg }) {
   });
 }
 
-// ---- EXECUTOR ----
-export function runExecutor({ feature, plan, research, ctx, cfg, feedback }) {
+// ---- helpers PUROS de NFR/Contrato (testáveis sem LLM) ----
+
+// Heurística determinística: a feature precisa de fila/assíncrono/paralelismo?
+// Operação pesada (lote/import/export/relatório/e-mail/integração externa) ou risco alto não deve ser síncrona.
+export function nfrSummary(plan = {}) {
+  const text = `${plan.strategy || ''} ${(plan.acceptanceCriteria || []).join(' ')} ${plan.feature || ''}`.toLowerCase();
+  const heavy = /(lote|bulk|import|export|relat[óo]ri|report|planilha|csv|xlsx|pdf|e-?mail|envio em massa|webhook|integra[çc]|terceiro|scrap|fila|queue|cron|agend|batch|processa|massa)/.test(text);
+  const needsQueue = heavy || plan.risk === 'high';
+  return {
+    needsQueue,
+    async: needsQueue,
+    parallelism: heavy,
+    idempotency: needsQueue,
+    rationale: needsQueue
+      ? 'Operação pesada/lote/integração externa ou risco alto → processar via fila assíncrona idempotente.'
+      : 'Operação síncrona simples — fila não necessária.',
+  };
+}
+
+// Lacunas de um contrato de API. Vazio = contrato completo (front e back podem confiar).
+export function contractGaps(contract = {}) {
+  const gaps = [];
+  const eps = Array.isArray(contract.endpoints) ? contract.endpoints : [];
+  if (!eps.length) gaps.push('sem endpoints declarados');
+  eps.forEach((e, i) => {
+    const id = e.path || `#${i}`;
+    if (!e.method) gaps.push(`${id}: falta method`);
+    if (!e.path) gaps.push(`${id}: falta path`);
+    if (e.request === undefined) gaps.push(`${id}: falta DTO de entrada (request)`);
+    if (e.response === undefined) gaps.push(`${id}: falta DTO de saída (response)`);
+    if (!Array.isArray(e.statusCodes) || !e.statusCodes.length) gaps.push(`${id}: faltam status codes`);
+    if (e.persists === undefined) gaps.push(`${id}: não declara o que persiste (persists)`);
+  });
+  return gaps;
+}
+export function contractIsComplete(contract) { return contractGaps(contract).length === 0; }
+
+// ---- NFR PLANNER (Planejador de requisitos não-funcionais) ----
+export function runNfrPlanner({ feature, plan, ctx, cfg }) {
   return runJsonAgent({
-    agentId: 'executor', ctx, cfg,
-    roleInstruction: 'Implemente a feature seguindo a stack homologada e os padrões da memória. Gere o CONTEÚDO COMPLETO de cada arquivo (código + testes). Não use mocks voláteis de banco; siga AGENT_RULES. Se houver feedback de revisão, corrija exatamente o apontado.',
+    agentId: 'nfr-planner', ctx, cfg,
+    roleInstruction: 'Planeje requisitos NÃO-funcionais ANTES do código: decida se a operação precisa de fila/assíncrono/paralelismo e idempotência, e defina um orçamento de performance (tempo de resposta e tamanho de payload). Operação pesada (lote/import/export/relatório/e-mail/integração externa) NÃO pode ser síncrona — recomende fila (ex.: BullMQ).',
+    outputContract: '{ "needsQueue": boolean, "async": boolean, "parallelism": boolean, "idempotency": boolean, "perfBudget": { "maxResponseMs": number, "maxPayloadKb": number }, "queueTool": "string|null", "notes": "string" }',
+    userPrompt: `Feature: "${feature}".\nPlano: ${JSON.stringify(plan)}`,
+  });
+}
+
+// ---- CONTRACT (Contrato-primeiro: fonte da verdade entre Back e Front) ----
+export function runContract({ feature, plan, research, ctx, cfg }) {
+  return runJsonAgent({
+    agentId: 'contract', ctx, cfg,
+    roleInstruction: 'Defina o CONTRATO de API compartilhado entre Backend e Frontend ANTES de implementar. É a fonte da verdade: cada endpoint com método, path, DTO de entrada e de saída, status codes e O QUE PERSISTE no banco. Front e Back DEVEM seguir este contrato à risca.',
+    outputContract: '{ "endpoints": [ { "method": "GET|POST|PUT|PATCH|DELETE", "path": "/...", "request": {}, "response": {}, "statusCodes": [200], "persists": "tabela/entidade ou null" } ], "entities": ["string"], "notes": "string" }',
+    userPrompt: `Feature: "${feature}".\nPlano: ${JSON.stringify(plan)}\nPesquisa: ${JSON.stringify(research || {})}`,
+  });
+}
+
+// Instruções por CAMADA (executor especialista).
+const LAYER_INSTR = {
+  backend: 'ESPECIALISTA BACKEND (NestJS): Controller → DTO (class-validator) → UseCase → Repository → Prisma. Implemente EXATAMENTE os endpoints do CONTRATO (mesmos paths/DTOs/status). Garanta PERSISTÊNCIA real (transação commitada) + testes de integração com Testcontainers. Se o NFR pedir fila, exponha o produtor + handler idempotente.',
+  frontend: 'ESPECIALISTA FRONTEND: consuma o CONTRATO (mesmos paths/DTOs/status) — não invente formato. Trate loading/erro/vazio. Gere um teste E2E (Playwright) que exercita o fluxo real e asserta o resultado visível ao usuário.',
+  db: 'ESPECIALISTA DB/MIGRATIONS (Prisma): crie/atualize schema + migration. Avalie índices (inclusive parciais) para as queries do contrato; evite N+1. Proibido mock de banco.',
+  default: 'Implemente a feature seguindo a stack homologada e os padrões da memória.',
+};
+
+// ---- EXECUTOR (especialista por camada quando `layer` é informado) ----
+export function runExecutor({ feature, plan, research, ctx, cfg, feedback, contract, nfr, layer }) {
+  const layerInstr = LAYER_INSTR[layer] || LAYER_INSTR.default;
+  return runJsonAgent({
+    agentId: layer ? `executor:${layer}` : 'executor', ctx, cfg,
+    roleInstruction: `${layerInstr} Gere o CONTEÚDO COMPLETO de cada arquivo (código + testes). Não use mocks voláteis de banco; siga AGENT_RULES. Se houver feedback de revisão, corrija exatamente o apontado.`,
     outputContract: '{ "files": [ { "path": "relativo/ao/projeto", "content": "conteúdo integral do arquivo" } ], "commitMessage": "string", "notes": "string" }',
     userPrompt: [
       `Feature: "${feature}".`,
       `Plano: ${JSON.stringify(plan)}`,
       `Pesquisa: ${JSON.stringify(research)}`,
+      contract ? `CONTRATO (siga à risca): ${JSON.stringify(contract)}` : '',
+      nfr ? `NFR (respeite): ${JSON.stringify(nfr)}` : '',
       feedback ? `Feedback da revisão anterior (CORRIJA): ${feedback}` : '',
     ].filter(Boolean).join('\n'),
   });
 }
 
-// ---- REVIEWER ----
-export function runReviewer({ feature, executor, testPassed, testOutput, ctx, cfg }) {
+// ---- REVIEWER (valida contrato, persistência, E2E e NFR/performance) ----
+export function runReviewer({ feature, executor, testPassed, testOutput, ctx, cfg, contract, nfr }) {
   return runJsonAgent({
     agentId: 'reviewer', ctx, cfg,
-    roleInstruction: 'Valide criticamente o código gerado contra os critérios de aceite, arquitetura e qualidade. O resultado dos testes é o gate objetivo: se os testes falharam, NÃO aprove e diga exatamente o que corrigir.',
-    outputContract: '{ "approved": boolean, "reason": "string", "requiredChanges": "string" }',
+    roleInstruction: 'Valide criticamente contra critérios de aceite, ARQUITETURA, CONTRATO e NFR. Gate objetivo: se os testes falharam, NÃO aprove. Cheque: (1) endpoints batem com o contrato (path/DTO/status); (2) há prova de PERSISTÊNCIA real; (3) há teste E2E do fluxo front→API; (4) performance dentro do budget (sem N+1, índice quando necessário); (5) se needsQueue, a operação pesada está assíncrona+idempotente. Aponte exatamente o que falta.',
+    outputContract: '{ "approved": boolean, "reason": "string", "requiredChanges": "string", "checks": { "contract": boolean, "persistence": boolean, "e2e": boolean, "performance": boolean, "nfr": boolean } }',
     userPrompt: [
       `Feature: "${feature}".`,
       `Arquivos gerados: ${JSON.stringify((executor.files || []).map((f) => f.path))}`,
       `Testes passaram: ${testPassed}.`,
+      contract ? `Contrato: ${JSON.stringify(contract)}` : '',
+      nfr ? `NFR: ${JSON.stringify(nfr)}` : '',
       `Saída dos testes (resumo): ${String(testOutput || '').slice(0, 1500)}`,
-    ].join('\n'),
+    ].filter(Boolean).join('\n'),
   });
 }
 
 // ---- modo dry-run (sem LLM): exercita a mecânica do pipeline ----
 export const DRY = {
   planner: () => ({ risk: 'low', strategy: 'dry-run', needsResearch: false, acceptanceCriteria: ['marker existe'] }),
+  nfrPlanner: () => ({ needsQueue: false, async: false, parallelism: false, idempotency: false, perfBudget: { maxResponseMs: 500, maxPayloadKb: 200 }, queueTool: null, notes: 'dry-run' }),
+  contract: () => ({ endpoints: [], entities: [], notes: 'dry-run' }),
   researcher: () => ({ impactedFiles: ['.bsd/dry-run.md'], approach: 'dry-run', dependencies: [] }),
-  executor: ({ feature }) => ({
-    files: [{ path: `.bsd/dry-run-${feature}.md`, content: `# Dry-run de ${feature}\nGerado pelo pipeline sem LLM.\n` }],
+  executor: ({ feature, layer }) => ({
+    files: [{ path: `.bsd/dry-run-${feature}${layer ? '-' + layer : ''}.md`, content: `# Dry-run de ${feature}${layer ? ' (' + layer + ')' : ''}\nGerado pelo pipeline sem LLM.\n` }],
     commitMessage: `dry-run: ${feature}`, notes: 'dry-run',
   }),
-  reviewer: ({ testPassed }) => ({ approved: testPassed, reason: 'dry-run', requiredChanges: '' }),
+  reviewer: ({ testPassed }) => ({ approved: testPassed, reason: 'dry-run', requiredChanges: '', checks: { contract: true, persistence: true, e2e: true, performance: true, nfr: true } }),
 };

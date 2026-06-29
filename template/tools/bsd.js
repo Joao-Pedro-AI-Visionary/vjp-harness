@@ -11,7 +11,7 @@ import path from 'path';
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { loadLlmConfig, checkConnectivity } from './llm.js';
-import { buildContext, runPlanner, runResearcher, runExecutor, runReviewer, DRY } from './agents.js';
+import { buildContext, runPlanner, runNfrPlanner, runContract, runResearcher, runExecutor, runReviewer, DRY } from './agents.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -214,6 +214,16 @@ async function executeFeature(feature, opts = {}) {
       () => dryRun ? DRY.planner() : runPlanner({ feature, ctx, cfg }));
     console.log(`  ${COLORS.dim}Risco: ${plan.risk} · ${plan.strategy}${COLORS.reset}`);
 
+    // 2b. NFR Planner (fila/assíncrono/paralelismo/perf — decidido ANTES do código)
+    const nfr = await step('NFR (fila/async/performance)', 2, TOTAL,
+      () => dryRun ? DRY.nfrPlanner() : runNfrPlanner({ feature, plan, ctx, cfg }));
+    console.log(`  ${COLORS.dim}NFR: fila=${nfr.needsQueue} async=${nfr.async} paralelismo=${nfr.parallelism}${COLORS.reset}`);
+
+    // 2c. Contrato-primeiro (fonte da verdade compartilhada Back↔Front)
+    const contract = await step('Contrato de API', 2, TOTAL,
+      () => dryRun ? DRY.contract() : runContract({ feature, plan, ctx, cfg }));
+    console.log(`  ${COLORS.dim}Endpoints no contrato: ${(contract.endpoints || []).length}${COLORS.reset}`);
+
     // 3. Researcher
     const research = await step('Researcher (impacto)', 3, TOTAL,
       () => dryRun ? DRY.researcher() : runResearcher({ feature, plan, ctx, cfg }));
@@ -223,10 +233,21 @@ async function executeFeature(feature, opts = {}) {
     let approved = false, feedback = '', lastReview = null, attempt = 0;
     while (attempt < maxRetries && !approved) {
       attempt++;
-      const executor = await step(`Executor (tentativa ${attempt}/${maxRetries})`, 3 + attempt, TOTAL,
-        () => dryRun ? DRY.executor({ feature }) : runExecutor({ feature, plan, research, ctx, cfg, feedback }));
+      // Executores ESPECIALISTAS por camada (backend → db → frontend), acumulando arquivos.
+      // Cada um recebe o CONTRATO e o NFR; o frontend gera o teste E2E que prova o fluxo real.
+      const layers = ['backend', 'db', 'frontend'];
+      const allFiles = [];
+      let commitMessage = `bsd: ${feature} (tentativa ${attempt})`;
+      for (const layer of layers) {
+        const out = await step(`Executor:${layer} (tentativa ${attempt}/${maxRetries})`, 3 + attempt, TOTAL,
+          () => dryRun ? DRY.executor({ feature, layer })
+            : runExecutor({ feature, plan, research, ctx, cfg, feedback, contract, nfr, layer }));
+        for (const f of out.files || []) allFiles.push(f);
+        if (out.commitMessage) commitMessage = out.commitMessage;
+      }
+      const executor = { files: allFiles, commitMessage };
       const applied = await applyFiles(worktreePath, executor.files);
-      console.log(`  ${COLORS.dim}Escreveu ${applied.length} arquivo(s): ${applied.join(', ')}${COLORS.reset}`);
+      console.log(`  ${COLORS.dim}Escreveu ${applied.length} arquivo(s) [back/db/front]: ${applied.join(', ')}${COLORS.reset}`);
       if (gitMode && applied.length) {
         try {
           execSync('git add -A', { cwd: worktreePath, stdio: 'ignore' });
@@ -239,7 +260,7 @@ async function executeFeature(feature, opts = {}) {
       await logHistory('TEST_RESULT', feature, `Executor#${attempt}`, test.passed ? 'success' : 'failed', { applied });
 
       lastReview = dryRun ? DRY.reviewer({ testPassed: test.passed })
-        : await runReviewer({ feature, executor, testPassed: test.passed, testOutput: test.output, ctx, cfg });
+        : await runReviewer({ feature, executor, testPassed: test.passed, testOutput: test.output, ctx, cfg, contract, nfr });
       // Gate por sinal concreto (ver mergeGate): teste verde manda; LLM não sobrepõe.
       approved = mergeGate(test.passed, lastReview.approved);
       if (!approved) {

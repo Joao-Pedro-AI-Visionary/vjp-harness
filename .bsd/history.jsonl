@@ -1,0 +1,21 @@
+{"timestamp":"2026-06-29T00:15:45.797Z","event":"START_FEATURE","feature":"teste-fluxo","task":"All","status":"running","details":{"dryRun":true}}
+{"timestamp":"2026-06-29T00:15:45.799Z","event":"STEP_START","feature":"teste-fluxo","task":"Criar Worktree","status":"running","details":{}}
+{"timestamp":"2026-06-29T00:15:45.872Z","event":"STEP_SUCCESS","feature":"teste-fluxo","task":"Criar Worktree","status":"success","details":{}}
+{"timestamp":"2026-06-29T00:15:45.873Z","event":"STEP_START","feature":"teste-fluxo","task":"Planner (risco/estratégia)","status":"running","details":{}}
+{"timestamp":"2026-06-29T00:15:45.873Z","event":"STEP_SUCCESS","feature":"teste-fluxo","task":"Planner (risco/estratégia)","status":"success","details":{}}
+{"timestamp":"2026-06-29T00:15:45.873Z","event":"STEP_START","feature":"teste-fluxo","task":"NFR (fila/async/performance)","status":"running","details":{}}
+{"timestamp":"2026-06-29T00:15:45.874Z","event":"STEP_SUCCESS","feature":"teste-fluxo","task":"NFR (fila/async/performance)","status":"success","details":{}}
+{"timestamp":"2026-06-29T00:15:45.874Z","event":"STEP_START","feature":"teste-fluxo","task":"Contrato de API","status":"running","details":{}}
+{"timestamp":"2026-06-29T00:15:45.874Z","event":"STEP_SUCCESS","feature":"teste-fluxo","task":"Contrato de API","status":"success","details":{}}
+{"timestamp":"2026-06-29T00:15:45.874Z","event":"STEP_START","feature":"teste-fluxo","task":"Researcher (impacto)","status":"running","details":{}}
+{"timestamp":"2026-06-29T00:15:45.874Z","event":"STEP_SUCCESS","feature":"teste-fluxo","task":"Researcher (impacto)","status":"success","details":{}}
+{"timestamp":"2026-06-29T00:15:45.875Z","event":"STEP_START","feature":"teste-fluxo","task":"Executor:backend (tentativa 1/2)","status":"running","details":{}}
+{"timestamp":"2026-06-29T00:15:45.875Z","event":"STEP_SUCCESS","feature":"teste-fluxo","task":"Executor:backend (tentativa 1/2)","status":"success","details":{}}
+{"timestamp":"2026-06-29T00:15:45.875Z","event":"STEP_START","feature":"teste-fluxo","task":"Executor:db (tentativa 1/2)","status":"running","details":{}}
+{"timestamp":"2026-06-29T00:15:45.875Z","event":"STEP_SUCCESS","feature":"teste-fluxo","task":"Executor:db (tentativa 1/2)","status":"success","details":{}}
+{"timestamp":"2026-06-29T00:15:45.875Z","event":"STEP_START","feature":"teste-fluxo","task":"Executor:frontend (tentativa 1/2)","status":"running","details":{}}
+{"timestamp":"2026-06-29T00:15:45.875Z","event":"STEP_SUCCESS","feature":"teste-fluxo","task":"Executor:frontend (tentativa 1/2)","status":"success","details":{}}
+{"timestamp":"2026-06-29T00:15:45.940Z","event":"TEST_RESULT","feature":"teste-fluxo","task":"Executor#1","status":"success","details":{"applied":[".bsd/dry-run-teste-fluxo-backend.md",".bsd/dry-run-teste-fluxo-db.md",".bsd/dry-run-teste-fluxo-frontend.md"]}}
+{"timestamp":"2026-06-29T00:15:45.940Z","event":"REVIEW","feature":"teste-fluxo","task":"Reviewer#1","status":"success","details":{}}
+{"timestamp":"2026-06-29T00:15:46.009Z","event":"MERGE","feature":"teste-fluxo","task":"All","status":"success","details":{"branch":"bsd-feature-teste-fluxo"}}
+{"timestamp":"2026-06-29T00:15:46.009Z","event":"END_FEATURE","feature":"teste-fluxo","task":"All","status":"success","details":{}}

@@ -113,6 +113,14 @@ mkdir -p "$HARNESS_DIR/context"
 [ -f "$SEED_DIR/context/README.md" ] && cp "$SEED_DIR/context/README.md" "$HARNESS_DIR/context/README.md"
 ok "Motor copiado (harness.yaml, registry.json, REGISTRY.md, INSTALL.md, AGENT_RULES.md, tools/, config/)"
 
+# ---- subagentes especialistas (camada interativa Claude Code) ----
+if [ -d "$TEMPLATE_DIR/agents" ]; then
+  AGENTS_DIR="$TARGET/.claude/agents"
+  mkdir -p "$AGENTS_DIR"
+  cp "$TEMPLATE_DIR"/agents/*.md "$AGENTS_DIR/" 2>/dev/null || true
+  ok "Subagentes instalados em .claude/agents/ (backend/frontend/db/integration-verifier/nfr-performance-planner)"
+fi
+
 # ---- scaffold do .gbrain (preserva existente) ----
 GBRAIN_DIR="$TARGET/.gbrain"
 if [ -d "$GBRAIN_DIR" ]; then

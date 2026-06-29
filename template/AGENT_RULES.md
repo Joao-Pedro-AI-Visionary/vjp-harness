@@ -61,3 +61,26 @@ Ao gerar código backend, os agentes devem respeitar a seguinte arquitetura:
 - **Clean Architecture**: Regras de negócio ficam isoladas em Use Cases/Services e não devem vazar para o controller ou repositório.
 - **Validação de Inputs**: Utilize `class-validator` e `class-transformer` em DTOs.
 - **Concorrência**: Banco protegido contra race conditions e queries com transações ou lock otimista se necessário.
+
+---
+
+## 4. Especialistas de Camada + Contrato + Verificação E2E + NFR (Nível 3)
+
+> Resolve a falha clássica: "o back foi feito, mas no front dá erro / não persiste / está pesado / não tem fila". A regra: **nada é "pronto" sem o fluxo real front→API→DB verificado.**
+
+### 4.1 Contrato-primeiro (fonte da verdade)
+Antes de implementar back ou front, defina o **contrato de API**: para cada endpoint — `method`, `path`, DTO de **entrada** e **saída**, **status codes** e **o que persiste**. Back e Front consomem o MESMO contrato. Divergência de contrato é a causa nº 1 de "o front quebra".
+
+### 4.2 Especialistas (subagentes em `.claude/agents/`)
+- **`backend-specialist`** — implementa o contrato na stack NestJS/Prisma, com persistência real + Testcontainers.
+- **`db-migration-specialist`** — schema/migration + índices (inclusive parciais), validados com EXPLAIN/índice hipotético (Postgres MCP Pro).
+- **`frontend-specialist`** — consome o contrato, trata loading/erro/vazio, gera teste E2E (Playwright).
+- **`nfr-performance-planner`** — decide ANTES do código: fila/assíncrono/paralelismo, idempotência, orçamento de performance.
+- **`integration-verifier`** — roda o fluxo REAL e confirma persistência + contrato.
+
+### 4.3 NFR decidido no início (mata "sem fila/paralelismo")
+Operação pesada/lote/integração externa (import/export, relatório, e-mail em massa, webhook, processamento) **não pode ser síncrona** — vai para **fila idempotente** (ex.: BullMQ). Listas → paginação. Defina `maxResponseMs`/`maxPayloadKb`.
+
+### 4.4 Gate de "pronto" — verificação ponta-a-ponta (mata "no front dá erro / não persiste")
+Uma feature só é concluída quando o **`integration-verifier`** confirma, com **sinal concreto**:
+1. endpoints batem com o contrato; 2. fluxo real no front (Playwright) sem erro; 3. **linha persistida no banco** confirmada (Postgres MCP Pro `SELECT`); 4. caminhos ruins (401/403/validação/duplicado/vazio) tratados; 5. performance no budget (sem N+1; índice quando preciso). **Aprovação do LLM não substitui esses sinais.**
