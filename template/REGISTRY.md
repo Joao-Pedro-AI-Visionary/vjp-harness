@@ -22,7 +22,7 @@ node .harness/tools/bsd.js --doctor --json   # saída para CI
 | 1 | **Maestro** | Core Script | BSD — baseado em [`garrytan/gstack`](https://github.com/garrytan/gstack) | `1.6.0` | `.harness/tools/bsd.js` | ✅ |
 | 2 | **Compressor de Contexto** | Engine / CLI | [`rtk-ai/rtk`](https://github.com/rtk-ai/rtk) (RTK) | `0.42.4` | `.harness/tools/rtk/` | ⬜ |
 | 3 | **Memória Persistente** | Engine / Memória | [`garrytan/gbrain`](https://github.com/garrytan/gbrain) (GBrain) | `0.35.1.0` | `.harness/tools/gbrain/` (persiste em `.gbrain/`) | ⬜ |
-| 4 | **Empacotador de Repositório** | CLI (NPM) | [`yamadashy/repomix`](https://github.com/yamadashy/repomix) (Repomix) | `0.2.14` | `.harness/tools/` | ✅ |
+| 4 | **Empacotador de Repositório** | CLI (NPM) | [`yamadashy/repomix`](https://github.com/yamadashy/repomix) (Repomix) | `1.16.0` | `.harness/tools/` | ✅ |
 | 5 | **Planejador Spec-Driven** | CLI (NPM) | [`open-gsd/get-shit-done-redux`](https://github.com/open-gsd/get-shit-done-redux) (GSD) | `1.1.0` | `.harness/tools/` | ✅ |
 | 6 | **Padrões Reutilizáveis / Skills** | CLI / Engine | [`obra/superpowers`](https://github.com/obra/superpowers) (Superpowers) | `v5.1.0` | `.harness/tools/superpowers/` | ⬜ |
 | 7 | ~~**Validador de Banco (legado)**~~ | Servidor MCP | [`modelcontextprotocol/servers`](https://github.com/modelcontextprotocol/servers) (PostgreSQL MCP) | ~~`0.6.2`~~ | ❌ **REMOVIDO na v1.7.0** (SQLi + arquivado) → use #12 | ⬜ |

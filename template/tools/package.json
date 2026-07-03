@@ -11,9 +11,13 @@
     "check": "node --test tests/*.test.mjs && node verify.js"
   },
   "dependencies": {
-    "repomix": "0.2.14",
+    "repomix": "1.16.0",
     "@opengsd/get-shit-done-redux": "1.1.0",
     "@playwright/mcp": "0.0.75",
     "codebase-memory-mcp": "0.8.1"
+  },
+  "overrides": {
+    "hono": "^4.12.25",
+    "ws": "^8.21.0"
   }
 }

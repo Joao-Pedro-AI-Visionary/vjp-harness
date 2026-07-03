@@ -83,7 +83,7 @@
         "url": "https://github.com/yamadashy/repomix"
       },
       "dest": ".harness/tools/",
-      "version": "0.2.14",
+      "version": "1.16.0",
       "install": "npm ci em .harness/tools (pinado no package.json).",
       "verify": {
         "type": "file",

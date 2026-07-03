@@ -20,7 +20,7 @@ paths:
 
 tools:
   repomix:
-    version: "0.2.14"
+    version: "1.16.0"
     path: ".harness/tools/node_modules/repomix/bin/repomix.cjs"
     config: ".harness/config/repomix.config.json"
   gsd:
