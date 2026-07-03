@@ -3,6 +3,7 @@
 > Matriz determinística de instalação. Espelho legível de [`registry.json`](./registry.json) — a **fonte da verdade** machine-readable consumida pelo verificador (`tools/verify.js`).
 >
 > **Regra de ouro:** toda versão é **pinada**. Nada de `@latest`. O `--doctor` falha em drift.
+> **v1.10.2:** Constitution 9 artigos + OWASP Security em `AGENT_RULES.md §0/§0.1`; skill `vjp-orchestration` (Context Bundle, Adversarial Review, Kanban); Hono+Drizzle+Zod homologado como **stack alternativa** (NÃO substitui NestJS+Prisma). ADR completo em `.gbrain/decisions.md`.
 
 ## Como verificar
 
@@ -30,6 +31,7 @@ node .harness/tools/bsd.js --doctor --json   # saída para CI
 | 10 | **Banco Supabase (opcional)** | Servidor MCP | [`supabase-community/supabase-mcp`](https://github.com/supabase-community/supabase-mcp) | `0.8.2` | runtime — **só projetos Supabase pontuais** | ⬜ |
 | 11 | 🆕 **Mapa de Código** | Servidor MCP (NPM) | [`DeusData/codebase-memory-mcp`](https://github.com/DeusData/codebase-memory-mcp) | `0.8.1` | runtime — reforça o **Pesquisador** (TS/C#) | ⬜ |
 | 12 | 🆕 **Validador de Banco (EXPLAIN/índices)** | Servidor MCP (pip/Docker) | [`crystaldba/postgres-mcp`](https://github.com/crystaldba/postgres-mcp) (Postgres MCP Pro) | `0.3.0` | runtime — **Revisor** (EXPLAIN + HypoPG), substitui #7 | ⬜ |
+| 13 | 🆕 **Stack Alternativa — Hono + Drizzle + Zod (Bun)** | Stack externa | [`hono`](https://hono.dev/) + [`drizzle-orm`](https://orm.drizzle.team/) + [`zod`](https://zod.dev/) + [`bun`](https://bun.sh/) | n/a (escolha por projeto) | projeto (NÃO em `.harness/`) — ver `tools/hono-drizzle.md` + ADR v1.10.2 | ⬜ |
 
 **Obrigatórios (núcleo determinístico):** Maestro, Empacotador de Repositório, Planejador Spec-Driven — pinados via `package-lock.json` (`npm ci`).
 **Opcionais:** instalados sob demanda; o `--doctor` os reporta como `[opt]` sem bloquear (a menos que `--strict`).

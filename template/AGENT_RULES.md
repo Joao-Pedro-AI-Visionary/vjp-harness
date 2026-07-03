@@ -1,8 +1,98 @@
 # V-JP Harness Agent Rules & Guidelines
 
-> Autoria: **João Pedro (V-JP)** · github.com/Joao-Pedro-AI-Visionary · v1.7.0
+> Autoria: **João Pedro (V-JP)** · github.com/Joao-Pedro-AI-Visionary · v1.10.2
 
 Este documento define as regras de sistema e diretrizes operacionais para todos os agentes de IA que operam sob a orquestração do **V-JP Harness**. Qualquer agente deve ler, respeitar e aplicar estritamente as regras abaixo.
+
+---
+
+## 0. Constitution — 9 Artigos Não-Negociáveis (v1.10.2)
+
+> Toda feature, PR e decisão arquitetural passa por estes 9 gates. **NON-NEGOTIABLE** = bloqueio automático em CI quando violado sem justificativa. Subagentes devem justificar violações em `.gbrain/decisions.md` (ADR) referenciando o artigo. Alinhado com o **Manifesto Dev Solo Arquiteto Sênior** (`~/Desktop/MANIFESTO-DEV-SOLO-ARQUITETO.md`) e com GitHub Spec Kit (117k⭐, 2026-07-03).
+
+### I. 🧱 Library-First
+Cada feature nasce como **biblioteca standalone** (mesmo que vire app). Razão: modularidade forçada desde o dia 1, reuso, testabilidade isolada.
+- **Gate:** se a feature cruza 2+ domínios sem ser lib, justificar em ADR.
+- **Verificação:** `package.json` do módulo + `index.ts` exportando API pública.
+
+### II. 🖥️ CLI Interface Mandate
+Toda lib expõe CLI (stdin/args → stdout; errors → stderr; JSON + human-readable). Razão: **debugabilidade** — você consegue testar cada peça em 3 segundos no terminal, sem subir servidor.
+- **Gate:** se a lib não tem CLI, justificar em ADR.
+- **Verificação:** `bin/<lib>.ts` + help flag funcionando.
+
+### III. 🧪 Test-First (NON-NEGOTIABLE)
+TDD estrito: **test → aprovado pelo user → test falha → implementar → passa → refactor**. Razão: para dev solo, testes são o **único seguro contra regressão**; sem eles, a próxima IA destrói o que a anterior construiu.
+- **Gate:** `npm test` deve falhar ANTES da implementação e passar DEPOIS. PR com diff só de código sem teste = **bloqueado**.
+- **Verificação:** coverage ≥ 70% em libs core, ≥ 50% em UI. Mínimo absoluto: 1 teste por handler de erro.
+
+### IV. 🔗 Integration Testing
+Foco em: contratos de nova lib, mudanças de contrato, comunicação inter-service, schemas compartilhados. Razão: unit tests passam, mas sistema quebra — o bug mora no "entre".
+- **Gate:** feature que muda contrato (DTO, schema, evento) PRECISA de teste de integração que cubra back→front→DB.
+- **Verificação:** `nfr-contract.test.mjs` + Playwright E2E + linha persistida no Postgres (MCP).
+
+### V. 📊 Observability by Default (NON-NEGOTIABLE)
+Logging estruturado (JSON), métricas (RED: Rate, Errors, Duration), tracing distribuído. Razão: você é uma pessoa só — quando às 3h da manhã algo quebra, **structured logs > intuição**.
+- **Gate:** todo endpoint loga `request_id`, `latency_ms`, `status`, `user_id` (se aplicável). **Sem `console.log`** em código de produção.
+- **Verificação:** logger configurado em `src/lib/logger.ts` com padrão JSON + Sentry/OTel SDK.
+
+### VI. 🏷️ Versioning & Breaking Changes
+SemVer estrito (MAJOR.MINOR.PATCH); breaking change = MAJOR bump + migration guide no CHANGELOG. Razão: clientes internos (incluindo **você em 6 meses**) precisam de contrato estável.
+- **Gate:** mudança em assinatura pública de lib = bump MAJOR + ADR.
+- **Verificação:** `CHANGELOG.md` atualizado em todo PR que muda API.
+
+### VII. 🪶 Simplicity (YAGNI Gate)
+≤ 3 packages no repo. Sem "future-proofing". Se não está num requisito HOJE, não está no código. Razão: 90% do "vai precisar" nunca acontece, e o que sobra vira peso morto.
+- **Gate:** > 3 packages = justificar cada um. "Vai precisar" = proibido.
+- **Verificação:** `find . -name "package.json" -not -path "*/node_modules/*" | wc -l` ≤ 3 (default).
+
+### VIII. 🪞 Anti-Abstraction Gate
+Framework direto (sem wrapper "pra caso troque"). Modelo único de representação (DTO = DB row = API response quando possível). Razão: abstração prematura é a doença #1 do código gerado por IA.
+- **Gate:** wrapper abstrato sobre framework = justificar em ADR. "Repository pattern" sem 2+ implementações concretas = proibido.
+- **Verificação:** code review por humanos/subagente crítico + diff stats.
+
+### IX. 🔒 Security-by-Design (NON-NEGOTIABLE)
+OWASP LLM Top 10 + OWASP Top 10 web na checklist de **toda** feature. Razão: dev solo **não tem QA dept**; se não for seguro no commit, vai pra prod inseguro.
+- **Gate:** PR sem OWASP checklist preenchido = **bloqueado**. Ver §0.1 abaixo.
+- **Verificação:** checklist completo no PR template + `npm audit` = 0 HIGH/CRITICAL.
+
+---
+
+## 0.1. Security — Padrão Mínimo OWASP (aplicar a TODA feature)
+
+> Subagentes: antes de qualquer commit, validar este checklist. Se qualquer item for "N/A" sem justificativa, bloquear o PR. Inspirado no **OWASP GenAI Security Project** (https://genai.owasp.org/llm-top-10/) e OWASP Top 10 Web.
+
+### OWASP LLM Top 10 (se usar LLM em runtime)
+
+- [ ] **LLM01 Prompt Injection** — input do user validado/escapado antes de virar prompt; **nunca** concatenar user input em system prompt
+- [ ] **LLM02 Sensitive Disclosure** — `.env` lido por código, NÃO por LLM; redação automática antes de logar
+- [ ] **LLM03 Supply Chain** — `npm audit` = 0 HIGH/CRITICAL; deps pinadas; SBOM se LLM rodar em prod
+- [ ] **LLM04 Data Poisoning** — RAG: validar fontes; revisar 100% dos docs indexados
+- [ ] **LLM05 Improper Output** — LLM output validado com Zod/schema; **NUNCA** `eval()` em LLM output
+- [ ] **LLM06 Excessive Agency** — tool calls com allowlist + timeout + rate limit; **aprovação humana** em ações destrutivas (delete, send email, transfer $)
+- [ ] **LLM07 System Prompt Leakage** — sem segredos no system prompt; tratar como público
+- [ ] **LLM08 Vector Weakness** — RAG: separar tenants; rate limit por user
+- [ ] **LLM09 Misinformation** — human-in-the-loop em info crítica; fontes verificáveis
+- [ ] **LLM10 Unbounded Consumption** — rate limit, max tokens, circuit breaker, budget de spend
+
+### OWASP Top 10 Web (sempre)
+
+- [ ] **Broken Access Control** — autorização por recurso, não role global
+- [ ] **Cryptographic Failures** — TLS everywhere; secrets em KMS/Vault, não em env
+- [ ] **Injection** — SQL/NoSQL parametrizado; NUNCA string concat em query
+- [ ] **Insecure Design** — threat model em toda feature nova
+- [ ] **Security Misconfiguration** — defaults seguros; sem debug em prod
+- [ ] **Vulnerable Components** — `npm audit` no CI
+- [ ] **Auth Failures** — MFA onde aplicável; session rotation; lockout
+- [ ] **Software/Data Integrity** — SBOM; assinatura de artefatos
+- [ ] **Logging Failures** — alerting em auth failure, data exfil
+- [ ] **SSRF** — validar URL em fetcher; allowlist de domínios
+
+### Padrão do projeto
+
+- **Secrets**: `.env` + Doppler/Vault. NUNCA em código, NUNCA em log, NUNCA em commit
+- **Auth**: Lucia/Clerk/SSO. NUNCA custom crypto. bcrypt/argon2 (não MD5/SHA1)
+- **Deps**: pin versões; `npm audit` no CI; falha build se HIGH/CRITICAL
+- **Logs**: JSON estruturado; sem PII/secret; retidos por ≤90 dias
 
 ---
 
