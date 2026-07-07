@@ -58,8 +58,14 @@ async function logHistory(event, feature, task, status, details = {}) {
 
 // Atualização dinâmica do STATE.md
 async function updateStateMarkdown(feature, currentTask, status, stepIndex, totalSteps) {
-  const progressPercent = Math.round((stepIndex / totalSteps) * 100);
-  const progressBar = '▓'.repeat(Math.round(progressPercent / 5)) + '░'.repeat(20 - Math.round(progressPercent / 5));
+  // Blindado contra estouro: a estimativa de TOTAL é só cosmética (barra de progresso) — nunca deve
+  // derrubar o pipeline por causa de um `repeat()` com contagem negativa/>20 se o número real de steps
+  // divergir da estimativa (ex.: múltiplas tasks de um tasks.md, cada uma com seu próprio sub-loop de
+  // tentativas, faz o total real variar por task).
+  const safeTotal = totalSteps > 0 ? totalSteps : 1;
+  const progressPercent = Math.max(0, Math.min(100, Math.round((stepIndex / safeTotal) * 100)));
+  const filledUnits = Math.max(0, Math.min(20, Math.round(progressPercent / 5)));
+  const progressBar = '▓'.repeat(filledUnits) + '░'.repeat(20 - filledUnits);
 
   const content = `# 📊 Painel de Controle BSD - V-JP Harness
 
@@ -164,6 +170,53 @@ export async function applyFiles(worktreePath, files) {
   return applied;
 }
 
+// ---- Spec-driven: leitura de spec.md/tasks.md de uma feature (Princípio #2 do AGENT_RULES.md) ----
+//
+// Antes desta função existir, `--execute <feature>` não lia NENHUM arquivo de especificação — o LLM
+// inventava o plano sozinho a partir só do nome da feature, contradizendo o princípio #2
+// ("código só a partir de spec.md/tasks.md") e o próprio mermaid gerado em STATE.md, que já dizia
+// "Task lida do tasks.md" sem que o código fizesse isso de fato. Convenções de localização aceitas,
+// nessa ordem: `.planning/phases/<feature>/` (convenção já usada no projeto) e `specs/<feature>/`
+// (alternativa mais genérica). tasks.md é obrigatório para ativar o modo spec-driven; spec.md é
+// opcional (contexto extra injetado nos agentes). Sem nenhum dos dois, cai no modo autônomo de
+// sempre — retrocompatível com todo projeto que já usa o harness sem specs escritas.
+export function findFeatureSpec(rootDir, feature) {
+  const candidates = [
+    path.join(rootDir, '.planning', 'phases', feature),
+    path.join(rootDir, 'specs', feature),
+  ];
+  for (const dir of candidates) {
+    const tasksPath = path.join(dir, 'tasks.md');
+    if (fsSync.existsSync(tasksPath)) {
+      const specPath = path.join(dir, 'spec.md');
+      return { dir, tasksPath, specPath: fsSync.existsSync(specPath) ? specPath : null };
+    }
+  }
+  return null;
+}
+
+// Parseia checkboxes de tasks.md: "- [ ] **T1.** texto" ou "- [x] texto solto" (sem ID explícito
+// ganha um sequencial T<n> — precisa de ID no formato **Tn.** pra `markTaskDone` conseguir marcar
+// de volta no arquivo depois).
+export function parseTasks(md) {
+  const lines = String(md || '').split('\n');
+  const re = /^-\s*\[( |x|X)\]\s*(?:\*\*(T\d+)\.?\*\*\s*)?(.+)$/;
+  const tasks = [];
+  for (const line of lines) {
+    const m = line.match(re);
+    if (!m) continue;
+    tasks.push({ id: m[2] || `T${tasks.length + 1}`, done: m[1].toLowerCase() === 'x', text: m[3].trim() });
+  }
+  return tasks;
+}
+
+// Marca uma task como concluída no tasks.md em disco (idempotente — só troca o "[ ]" daquele ID).
+export async function markTaskDone(tasksPath, taskId) {
+  const content = await fs.readFile(tasksPath, 'utf8');
+  const re = new RegExp(`^(-\\s*)\\[ \\](\\s*\\*\\*${taskId}\\.?\\*\\*)`, 'm');
+  await fs.writeFile(tasksPath, content.replace(re, '$1[x]$2'), 'utf8');
+}
+
 // Roda os testes na worktree. Retorna {passed, output}.
 function runTests(cwd, testCommand) {
   try {
@@ -175,11 +228,37 @@ function runTests(cwd, testCommand) {
 }
 
 // Execução transacional de Feature (pipeline real: PLANNER → RESEARCHER → EXECUTOR → REVIEWER)
+//
+// Spec-driven (Princípio #2): se `.planning/phases/<feature>/tasks.md` (ou `specs/<feature>/tasks.md`)
+// existir, cada task PENDENTE dele vira uma "unit" — passa pelo pipeline completo (Planner→NFR→
+// Contrato→Researcher→Executor/testes/Reviewer) isoladamente, e é marcada `[x]` no arquivo real assim
+// que aprovada. spec.md (se existir) é injetado como contexto extra nos agentes. Sem tasks.md, cai no
+// modo autônomo de sempre: uma única unit sintética = a feature inteira (100% do comportamento antigo).
 async function executeFeature(feature, opts = {}) {
   const dryRun = !!opts.dryRun;
   console.log(`${COLORS.bright}${COLORS.cyan}=== Execução Transacional: ${feature}${dryRun ? ' (dry-run)' : ''} ===${COLORS.reset}\n`);
   await initDirs();
   await logHistory('START_FEATURE', feature, 'All', 'running', { dryRun });
+
+  const specInfo = findFeatureSpec(ROOT_DIR, feature);
+  let specMd = null;
+  let units = [{ id: null, text: feature }];
+  if (specInfo) {
+    specMd = specInfo.specPath ? await fs.readFile(specInfo.specPath, 'utf8') : null;
+    const tasksMd = await fs.readFile(specInfo.tasksPath, 'utf8');
+    const allTasks = parseTasks(tasksMd);
+    const pending = allTasks.filter((t) => !t.done);
+    console.log(`${COLORS.green}✔ spec.md/tasks.md encontrados em ${specInfo.dir} — ${pending.length}/${allTasks.length} task(s) pendente(s).${COLORS.reset}`);
+    if (!pending.length) {
+      console.log(`${COLORS.yellow}Todas as tasks já estão [x] em tasks.md. Nada a executar.${COLORS.reset}`);
+      await updateStateMarkdown(feature, 'Todas as tasks já concluídas', 'success', 1, 1);
+      await logHistory('END_FEATURE', feature, 'All', 'success', { reason: 'no-pending-tasks' });
+      return;
+    }
+    units = pending;
+  } else {
+    console.log(`${COLORS.yellow}⚠ Nenhum spec.md/tasks.md encontrado para "${feature}" (procurado em .planning/phases/${feature}/ e specs/${feature}/). Rodando em modo autônomo — sem spec escrito, o LLM decide sozinho. Recomendado: gere spec.md+tasks.md antes (ver .harness/tools/gsd-redux.md).${COLORS.reset}`);
+  }
 
   // Config + contexto
   let cfg, ctx;
@@ -204,82 +283,96 @@ async function executeFeature(feature, opts = {}) {
   };
 
   try {
-    const TOTAL = 4 + maxRetries; // estimativa para a barra de progresso
-    // 1. Worktree
-    const { worktreePath, branch, gitMode } = await step('Criar Worktree', 1, TOTAL, () => createWorktree(feature));
+    const TOTAL = 1 + units.length * (4 + maxRetries * 3); // estimativa p/ barra de progresso (4 passos fixos + até maxRetries tentativas x 3 camadas)
+    let stepIdx = 0;
+
+    // Worktree única para a feature inteira — todas as tasks compartilham a mesma branch/worktree.
+    const { worktreePath, branch, gitMode } = await step('Criar Worktree', ++stepIdx, TOTAL, () => createWorktree(feature));
     console.log(`  ${COLORS.dim}Worktree: ${worktreePath} (${gitMode ? 'git' : 'fallback'})${COLORS.reset}`);
 
-    // 2. Planner
-    const plan = await step('Planner (risco/estratégia)', 2, TOTAL,
-      () => dryRun ? DRY.planner() : runPlanner({ feature, ctx, cfg }));
-    console.log(`  ${COLORS.dim}Risco: ${plan.risk} · ${plan.strategy}${COLORS.reset}`);
+    for (const unit of units) {
+      const unitTag = unit.id ? `${unit.id}` : 'feature';
+      const unitLabel = unit.id ? `${feature} — ${unit.id}: ${unit.text}` : feature;
+      console.log(`${COLORS.bright}${COLORS.magenta}--- ${unit.id ? `Task ${unit.id}` : 'Feature'}: ${unit.text} ---${COLORS.reset}`);
 
-    // 2b. NFR Planner (fila/assíncrono/paralelismo/perf — decidido ANTES do código)
-    const nfr = await step('NFR (fila/async/performance)', 2, TOTAL,
-      () => dryRun ? DRY.nfrPlanner() : runNfrPlanner({ feature, plan, ctx, cfg }));
-    console.log(`  ${COLORS.dim}NFR: fila=${nfr.needsQueue} async=${nfr.async} paralelismo=${nfr.parallelism}${COLORS.reset}`);
+      // Planner
+      const plan = await step(`Planner (${unitTag})`, ++stepIdx, TOTAL,
+        () => dryRun ? DRY.planner() : runPlanner({ feature: unitLabel, ctx, cfg, spec: specMd }));
+      console.log(`  ${COLORS.dim}Risco: ${plan.risk} · ${plan.strategy}${COLORS.reset}`);
 
-    // 2c. Contrato-primeiro (fonte da verdade compartilhada Back↔Front)
-    const contract = await step('Contrato de API', 2, TOTAL,
-      () => dryRun ? DRY.contract() : runContract({ feature, plan, ctx, cfg }));
-    console.log(`  ${COLORS.dim}Endpoints no contrato: ${(contract.endpoints || []).length}${COLORS.reset}`);
+      // NFR Planner (fila/assíncrono/paralelismo/perf — decidido ANTES do código)
+      const nfr = await step(`NFR (${unitTag})`, ++stepIdx, TOTAL,
+        () => dryRun ? DRY.nfrPlanner() : runNfrPlanner({ feature: unitLabel, plan, ctx, cfg, spec: specMd }));
+      console.log(`  ${COLORS.dim}NFR: fila=${nfr.needsQueue} async=${nfr.async} paralelismo=${nfr.parallelism}${COLORS.reset}`);
 
-    // 3. Researcher
-    const research = await step('Researcher (impacto)', 3, TOTAL,
-      () => dryRun ? DRY.researcher() : runResearcher({ feature, plan, ctx, cfg }));
-    console.log(`  ${COLORS.dim}Arquivos impactados: ${(research.impactedFiles || []).join(', ') || '—'}${COLORS.reset}`);
+      // Contrato-primeiro (fonte da verdade compartilhada Back↔Front)
+      const contract = await step(`Contrato de API (${unitTag})`, ++stepIdx, TOTAL,
+        () => dryRun ? DRY.contract() : runContract({ feature: unitLabel, plan, ctx, cfg, spec: specMd }));
+      console.log(`  ${COLORS.dim}Endpoints no contrato: ${(contract.endpoints || []).length}${COLORS.reset}`);
 
-    // 4. Loop Executor → testes → Reviewer (máx. maxRetries tentativas)
-    let approved = false, feedback = '', lastReview = null, attempt = 0;
-    while (attempt < maxRetries && !approved) {
-      attempt++;
-      // Executores ESPECIALISTAS por camada (backend → db → frontend), acumulando arquivos.
-      // Cada um recebe o CONTRATO e o NFR; o frontend gera o teste E2E que prova o fluxo real.
-      const layers = ['backend', 'db', 'frontend'];
-      const allFiles = [];
-      let commitMessage = `bsd: ${feature} (tentativa ${attempt})`;
-      for (const layer of layers) {
-        const out = await step(`Executor:${layer} (tentativa ${attempt}/${maxRetries})`, 3 + attempt, TOTAL,
-          () => dryRun ? DRY.executor({ feature, layer })
-            : runExecutor({ feature, plan, research, ctx, cfg, feedback, contract, nfr, layer }));
-        for (const f of out.files || []) allFiles.push(f);
-        if (out.commitMessage) commitMessage = out.commitMessage;
+      // Researcher
+      const research = await step(`Researcher (${unitTag})`, ++stepIdx, TOTAL,
+        () => dryRun ? DRY.researcher() : runResearcher({ feature: unitLabel, plan, ctx, cfg, spec: specMd }));
+      console.log(`  ${COLORS.dim}Arquivos impactados: ${(research.impactedFiles || []).join(', ') || '—'}${COLORS.reset}`);
+
+      // Loop Executor → testes → Reviewer (máx. maxRetries tentativas), escopado a esta unit/task
+      let approved = false, feedback = '', lastReview = null, attempt = 0;
+      while (attempt < maxRetries && !approved) {
+        attempt++;
+        // Executores ESPECIALISTAS por camada (backend → db → frontend), acumulando arquivos.
+        // Cada um recebe o CONTRATO e o NFR; o frontend gera o teste E2E que prova o fluxo real.
+        const layers = ['backend', 'db', 'frontend'];
+        const allFiles = [];
+        let commitMessage = `bsd: ${feature}${unit.id ? ' ' + unit.id : ''} (tentativa ${attempt})`;
+        for (const layer of layers) {
+          const out = await step(`Executor:${layer} (${unitTag}, tentativa ${attempt}/${maxRetries})`, ++stepIdx, TOTAL,
+            () => dryRun ? DRY.executor({ feature: unitLabel, layer })
+              : runExecutor({ feature: unitLabel, plan, research, ctx, cfg, feedback, contract, nfr, layer }));
+          for (const f of out.files || []) allFiles.push(f);
+          if (out.commitMessage) commitMessage = out.commitMessage;
+        }
+        const executor = { files: allFiles, commitMessage };
+        const applied = await applyFiles(worktreePath, executor.files);
+        console.log(`  ${COLORS.dim}Escreveu ${applied.length} arquivo(s) [back/db/front]: ${applied.join(', ')}${COLORS.reset}`);
+        if (gitMode && applied.length) {
+          try {
+            execSync('git add -A', { cwd: worktreePath, stdio: 'ignore' });
+            execSync(`git commit -m ${JSON.stringify(executor.commitMessage || commitMessage)}`, { cwd: worktreePath, stdio: 'ignore' });
+          } catch (e) { console.log(`  ${COLORS.dim}(nada para commitar)${COLORS.reset}`); }
+        }
+
+        const test = runTests(worktreePath, testCommand);
+        console.log(`  ${COLORS.dim}Testes: ${test.passed ? COLORS.green + 'PASSOU' : COLORS.red + 'FALHOU'}${COLORS.reset}`);
+        await logHistory('TEST_RESULT', feature, `${unitTag}:Executor#${attempt}`, test.passed ? 'success' : 'failed', { applied });
+
+        lastReview = dryRun ? DRY.reviewer({ testPassed: test.passed })
+          : await runReviewer({ feature: unitLabel, executor, testPassed: test.passed, testOutput: test.output, ctx, cfg, contract, nfr });
+        // Gate por sinal concreto (ver mergeGate): teste verde manda; LLM não sobrepõe.
+        approved = mergeGate(test.passed, lastReview.approved);
+        if (!approved) {
+          feedback = `${lastReview.requiredChanges || lastReview.reason || ''}\nSaída dos testes:\n${String(test.output).slice(0, 1200)}`;
+          console.log(`  ${COLORS.red}Reviewer reprovou: ${lastReview.reason || 'ver testes'}${COLORS.reset}`);
+          await logHistory('REVIEW', feature, `${unitTag}:Reviewer#${attempt}`, 'failed', { reason: lastReview.reason });
+        } else {
+          await logHistory('REVIEW', feature, `${unitTag}:Reviewer#${attempt}`, 'success', {});
+        }
       }
-      const executor = { files: allFiles, commitMessage };
-      const applied = await applyFiles(worktreePath, executor.files);
-      console.log(`  ${COLORS.dim}Escreveu ${applied.length} arquivo(s) [back/db/front]: ${applied.join(', ')}${COLORS.reset}`);
-      if (gitMode && applied.length) {
-        try {
-          execSync('git add -A', { cwd: worktreePath, stdio: 'ignore' });
-          execSync(`git commit -m ${JSON.stringify(executor.commitMessage || `bsd: ${feature} (tentativa ${attempt})`)}`, { cwd: worktreePath, stdio: 'ignore' });
-        } catch (e) { console.log(`  ${COLORS.dim}(nada para commitar)${COLORS.reset}`); }
-      }
 
-      const test = runTests(worktreePath, testCommand);
-      console.log(`  ${COLORS.dim}Testes: ${test.passed ? COLORS.green + 'PASSOU' : COLORS.red + 'FALHOU'}${COLORS.reset}`);
-      await logHistory('TEST_RESULT', feature, `Executor#${attempt}`, test.passed ? 'success' : 'failed', { applied });
-
-      lastReview = dryRun ? DRY.reviewer({ testPassed: test.passed })
-        : await runReviewer({ feature, executor, testPassed: test.passed, testOutput: test.output, ctx, cfg, contract, nfr });
-      // Gate por sinal concreto (ver mergeGate): teste verde manda; LLM não sobrepõe.
-      approved = mergeGate(test.passed, lastReview.approved);
       if (!approved) {
-        feedback = `${lastReview.requiredChanges || lastReview.reason || ''}\nSaída dos testes:\n${String(test.output).slice(0, 1200)}`;
-        console.log(`  ${COLORS.red}Reviewer reprovou: ${lastReview.reason || 'ver testes'}${COLORS.reset}`);
-        await logHistory('REVIEW', feature, `Reviewer#${attempt}`, 'failed', { reason: lastReview.reason });
-      } else {
-        await logHistory('REVIEW', feature, `Reviewer#${attempt}`, 'success', {});
+        await updateStateMarkdown(feature, `${unit.id ? unit.id + ': ' : ''}Abortada após ${maxRetries} tentativas`, 'failed', stepIdx, TOTAL);
+        await logHistory('END_FEATURE', feature, unitTag, 'failed', { reason: lastReview?.reason || 'reprovado', attempts: attempt });
+        console.log(`\n${COLORS.bright}${COLORS.red}✗ ${unit.id ? `Task ${unit.id} de ` : ''}"${feature}" abortada após ${attempt} tentativa(s). Veja .bsd/STATE.md.${COLORS.reset}`);
+        process.exit(1);
+      }
+
+      // Task aprovada: marca [x] em tasks.md, no disco, de verdade.
+      if (specInfo && unit.id) {
+        await markTaskDone(specInfo.tasksPath, unit.id);
+        console.log(`  ${COLORS.green}✔ Task ${unit.id} marcada como concluída em ${path.relative(ROOT_DIR, specInfo.tasksPath)}${COLORS.reset}`);
       }
     }
 
-    if (!approved) {
-      await updateStateMarkdown(feature, `Abortada após ${maxRetries} tentativas`, 'failed', TOTAL, TOTAL);
-      await logHistory('END_FEATURE', feature, 'All', 'failed', { reason: lastReview?.reason || 'reprovado', attempts: attempt });
-      console.log(`\n${COLORS.bright}${COLORS.red}✗ Feature "${feature}" abortada após ${attempt} tentativa(s). Veja .bsd/STATE.md.${COLORS.reset}`);
-      process.exit(1);
-    }
-
-    // 5. Merge na branch principal (se aprovado)
+    // Merge na branch principal (se aprovado) — uma vez, depois de TODAS as units aprovadas.
     if (gitMode && autoMerge) {
       console.log(`${COLORS.yellow}[merge] Integrando ${branch} na branch principal...${COLORS.reset}`);
       try {
@@ -453,7 +546,20 @@ async function main() {
 }
 
 // Só executa a CLI quando rodado diretamente (não ao ser importado por tests/).
-const isMain = process.argv[1] && path.resolve(process.argv[1]) === __filename;
+// Usa realpath (não só path.resolve) pra sobreviver a diretórios com symlink no caminho — ex.:
+// /var/folders/... no macOS é symlink pra /private/var/folders/...; sem isso, invocar bsd.js por
+// caminho absoluto de dentro de um tmpdir do SO faz essa comparação falhar e `main()` nunca roda
+// (script morre em silêncio, exit 0, zero output — achado rodando os testes de integração deste
+// arquivo em tmpdir real).
+function resolveIsMain() {
+  if (!process.argv[1]) return false;
+  try {
+    return fsSync.realpathSync(process.argv[1]) === fsSync.realpathSync(__filename);
+  } catch {
+    return path.resolve(process.argv[1]) === __filename;
+  }
+}
+const isMain = resolveIsMain();
 if (isMain) {
   main().catch(err => {
     console.error(`${COLORS.red}Fatal: ${err.message}${COLORS.reset}`);

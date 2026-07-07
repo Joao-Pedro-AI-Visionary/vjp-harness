@@ -75,3 +75,25 @@
 - **Decisão:** v1.10.2 (security) — npm audit: 4 vulnerabilidades HIGH → 0 via repomix 0.2.14→1.16.0 + overrides hono ^4.12.25 + ws ^8.21.0
 - **Alternativa descartada:** (A) Manter deps antigas com 4 HIGH; (B) Dropar GSD Redux agora pra eliminar transitivas hono/ws (refactor arquitetural); (C) Trocar repomix por outro empacotador
 - **Porquê:** npm audit reportou 4 HIGH no lockfile da v1.10.1: (1) repomix 0.2.14 (RCE via --remote-branch + secret scanning bypass), (2) hono 4.12.23 (5 CVEs combinadas — path traversal, CORS reflection, body-limit bypass, etc), (3) ws 8.20.1 (DoS memory exhaustion). hono e ws são transitivas do @opengsd/get-shit-done-redux (descontinuado, status quo). Repomix é dep direta sob meu controle. Estratégia escolhida: (1) bump repomix 0.2.14→1.16.0 (binário idêntico ./bin/repomix.cjs, sem impacto nas chamadas do harness que só usa CLI com --config); (2) npm overrides para forçar hono ^4.12.25 e ws ^8.21.0 (este último SEM fix upstream declarado pelo audit, mas 8.21.0 lançado 2026-05-22 mitiga a range vulnerável 8.0.0-8.20.1). Resultado: 0 vulnerabilidades, 37/37 testes verdes, doctor 10/12 OK (mesmo baseline). GSD Redux descontinuado vira nota de futuro (v1.11.0 ou v2.0.0: avaliar drop e reescrever pipeline com planejador próprio).
+## 2026-07-07 — v1.10.3 — bsd.js passa a ler spec.md/tasks.md de verdade (fecha o gap do Princípio #2)
+- **Decisão:** `--execute <feature>` agora procura `.planning/phases/<feature>/` ou `specs/<feature>/`;
+  se achar `tasks.md`, executa task por task (Planner→NFR→Contrato→Researcher→Executor/testes/Reviewer
+  por task), injeta `spec.md` como contexto nos agentes, e marca `[x]` em `tasks.md` no disco conforme
+  cada task é aprovada. Sem esses arquivos, cai no modo autônomo de sempre — 100% retrocompatível.
+- **Alternativa descartada:** Tornar spec.md/tasks.md obrigatórios (bloquear o modo autônomo) — rejeitada
+  por quebrar todo projeto já usando `--execute` sem specs escritas hoje (regressão inaceitável numa
+  ferramenta vendorizada em 6+ projetos).
+- **Porquê:** Achado ao usar o harness no monoRepo (roadmap CoverPay+Partners): `--execute` nunca leu
+  arquivo nenhum — o LLM inventava o plano do zero a cada chamada, contradizendo o Princípio #2 do
+  próprio AGENT_RULES.md ("código só a partir de spec.md/tasks.md") e o mermaid que o próprio
+  `updateStateMarkdown` já gerava ("Task lida do tasks.md", nunca verdadeiro). Efeito colateral bom:
+  `--continue` agora resume de verdade pelas tasks ainda não marcadas `[x]`, em vez de reprocessar tudo
+  do zero. Ver `specs/bsd-spec-driven-fix/spec.md` e `tests/spec-tasks.test.mjs` (TDD: RED confirmado
+  antes da implementação).
+- **Bug lateral achado e corrigido no caminho:** o guard `isMain` (só roda `main()` quando o arquivo é
+  executado diretamente, não importado por teste) usava `path.resolve` puro — não resolve symlinks.
+  Em diretórios com symlink no caminho (ex.: `/var/folders/...` no macOS, symlink pra
+  `/private/var/folders/...`), invocar `bsd.js` por caminho ABSOLUTO fazia a comparação falhar
+  silenciosamente: `main()` nunca rodava, script saía com exit 0 e zero output, sem erro nenhum.
+  Corrigido comparando `fs.realpathSync` dos dois lados, com fallback pro comportamento antigo se
+  `realpathSync` falhar.

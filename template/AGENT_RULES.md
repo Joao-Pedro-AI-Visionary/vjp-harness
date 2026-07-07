@@ -1,12 +1,12 @@
 # V-JP Harness Agent Rules & Guidelines
 
-> Autoria: **João Pedro (V-JP)** · github.com/Joao-Pedro-AI-Visionary · v1.10.2
+> Autoria: **João Pedro (V-JP)** · github.com/Joao-Pedro-AI-Visionary · v1.10.3
 
 Este documento define as regras de sistema e diretrizes operacionais para todos os agentes de IA que operam sob a orquestração do **V-JP Harness**. Qualquer agente deve ler, respeitar e aplicar estritamente as regras abaixo.
 
 ---
 
-## 0. Constitution — 9 Artigos Não-Negociáveis (v1.10.2)
+## 0. Constitution — 9 Artigos Não-Negociáveis (v1.10.3)
 
 > Toda feature, PR e decisão arquitetural passa por estes 9 gates. **NON-NEGOTIABLE** = bloqueio automático em CI quando violado sem justificativa. Subagentes devem justificar violações em `.gbrain/decisions.md` (ADR) referenciando o artigo. Alinhado com o **Manifesto Dev Solo Arquiteto Sênior** (`~/Desktop/MANIFESTO-DEV-SOLO-ARQUITETO.md`) e com GitHub Spec Kit (117k⭐, 2026-07-03).
 
@@ -99,7 +99,7 @@ OWASP LLM Top 10 + OWASP Top 10 web na checklist de **toda** feature. Razão: de
 ## 1. Princípios Gerais de Operação
 
 1. **Determinismo e Isolamento**: Qualquer modificação deve ser executada isoladamente dentro de um ambiente de Git Worktree dedicado. Nunca modifique a branch principal diretamente sem validação completa.
-2. **Orientação a Especificação (Spec-driven)**: O código só deve ser gerado a partir de especificações claras e previamente mapeadas (`spec.md` e `tasks.md`).
+2. **Orientação a Especificação (Spec-driven)**: O código só deve ser gerado a partir de especificações claras e previamente mapeadas (`spec.md` e `tasks.md`). **Aplicado de fato pelo `bsd.js` desde v1.10.3**: `--execute <feature>` procura `.planning/phases/<feature>/` ou `specs/<feature>/`; se achar `tasks.md`, executa task por task e marca `[x]` no arquivo real conforme aprovação. Sem esses arquivos, cai no modo autônomo (LLM decide o plano sozinho) — recomendado só para exploração rápida, não para features de verdade.
 3. **Persistência de Aprendizado (GBrain)**: Sempre consulte `.gbrain/` antes de propor qualquer design técnico para evitar repetição de erros passados ou violações arquiteturais.
 4. **Crash-Safe e Auditoria**: Toda transação de agente deve registrar logs imediatos no `.bsd/history.jsonl` e atualizar o dashboard `.bsd/STATE.md`.
 5. **Documentação Diátaxis**: Nenhuma feature está completa sem documentação no quadrante apropriado (Tutorial, How-to, Reference, ou Explanation). Consulte `.harness/tools/diataxis-docs.md` para o framework completo.

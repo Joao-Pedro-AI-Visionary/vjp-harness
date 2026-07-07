@@ -43,22 +43,29 @@ async function runJsonAgent({ agentId, ctx, roleInstruction, outputContract, use
 }
 
 // ---- PLANNER ----
-export function runPlanner({ feature, ctx, cfg }) {
+export function runPlanner({ feature, ctx, cfg, spec }) {
   return runJsonAgent({
     agentId: 'planner', ctx, cfg,
-    roleInstruction: 'Avalie complexidade e risco da feature ANTES de qualquer execução. Considere dependências e riscos arquiteturais em conformidade com a memória do projeto.',
+    roleInstruction: 'Avalie complexidade e risco da feature ANTES de qualquer execução. Considere dependências e riscos arquiteturais em conformidade com a memória do projeto. Se houver spec.md fornecido, ELE é a fonte da verdade do escopo — não invente requisito fora dele, e não contradiga os critérios de aceite já escritos lá.',
     outputContract: '{ "risk": "low|medium|high", "strategy": "string", "needsResearch": boolean, "acceptanceCriteria": ["string"] }',
-    userPrompt: `Feature a planejar: "${feature}".`,
+    userPrompt: [
+      `Feature a planejar: "${feature}".`,
+      spec ? `spec.md (fonte da verdade, siga à risca):\n${spec}` : '',
+    ].filter(Boolean).join('\n\n'),
   });
 }
 
 // ---- RESEARCHER ----
-export function runResearcher({ feature, plan, ctx, cfg }) {
+export function runResearcher({ feature, plan, ctx, cfg, spec }) {
   return runJsonAgent({
     agentId: 'researcher', ctx, cfg,
     roleInstruction: 'Mapeie os arquivos impactados e a estrutura técnica a criar/modificar. Use o contexto do repositório quando disponível. Especifique entidades de banco/migrations/repositories afetados.',
     outputContract: '{ "impactedFiles": ["path"], "approach": "string", "dependencies": ["string"] }',
-    userPrompt: `Feature: "${feature}".\nPlano do Planner: ${JSON.stringify(plan)}`,
+    userPrompt: [
+      `Feature: "${feature}".`,
+      `Plano do Planner: ${JSON.stringify(plan)}`,
+      spec ? `spec.md (contexto, respeite o escopo declarado):\n${spec}` : '',
+    ].filter(Boolean).join('\n'),
   });
 }
 
@@ -100,22 +107,31 @@ export function contractGaps(contract = {}) {
 export function contractIsComplete(contract) { return contractGaps(contract).length === 0; }
 
 // ---- NFR PLANNER (Planejador de requisitos não-funcionais) ----
-export function runNfrPlanner({ feature, plan, ctx, cfg }) {
+export function runNfrPlanner({ feature, plan, ctx, cfg, spec }) {
   return runJsonAgent({
     agentId: 'nfr-planner', ctx, cfg,
     roleInstruction: 'Planeje requisitos NÃO-funcionais ANTES do código: decida se a operação precisa de fila/assíncrono/paralelismo e idempotência, e defina um orçamento de performance (tempo de resposta e tamanho de payload). Operação pesada (lote/import/export/relatório/e-mail/integração externa) NÃO pode ser síncrona — recomende fila (ex.: BullMQ).',
     outputContract: '{ "needsQueue": boolean, "async": boolean, "parallelism": boolean, "idempotency": boolean, "perfBudget": { "maxResponseMs": number, "maxPayloadKb": number }, "queueTool": "string|null", "notes": "string" }',
-    userPrompt: `Feature: "${feature}".\nPlano: ${JSON.stringify(plan)}`,
+    userPrompt: [
+      `Feature: "${feature}".`,
+      `Plano: ${JSON.stringify(plan)}`,
+      spec ? `spec.md (contexto): ${spec}` : '',
+    ].filter(Boolean).join('\n'),
   });
 }
 
 // ---- CONTRACT (Contrato-primeiro: fonte da verdade entre Back e Front) ----
-export function runContract({ feature, plan, research, ctx, cfg }) {
+export function runContract({ feature, plan, research, ctx, cfg, spec }) {
   return runJsonAgent({
     agentId: 'contract', ctx, cfg,
     roleInstruction: 'Defina o CONTRATO de API compartilhado entre Backend e Frontend ANTES de implementar. É a fonte da verdade: cada endpoint com método, path, DTO de entrada e de saída, status codes e O QUE PERSISTE no banco. Front e Back DEVEM seguir este contrato à risca.',
     outputContract: '{ "endpoints": [ { "method": "GET|POST|PUT|PATCH|DELETE", "path": "/...", "request": {}, "response": {}, "statusCodes": [200], "persists": "tabela/entidade ou null" } ], "entities": ["string"], "notes": "string" }',
-    userPrompt: `Feature: "${feature}".\nPlano: ${JSON.stringify(plan)}\nPesquisa: ${JSON.stringify(research || {})}`,
+    userPrompt: [
+      `Feature: "${feature}".`,
+      `Plano: ${JSON.stringify(plan)}`,
+      `Pesquisa: ${JSON.stringify(research || {})}`,
+      spec ? `spec.md (contexto): ${spec}` : '',
+    ].filter(Boolean).join('\n'),
   });
 }
 
