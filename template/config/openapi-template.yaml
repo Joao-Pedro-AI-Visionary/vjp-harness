@@ -1,0 +1,481 @@
+# Template base de OpenAPI 3.1 para serviços do ecossistema VJP Harness
+# Uso: 1. Copie este arquivo como openapi-v1.yaml na raiz do serviço
+#       2. Substitua os placeholders {{NOME_DO_SERVICO}} pelo nome real
+#       3. Adicione os endpoints específicos do serviço
+#       4. Valide com: redocly lint openapi-v1.yaml
+#       5. Registre em .gbrain/api-schemas.md
+openapi: "3.1.0"
+info:
+  title: "{{NOME_DO_SERVICO}} API"
+  version: "1.0.0"
+  description: |
+    API do serviço {{NOME_DO_SERVICO}}.
+    Design API-First: este schema é a fonte da verdade da interface.
+  contact:
+    name: Equipe {{NOME_DO_TIME}}
+    url: https://github.com/{{ORG}}/{{REPO}}
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: https://api.exemplo.com/v1
+    description: Produção
+  - url: https://staging.api.exemplo.com/v1
+    description: Staging
+  - url: http://localhost:3000
+    description: Desenvolvimento local
+
+# ──────────────────────────────────────────────────
+# Paths — endpoints RESTful
+# Padrão de nomenclatura:
+#   GET    /recursos          → listar (paginação, filtros, sorting)
+#   POST   /recursos          → criar
+#   GET    /recursos/{id}     → obter
+#   PUT    /recursos/{id}     → substituir (full update)
+#   PATCH  /recursos/{id}     → atualizar parcialmente (partial update)
+#   DELETE /recursos/{id}     → remover
+#   GET    /recursos/{id}/relacionados → sub-recurso
+# ──────────────────────────────────────────────────
+paths:
+  /recursos:
+    get:
+      operationId: listarRecursos
+      summary: Listar recursos
+      description: Retorna lista paginada de recursos com suporte a filtros e ordenação.
+      tags:
+        - Recursos
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/sort"
+        - $ref: "#/components/parameters/filter"
+        - $ref: "#/components/parameters/fields"
+      responses:
+        "200":
+          description: Lista paginada de recursos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedResources"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      operationId: criarRecurso
+      summary: Criar novo recurso
+      tags:
+        - Recursos
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRecursoInput"
+      responses:
+        "201":
+          description: Recurso criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Recurso"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /recursos/{recursoId}:
+    get:
+      operationId: obterRecurso
+      summary: Obter recurso por ID
+      tags:
+        - Recursos
+      parameters:
+        - $ref: "#/components/parameters/recursoId"
+        - $ref: "#/components/parameters/fields"
+      responses:
+        "200":
+          description: Recurso encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Recurso"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    patch:
+      operationId: atualizarRecurso
+      summary: Atualizar parcialmente um recurso
+      tags:
+        - Recursos
+      parameters:
+        - $ref: "#/components/parameters/recursoId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRecursoInput"
+      responses:
+        "200":
+          description: Recurso atualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Recurso"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      operationId: removerRecurso
+      summary: Remover um recurso
+      tags:
+        - Recursos
+      parameters:
+        - $ref: "#/components/parameters/recursoId"
+      responses:
+        "204":
+          description: Recurso removido — sem conteúdo
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+# ──────────────────────────────────────────────────
+# Components / Schemas
+# ──────────────────────────────────────────────────
+components:
+  schemas:
+    # ─── Recurso base ───
+    Recurso:
+      type: object
+      description: Entidade base do sistema
+      required:
+        - id
+        - nome
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identificador único do recurso
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        nome:
+          type: string
+          description: Nome do recurso
+          minLength: 1
+          maxLength: 255
+          example: "Meu Recurso"
+        descricao:
+          type: string
+          description: Descrição opcional do recurso
+          maxLength: 2000
+          example: "Descrição detalhada do recurso"
+        ativo:
+          type: boolean
+          description: Indica se o recurso está ativo
+          default: true
+        createdAt:
+          type: string
+          format: date-time
+          description: Data/hora de criação
+          example: "2026-07-06T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Data/hora da última atualização
+          example: "2026-07-06T12:00:00Z"
+
+    # ─── Input de criação ───
+    CreateRecursoInput:
+      type: object
+      description: Dados para criação de um novo recurso
+      required:
+        - nome
+      properties:
+        nome:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Nome do recurso
+          example: "Novo Recurso"
+        descricao:
+          type: string
+          maxLength: 2000
+          description: Descrição opcional
+          example: "Descrição do novo recurso"
+        ativo:
+          type: boolean
+          default: true
+
+    # ─── Input de atualização parcial ───
+    UpdateRecursoInput:
+      type: object
+      description: Dados para atualização parcial de um recurso (todos os campos opcionais)
+      properties:
+        nome:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Nome do recurso
+          example: "Recurso Atualizado"
+        descricao:
+          type: string
+          maxLength: 2000
+          description: Descrição opcional
+          example: "Descrição atualizada"
+        ativo:
+          type: boolean
+
+    # ─── Paginação ───
+    PaginationMeta:
+      type: object
+      required:
+        - page
+        - limit
+        - total
+        - totalPages
+      properties:
+        page:
+          type: integer
+          description: Página atual
+          minimum: 1
+          example: 1
+        limit:
+          type: integer
+          description: Itens por página
+          minimum: 1
+          maximum: 100
+          example: 20
+        total:
+          type: integer
+          description: Total de itens na consulta
+          minimum: 0
+          example: 150
+        totalPages:
+          type: integer
+          description: Total de páginas
+          minimum: 0
+          example: 8
+
+    PaginatedResources:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          description: Lista de recursos na página atual
+          items:
+            $ref: "#/components/schemas/Recurso"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    # ─── Erro padrão ───
+    ErrorCode:
+      type: string
+      description: |
+        Código do erro no formato `CATEGORIA_MOTIVO`.
+        Ex: VALIDATION_REQUIRED_FIELD, AUTH_INVALID_TOKEN, NOT_FOUND, CONFLICT_DUPLICATE.
+      example: VALIDATION_REQUIRED_FIELD
+
+    ErrorDetail:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          $ref: "#/components/schemas/ErrorCode"
+        message:
+          type: string
+          description: Mensagem legível do erro
+          example: "O campo 'nome' é obrigatório"
+        details:
+          type: object
+          description: Informações adicionais sobre o erro (opcional)
+          example:
+            field: nome
+            reason: Campo obrigatório não informado
+        requestId:
+          type: string
+          format: uuid
+          description: ID de correlação para rastreamento no backend
+          example: "req-abc123def456"
+
+    StandardError:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          $ref: "#/components/schemas/ErrorDetail"
+
+    ValidationError:
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/StandardError"
+        - type: object
+          properties:
+            errors:
+              type: array
+              description: Lista de erros de validação por campo
+              items:
+                type: object
+                properties:
+                  field: { type: string, example: "email" }
+                  message: { type: string, example: "Email inválido" }
+                  code: { type: string, example: "FORMAT_INVALID" }
+
+  # ─── Parâmetros reutilizáveis ───
+  parameters:
+    recursoId:
+      name: recursoId
+      in: path
+      required: true
+      description: ID UUID do recurso
+      schema:
+        type: string
+        format: uuid
+      example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    page:
+      name: page
+      in: query
+      description: Número da página (1-based)
+      schema:
+        type: integer
+        default: 1
+        minimum: 1
+      example: 1
+    limit:
+      name: limit
+      in: query
+      description: Itens por página (máx. 100)
+      schema:
+        type: integer
+        default: 20
+        minimum: 1
+        maximum: 100
+      example: 20
+    sort:
+      name: sort
+      in: query
+      description: |
+        Campo e direção de ordenação no formato `campo:direcao`.
+        Direção: `asc` ou `desc`. Ex: `nome:asc`, `createdAt:desc`.
+        Múltiplos campos separados por vírgula: `nome:asc,createdAt:desc`.
+      schema:
+        type: string
+        pattern: '^[a-zA-Z]+:(asc|desc)(,[a-zA-Z]+:(asc|desc))*$'
+      example: "createdAt:desc"
+    filter:
+      name: filter
+      in: query
+      description: |
+        Filtro no formato `campo:valor`.
+        Operadores especiais: `campo__gt:valor`, `campo__gte:valor`,
+        `campo__lt:valor`, `campo__lte:valor`, `campo__in:val1,val2`,
+        `campo__like:texto`.
+        Múltiplos filtros separados por `&`.
+      schema:
+        type: string
+      example: "ativo:true"
+    fields:
+      name: fields
+      in: query
+      description: |
+        Campos a retornar (projeção), separados por vírgula.
+        Ex: `id,nome,createdAt`.
+      schema:
+        type: string
+      example: "id,nome,createdAt"
+
+  # ─── Responses reutilizáveis ───
+  responses:
+    BadRequest:
+      description: Requisição mal formatada ou parâmetros inválidos
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationError"
+    Unauthorized:
+      description: Credenciais ausentes ou inválidas
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/StandardError"
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+          description: Tipo de autenticação esperada
+    Forbidden:
+      description: Permissão negada — o recurso existe mas o acesso não é autorizado
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/StandardError"
+    NotFound:
+      description: Recurso não encontrado
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/StandardError"
+    Conflict:
+      description: Conflito — recurso já existe ou estado impede a operação
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/StandardError"
+    UnprocessableEntity:
+      description: Entidade não processável — dados semanticamente inválidos
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationError"
+    InternalServerError:
+      description: Erro interno do servidor (não expor detalhes em produção)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/StandardError"
+
+  # ─── Segurança (autenticação) ───
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT obtido via endpoint de autenticação
+
+# ──────────────────────────────────────────────────
+# Segurança global
+# ──────────────────────────────────────────────────
+security:
+  - bearerAuth: []

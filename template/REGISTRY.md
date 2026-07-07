@@ -15,8 +15,6 @@ node .harness/tools/bsd.js --doctor --json   # saída para CI
 
 ## Registro Definitivo de Repositórios e Fontes
 
-> Coluna **Papel** = o que a peça faz. **Procedência** = projeto de origem (crédito/licença). Os `id` internos no `registry.json` seguem estáveis (ex.: `bsd`, `rtk`, `gbrain`).
-
 | # | Papel (o que faz) | Tipo | Procedência (repositório) | Versão pinada | Destino no ecossistema | Obrigatório |
 |--:|---|---|---|---|---|:--:|
 | 1 | **Maestro** | Core Script | BSD — baseado em [`garrytan/gstack`](https://github.com/garrytan/gstack) | `1.6.0` | `.harness/tools/bsd.js` | ✅ |
@@ -32,6 +30,9 @@ node .harness/tools/bsd.js --doctor --json   # saída para CI
 | 11 | 🆕 **Mapa de Código** | Servidor MCP (NPM) | [`DeusData/codebase-memory-mcp`](https://github.com/DeusData/codebase-memory-mcp) | `0.8.1` | runtime — reforça o **Pesquisador** (TS/C#) | ⬜ |
 | 12 | 🆕 **Validador de Banco (EXPLAIN/índices)** | Servidor MCP (pip/Docker) | [`crystaldba/postgres-mcp`](https://github.com/crystaldba/postgres-mcp) (Postgres MCP Pro) | `0.3.0` | runtime — **Revisor** (EXPLAIN + HypoPG), substitui #7 | ⬜ |
 | 13 | 🆕 **Stack Alternativa — Hono + Drizzle + Zod (Bun)** | Stack externa | [`hono`](https://hono.dev/) + [`drizzle-orm`](https://orm.drizzle.team/) + [`zod`](https://zod.dev/) + [`bun`](https://bun.sh/) | n/a (escolha por projeto) | projeto (NÃO em `.harness/`) — ver `tools/hono-drizzle.md` + ADR v1.10.2 | ⬜ |
+| 14 | 🆕 **Arquiteto Vertical Slice + DDD** | Skill / Arquitetura | Skill nativa VJP Harness | `1.0.0` | `.harness/tools/vertical-slice-ddd.md` | ⬜ |
+| 15 | 🆕 **Designer API-First (OpenAPI/AsyncAPI)** | Skill / API | Spec vendorizada VJP Harness | `1.0.0` | `.harness/tools/api-first.md` + `config/openapi-template.yaml` | ⬜ |
+| 16 | 🆕 **Documentador Diátaxis** | Skill / Framework | Framework [diátaxis (divirgat.io)](https://diataxis.fr/) | `1.0.0` | `.harness/tools/diataxis-docs.md` + `docs/` | ⬜ |
 
 **Obrigatórios (núcleo determinístico):** Maestro, Empacotador de Repositório, Planejador Spec-Driven — pinados via `package-lock.json` (`npm ci`).
 **Opcionais:** instalados sob demanda; o `--doctor` os reporta como `[opt]` sem bloquear (a menos que `--strict`).

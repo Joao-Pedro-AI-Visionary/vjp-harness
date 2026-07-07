@@ -102,6 +102,7 @@ OWASP LLM Top 10 + OWASP Top 10 web na checklist de **toda** feature. Razão: de
 2. **Orientação a Especificação (Spec-driven)**: O código só deve ser gerado a partir de especificações claras e previamente mapeadas (`spec.md` e `tasks.md`).
 3. **Persistência de Aprendizado (GBrain)**: Sempre consulte `.gbrain/` antes de propor qualquer design técnico para evitar repetição de erros passados ou violações arquiteturais.
 4. **Crash-Safe e Auditoria**: Toda transação de agente deve registrar logs imediatos no `.bsd/history.jsonl` e atualizar o dashboard `.bsd/STATE.md`.
+5. **Documentação Diátaxis**: Nenhuma feature está completa sem documentação no quadrante apropriado (Tutorial, How-to, Reference, ou Explanation). Consulte `.harness/tools/diataxis-docs.md` para o framework completo.
 
 ---
 
@@ -119,6 +120,7 @@ OWASP LLM Top 10 + OWASP Top 10 web na checklist de **toda** feature. Razão: de
 - **Diretrizes**:
   - Faça varredura semântica dos repositórios usando o **Empacotador de Repositório (Repomix)** + **Compressor de Contexto (RTK)** — visão do todo, comprimida.
   - Para impacto **cirúrgico**, acione o **Mapa de Código (Codebase Memory MCP)** na camada interativa: mapeie o diff do git → símbolos afetados + blast radius/risco, detecte código morto e resolva o grafo de chamadas. Complementa o Empacotador+Compressor — não o substitui (resolução semântica cobre TypeScript e C#).
+  - **API-First**: Para toda feature que expõe ou modifica uma API REST, gere ou atualize o schema OpenAPI 3.1 (`openapi-v*.yaml`) como PRIMEIRO artefato de design, antes de mapear implementação. Mensageria/eventos seguem AsyncAPI 3.0. Consulte `.gbrain/api-schemas.md` para schemas existentes.
   - Ative o **Guia de Design de UI (Frontend Designer)** se alterações impactarem componentes de interface (`web/`, `frontend/`, `mobile/`).
   - Especifique exatamente quais entidades do banco, migrations ou repositories serão alteradas.
 
@@ -126,17 +128,48 @@ OWASP LLM Top 10 + OWASP Top 10 web na checklist de **toda** feature. Razão: de
 - **Objetivo**: Codificar a feature e garantir 100% de cobertura de testes unitários e de integração.
 - **Diretrizes**:
   - Siga a stack backend homologada (NestJS, DTOs, Use Cases, Repositories).
+  - **API-First**: Implemente servidores e clientes seguindo ESTRITAMENTE o schema OpenAPI/AsyncAPI definido pelo RESEARCHER. Endpoints, parâmetros, schemas de request/response e status codes devem refletir exatamente a spec. Qualquer descoberta que exija desvio da spec deve ser reportada para reaprovação do schema antes da implementação.
+  - **Cada feature deve ser implementada como um Vertical Slice**: crie um diretório `src/modules/<feature-name>/` com `application/`, `domain/` e `infrastructure/`. Consulte `template/tools/vertical-slice-ddd.md` para a estrutura completa.
+  - **Regras de DDD**:
+    - Entidades são **ricas**: contêm comportamento e regras de negócio, não apenas getters/setters.
+    - Value Objects são **imutáveis** e comparados por valor (ex.: `Money`, `Email`, `CPF`). Sem setter público.
+    - Aggregates são raízes de consistência: só se acessa o aggregate por sua raiz.
+    - Domain Events são usados para efeitos colaterais entre agregados ou slices.
+    - O domínio (`domain/`) **não pode importar** nada de infraestrutura (NestJS, Prisma, HTTP). É código puro.
+  - **Onde colocar cada tipo de arquivo no slice**:
+    - `domain/entities/` → entidades de domínio com identidade
+    - `domain/value-objects/` → value objects imutáveis
+    - `domain/aggregates/` → aggregate roots (opcional, se a entidade for raiz use AggregateRoot como base)
+    - `domain/domain-events/` → eventos de domínio disparados pelo aggregate
+    - `domain/domain-services/` → lógica de negócio orquestradora entre entidades
+    - `domain/repositories/` → interfaces de repositório (contratos)
+    - `application/use-cases/` → casos de uso (orquestração)
+    - `application/dto/` → DTOs de validação (class-validator)
+    - `infrastructure/controllers/` → controllers HTTP (finos, sem lógica de negócio)
+    - `infrastructure/repositories/` → implementação concreta dos repositórios
+    - `infrastructure/mappers/` → mapeamento entre domínio e persistência
   - É proibido criar mocks voláteis de banco local. Use **Testcontainers** para levantar containers de banco efêmeros para testes de integração.
   - Utilize **Nock** para mockar chamadas HTTP a serviços externos de forma determinística.
   - Siga padrões de design definidos em `.gbrain/patterns.md`.
+  - **Documentação obrigatória**: Antes de dar a tarefa como concluída, crie ou atualize a documentação seguindo o framework **Diátaxis** (`.harness/tools/diataxis-docs.md`):
+    - Tutorial em `docs/01-tutorials/` se a feature envolver onboarding ou novo fluxo para iniciantes
+    - How-to em `docs/02-how-to/` se a feature resolver um problema específico
+    - Reference em `docs/03-reference/` para novos endpoints, configurações, schemas ou comandos CLI
+    - Explanation em `docs/04-explanation/` para decisões arquiteturais, ADRs ou mudanças de design
 
-### 🛡️ Agente: REVISOR / REVIEWER (Validação via MCPs)
-- **Objetivo**: Testar estritamente o código gerado pelo Executor usando ferramentas e protocolos MCP.
+### 🛡️ Agente: REVISOR / REVIEWER (Validação via MCPs + Documentação)
+- **Objetivo**: Testar estritamente o código gerado pelo Executor e validar documentação Diátaxis.
 - **Diretrizes**:
   - **Gate por sinal concreto (não confie na alegação do agente).** O autorizador de merge é o **sinal objetivo**: teste verde. A aprovação do Revisor NUNCA sobrepõe teste falho — merge exige `aprovado E testes verdes`. (Padrão Janitor/Bernstein, v1.7.0; coberto por teste em `tools/tests/merge-gate.test.mjs`.)
   - Acione o **Validador de Banco (Postgres MCP Pro, `crystaldba/postgres-mcp`)** para verificar migrations, introspecção e validar o plano de execução (`EXPLAIN` com cost model do planner) e **simular índices hipotéticos (HypoPG)** antes de criar. Use o modo `restricted` (read-only) contra produção. Gate barato complementar quando não houver banco ao vivo: `prisma migrate diff` / `prisma validate`.
   - Acione o **Validador de UI / E2E (Playwright MCP)** para rodar testes E2E se rotas frontend foram expostas ou modificadas.
-  - Se os testes passarem, envie sinal positivo para o merge. Se falharem, incremente as tentativas de correção. Máximo de 2 tentativas por task. Se exceder, aborte a task e notifique o desenvolvedor via `.bsd/STATE.md`.
+  - **Valide documentação Diátaxis**: use a checklist em `.harness/tools/diataxis-docs.md`:
+    1. A feature tem documentação no quadrante correto?
+    2. A doc é consistente com o código implementado?
+    3. Não há duplicação entre quadrantes?
+    4. A regra de ouro está satisfeita? ("nenhuma feature completa sem doc")
+  - Se os testes passarem **e** a documentação for validada, envie sinal positivo para o merge.
+  - Se faltar documentação ou a doc estiver no quadrante errado, rejeite com feedback específico ("adicione doc em docs/XX/..."). Máximo de 2 tentativas por task. Se exceder, aborte a task e notifique o desenvolvedor via `.bsd/STATE.md`.
 
 ---
 
