@@ -80,3 +80,22 @@ test('appendRunRecord grava uma linha JSONL e retorna o record', () => {
   assert.deepEqual(out, rec);
   fs.rmSync(dir, { recursive: true, force: true });
 });
+
+// Integração: dado gates + contexto, montamos e persistimos um RUN_RECORD íntegro.
+test('fluxo emit: buildRunRecord + appendRunRecord produzem JSONL parseável e coerente', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vjp-emit-'));
+  const hist = path.join(dir, 'history.jsonl');
+  const rec = buildRunRecord({
+    now: '2026-07-11T15:00:00.000Z',
+    modelId: process.env.VJP_MODEL_ID || 'unknown',
+    taskClass: classifyTaskClass(['web/App.tsx']),
+    level: 0,
+    gates: { 'spec-presente': 'green', 'adr-presente': 'green', 'saida-aberta': 'green', 'determinismo': 'green' },
+  });
+  appendRunRecord(hist, rec);
+  const parsed = JSON.parse(fs.readFileSync(hist, 'utf8').trim());
+  assert.equal(parsed.event, 'RUN_RECORD');
+  assert.equal(parsed.task_class, 'frontend');
+  assert.equal(parsed.first_try_pass, true);
+  fs.rmSync(dir, { recursive: true, force: true });
+});

@@ -12,6 +12,8 @@ import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { loadLlmConfig, checkConnectivity } from './llm.js';
 import { buildContext, runPlanner, runNfrPlanner, runContract, runResearcher, runExecutor, runReviewer, DRY } from './agents.js';
+import { buildRunRecord, classifyTaskClass, appendRunRecord } from './aferidor-log.js';
+import { evaluateGates } from './gates.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -391,6 +393,32 @@ async function executeFeature(feature, opts = {}) {
     await updateStateMarkdown(feature, 'Concluído', 'success', TOTAL, TOTAL);
     await logHistory('END_FEATURE', feature, 'All', 'success', {});
     console.log(`\n${COLORS.bright}${COLORS.green}✔ Feature "${feature}" concluída e aprovada!${COLORS.reset}`);
+
+    // --- Aferidor de Confiança (Fase 1): emite RUN_RECORD após a feature concluir ---
+    try {
+      let changed = [];
+      try {
+        changed = execSync('git diff --name-only main...HEAD', { cwd: ROOT_DIR, stdio: ['ignore', 'pipe', 'ignore'] })
+          .toString().split('\n').filter(Boolean);
+      } catch { /* sem git ou sem base: task_class cai em 'config' */ }
+
+      const featureDir = specInfo && specInfo.dir ? specInfo.dir : path.join(ROOT_DIR, 'specs', feature);
+      const gbrainDecisionsPath = path.join(ROOT_DIR, '.gbrain', 'decisions.md');
+      const registryPath = path.join(ROOT_DIR, '.harness', 'registry.json');
+      const registry = fsSync.existsSync(registryPath) ? JSON.parse(fsSync.readFileSync(registryPath, 'utf8')) : null;
+
+      const { gates } = evaluateGates({ featureDir, gbrainDecisionsPath, registry });
+      const record = buildRunRecord({
+        now: new Date().toISOString(),
+        modelId: process.env.VJP_MODEL_ID || 'unknown',
+        taskClass: classifyTaskClass(changed),
+        level: 0,               // Fase 2 introduz o Dial; por ora, nível fixo 0 no registro
+        gates,
+      });
+      appendRunRecord(HISTORY_FILE, record);
+    } catch (e) {
+      await logHistory('RUN_RECORD_ERROR', feature, 'All', 'warn', { error: String(e && e.message || e) });
+    }
   } catch (e) {
     await updateStateMarkdown(feature, `Erro: ${e.message}`, 'failed', 1, 1);
     await logHistory('END_FEATURE', feature, 'All', 'failed', { error: e.message });
