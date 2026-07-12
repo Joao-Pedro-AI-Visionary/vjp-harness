@@ -10,9 +10,11 @@ import { dirname, join } from 'node:path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REGISTRY_PATH = join(__dirname, '..', '..', 'registry.json');
 const AGENT_RULES_PATH = join(__dirname, '..', '..', 'AGENT_RULES.md');
+const VERSION_PATH = join(__dirname, '..', '..', '..', 'VERSION');
 
 const registry = JSON.parse(readFileSync(REGISTRY_PATH, 'utf8'));
 const agentRules = readFileSync(AGENT_RULES_PATH, 'utf8');
+const currentVersion = readFileSync(VERSION_PATH, 'utf8').trim();
 
 test('hono-drizzle existe no registry como stack-alternative opcional', () => {
   const c = registry.components.find((x) => x.id === 'hono-drizzle');
@@ -40,8 +42,8 @@ test('hono-drizzle NÃO substitui NestJS+Prisma (não-quebra)', () => {
   assert.match(honoDrizzle, /NestJS\+Prisma/);
 });
 
-test('registry.harnessVersion reflete a versão atual (1.10.2)', () => {
-  assert.equal(registry.harnessVersion, '1.10.2');
+test('registry.harnessVersion reflete a versão atual (VERSION file)', () => {
+  assert.equal(registry.harnessVersion, currentVersion);
 });
 
 test('AGENT_RULES tem seção "Constitution" com 9 artigos numerados', () => {
