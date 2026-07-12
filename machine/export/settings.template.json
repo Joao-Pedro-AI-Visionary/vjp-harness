@@ -6,7 +6,10 @@
     "OPENAI_MODEL": "coder-model"
   },
   "model": "claude-fable-5[1m]",
-  "fallbackModel": ["claude-opus-4-8", "claude-sonnet-4-6"],
+  "fallbackModel": [
+    "claude-opus-4-8",
+    "claude-sonnet-4-6"
+  ],
   "hooks": {
     "PreToolUse": [
       {
@@ -15,6 +18,16 @@
           {
             "type": "command",
             "command": "/home/jp/.local/bin/rtk hook claude"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.local/share/vjp-harness/machine/hooks/harness-guard.sh",
+            "statusMessage": "Guard V-JP: conferindo .harness/…"
           }
         ]
       }
