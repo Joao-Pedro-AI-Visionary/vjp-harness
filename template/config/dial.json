@@ -1,0 +1,13 @@
+{
+  "comment": "Dial de coreografia (Fase 2). Nível MAIOR = MAIS coreografia. Piso = mínimo por classe (segurança). selectLevel = clamp(max(piso, recomendado), 0, 3).",
+  "levels": {
+    "0": "Só Portões — modelo faz o loop; harness só aplica os portões",
+    "1": "Leve — plano curto + portões",
+    "2": "Pipeline — planner→researcher→executor→reviewer + portões",
+    "3": "Pipeline + Especialistas + NFR upfront"
+  },
+  "windowSize": 20,
+  "conservativeDefault": 3,
+  "pisos": { "prod": 3, "migration": 3, "db": 2, "backend": 1, "frontend": 1, "config": 0 },
+  "stageMinLevel": { "planner": 1, "nfr": 3, "contract": 2, "researcher": 2 }
+}
