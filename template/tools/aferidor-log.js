@@ -45,3 +45,43 @@ export function buildRunRecord(input) {
     tokens,
   };
 }
+
+// Persiste o registro (append-only JSONL, crash-safe). Retorna o próprio record.
+export function appendRunRecord(historyPath, record) {
+  fs.appendFileSync(historyPath, JSON.stringify(record) + '\n', 'utf8');
+  return record;
+}
+
+// ---- CLI (Art. II): node aferidor-log.js emit --model <id> --class <c> --level <n> [--history <path>] ----
+function parseArgs(argv) {
+  const out = {};
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i].startsWith('--')) { out[argv[i].slice(2)] = argv[i + 1]; i++; }
+  }
+  return out;
+}
+
+function main() {
+  const [cmd, ...rest] = process.argv.slice(2);
+  if (cmd !== 'emit') {
+    console.error('uso: node aferidor-log.js emit --model <id> --class <c> --level <n> [--history <path>]');
+    process.exit(2);
+  }
+  const a = parseArgs(rest);
+  const record = buildRunRecord({
+    now: new Date().toISOString(),
+    modelId: a.model || 'unknown',
+    taskClass: a.class || 'config',
+    level: a.level != null ? Number(a.level) : 0,
+    gates: a.gates ? JSON.parse(a.gates) : {},
+  });
+  const histPath = a.history || path.resolve(__dirnameLocal(), '../../.bsd/history.jsonl');
+  appendRunRecord(histPath, record);
+  console.log(JSON.stringify(record));
+}
+
+function __dirnameLocal() { return path.dirname(fileURLToPath(import.meta.url)); }
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}

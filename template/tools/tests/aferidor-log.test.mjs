@@ -63,3 +63,20 @@ test('defaults: shadow_level null, human_intervened false, tokens null', () => {
   assert.equal(r.human_intervened, false);
   assert.equal(r.tokens, null);
 });
+
+import { appendRunRecord } from '../aferidor-log.js';
+import os from 'node:os';
+import fs from 'node:fs';
+import path from 'node:path';
+
+test('appendRunRecord grava uma linha JSONL e retorna o record', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vjp-aferidor-'));
+  const hist = path.join(dir, 'history.jsonl');
+  const rec = { event: 'RUN_RECORD', model_id: 'x', first_try_pass: true };
+  const out = appendRunRecord(hist, rec);
+  const lines = fs.readFileSync(hist, 'utf8').trim().split('\n');
+  assert.equal(lines.length, 1);
+  assert.deepEqual(JSON.parse(lines[0]), rec);
+  assert.deepEqual(out, rec);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
