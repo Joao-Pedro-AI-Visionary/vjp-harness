@@ -15,6 +15,7 @@ import { buildContext, runPlanner, runNfrPlanner, runContract, runResearcher, ru
 import { buildRunRecord, classifyTaskClass, appendRunRecord } from './aferidor-log.js';
 import { evaluateGates } from './gates.js';
 import { loadDialConfig, selectLevel, stageEnabled } from './dial.js';
+import { readRecords, recommendLevel } from './aferidor-analise.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -299,7 +300,9 @@ async function executeFeature(feature, opts = {}) {
       dialConfig = loadDialConfig();
       const specPaths = (String(specMd || '').match(/[\w./-]+\.(?:ts|tsx|cs|sql|ya?ml|prisma)/g) || []);
       upfrontClass = classifyTaskClass(specPaths.length ? specPaths : [feature]);
-      taskLevel = selectLevel({ taskClass: upfrontClass, recommended: null, config: dialConfig }); // Fase 3 injeta 'recommended'
+      const recs = readRecords(HISTORY_FILE);
+      const recommended = recommendLevel({ records: recs, taskClass: upfrontClass, modelId: process.env.VJP_MODEL_ID || 'unknown', config: dialConfig });
+      taskLevel = selectLevel({ taskClass: upfrontClass, recommended, config: dialConfig });
       console.log(`  ${COLORS.dim}Dial: classe=${upfrontClass} → nível ${taskLevel}${COLORS.reset}`);
     } catch (e) { /* sem config: mantém nível 3 (conservador) */ }
     const stageOn = (s) => !dialConfig || stageEnabled(taskLevel, s, dialConfig);
