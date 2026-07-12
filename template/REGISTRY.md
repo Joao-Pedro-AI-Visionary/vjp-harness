@@ -6,6 +6,7 @@
 > **v1.10.2:** Constitution 9 artigos + OWASP Security em `AGENT_RULES.md §0/§0.1`; skill `vjp-orchestration` (Context Bundle, Adversarial Review, Kanban); Hono+Drizzle+Zod homologado como **stack alternativa** (NÃO substitui NestJS+Prisma). ADR completo em `.gbrain/decisions.md`.
 > **v1.11.0:** Portões — Definição de Pronto (`gates.js`) e Aferidor de Confiança — Camada de Dados (`aferidor-log.js`) registrados como componentes `core` obrigatórios. Ver `tools/gates.md` e `specs/metodo-duravel-portoes-dial/spec.md`.
 > **v1.12.0:** Dial de Coreografia (Fase 2)
+> **v1.13.0:** Aferidor Analisador (Fase 3)
 
 ## Como verificar
 
@@ -38,8 +39,9 @@ node .harness/tools/bsd.js --doctor --json   # saída para CI
 | 17 | 🆕 **Portões — Definição de Pronto** | Script / Gate | Nativo V-JP Harness (João Pedro) | `1.11.0` | `.harness/tools/gates.js` | ✅ |
 | 18 | 🆕 **Aferidor de Confiança — Camada de Dados** | Script / Telemetria | Nativo V-JP Harness (João Pedro) | `1.11.0` | `.harness/tools/aferidor-log.js` | ✅ |
 | 19 | 🆕 **Dial de Coreografia** | Script / Coreografia | Nativo V-JP Harness (João Pedro) | `1.12.0` | `.harness/tools/dial.js` | ✅ |
+| 20 | 🆕 **Aferidor de Confiança — Analisador** | Script / Telemetria | Nativo V-JP Harness (João Pedro) | `1.13.0` | `.harness/tools/aferidor-analise.js` | ✅ |
 
-**Obrigatórios (núcleo determinístico):** Maestro, Empacotador de Repositório, Planejador Spec-Driven, Portões, Aferidor de Confiança, Dial de Coreografia — pinados via `package-lock.json` (`npm ci`) ou nativos do harness (`gates.js`/`aferidor-log.js`/`dial.js`).
+**Obrigatórios (núcleo determinístico):** Maestro, Empacotador de Repositório, Planejador Spec-Driven, Portões, Aferidor de Confiança, Dial de Coreografia, Aferidor de Confiança — Analisador — pinados via `package-lock.json` (`npm ci`) ou nativos do harness (`gates.js`/`aferidor-log.js`/`dial.js`/`aferidor-analise.js`).
 **Opcionais:** instalados sob demanda; o `--doctor` os reporta como `[opt]` sem bloquear (a menos que `--strict`).
 **Novidades v1.7.0:** #11 codebase-memory-mcp (npm, pinado), #12 Postgres MCP Pro (substitui o #7 vulnerável; roda via `uvx`/Docker). Detalhes e justificativa em [`../.gbrain/decisions.md`](../.gbrain/decisions.md) e `upgrades/v1.7.0/`.
 
