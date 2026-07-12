@@ -10,6 +10,8 @@
   "demoteThreshold": 0.80,
   "promoteThreshold": 0.90,
   "minShadow": 5,
+  "shadowSampleEvery": 5,
+  "shadowMaxFixtures": 4,
   "conservativeDefault": 3,
   "pisos": { "prod": 3, "migration": 3, "db": 2, "backend": 1, "frontend": 1, "config": 0 },
   "stageMinLevel": { "planner": 1, "nfr": 3, "contract": 2, "researcher": 2 }

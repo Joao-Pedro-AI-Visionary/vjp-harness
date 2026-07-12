@@ -17,6 +17,7 @@ import { evaluateGates } from './gates.js';
 import { loadDialConfig, selectLevel, stageEnabled } from './dial.js';
 import { readRecords, recommendLevel } from './aferidor-analise.js';
 import { shadowLevelFor, runCanaryProbe, dialConsistencyRunner, loadCanary } from './sombra.js';
+import { probeLlm, shouldSample } from './sombra-llm.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -311,10 +312,19 @@ async function executeFeature(feature, opts = {}) {
         shadowLevel = shadowLevelFor(taskLevel, upfrontClass, dialConfig);
         if (shadowLevel != null) {
           try {
-            const agg = runCanaryProbe({ canary: loadCanary(), runner: dialConsistencyRunner(dialConfig) });
-            shadowPass = agg.shadow_first_try_pass;
-            console.log(`  ${COLORS.dim}Sombra: nível ${shadowLevel} → pass=${shadowPass}${COLORS.reset}`);
-          } catch { /* canário ausente: sombra fica null */ }
+            // Amostragem determinística: mede o MODELO (runner LLM) a cada N execuções; nas demais,
+            // roda o self-check barato do Dial (sem token). Art. LLM10: consumo limitado.
+            const runCount = readRecords(HISTORY_FILE).length;
+            if (shouldSample(runCount, dialConfig.shadowSampleEvery)) {
+              const out = await probeLlm({ harnessDir: HARNESS_DIR, maxFixtures: dialConfig.shadowMaxFixtures || 4 });
+              shadowPass = out.shadow_first_try_pass;
+              console.log(`  ${COLORS.dim}Sombra (LLM, amostrada): nível ${shadowLevel} → pass=${shadowPass}${out.skipped ? ` [${out.skipped}]` : ''}${COLORS.reset}`);
+            } else {
+              const agg = runCanaryProbe({ canary: loadCanary(), runner: dialConsistencyRunner(dialConfig) });
+              shadowPass = agg.shadow_first_try_pass;
+              console.log(`  ${COLORS.dim}Sombra (self-check): nível ${shadowLevel} → pass=${shadowPass}${COLORS.reset}`);
+            }
+          } catch { /* canário/LLM ausente: sombra fica null */ }
         }
       }
     } catch (e) { /* sem config: mantém nível 3 (conservador) */ }
