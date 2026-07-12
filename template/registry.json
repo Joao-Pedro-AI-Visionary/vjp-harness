@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.1",
-  "harnessVersion": "1.14.0",
+  "harnessVersion": "1.15.0",
   "author": "João Pedro (V-JP) <dev.jp.991@gmail.com> · github.com/Joao-Pedro-AI-Visionary",
   "description": "Registro determinístico de componentes do V-JP Harness. Fonte da verdade para instalação e verificação. Toda versão é pinada; o verificador (tools/verify.js) falha em drift. Repositórios canônicos conforme o Registro Definitivo V-JP.",
   "components": [
@@ -354,6 +354,30 @@
       "version": "1.14.0",
       "install": "Incluído no harness (template/tools/sombra.js).",
       "verify": { "type": "file", "path": "tools/sombra.js" }
+    },
+    {
+      "id": "ports",
+      "name": "Portas — Adaptadores por Papel (V-JP)",
+      "tier": "core",
+      "priority": 19,
+      "required": true,
+      "source": { "type": "bundled", "author": "João Pedro (V-JP)" },
+      "dest": ".harness/tools/ports.js",
+      "version": "1.15.0",
+      "install": "Incluído no harness (template/tools/ports.js).",
+      "verify": { "type": "file", "path": "tools/ports.js" }
+    },
+    {
+      "id": "mirror",
+      "name": "Mirror de Upstreams (V-JP)",
+      "tier": "core",
+      "priority": 20,
+      "required": true,
+      "source": { "type": "bundled", "author": "João Pedro (V-JP)" },
+      "dest": ".harness/tools/mirror.js",
+      "version": "1.15.0",
+      "install": "Incluído no harness (template/tools/mirror.js).",
+      "verify": { "type": "file", "path": "tools/mirror.js" }
     }
   ]
 }

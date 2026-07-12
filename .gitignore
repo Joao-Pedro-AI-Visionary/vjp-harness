@@ -14,3 +14,6 @@ machine/SECRETS.local.txt
 
 # worktrees isoladas de execução (nunca commitar)
 .worktrees/
+
+# espelho local dos upstreams (tarballs; reproduzível via mirror.js --fetch)
+.mirror/
