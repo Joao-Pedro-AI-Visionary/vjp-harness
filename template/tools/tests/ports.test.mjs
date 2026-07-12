@@ -65,3 +65,35 @@ test('packer-fallback: ignora node_modules/.git e respeita extensões', () => {
   assert.doesNotMatch(out, /skip\.png/);
   assert.match(out, /manter/);
 });
+
+import { resolvePort, portStatus, PORTS } from '../ports.js';
+
+test('resolvePort: usa a FERRAMENTA quando o artefato pinado existe', () => {
+  const d = tmp();
+  const toolPath = path.join(d, 'repomix.cjs');
+  fs.writeFileSync(toolPath, '// tool');
+  const r = resolvePort('packer', { toolPaths: { packer: toolPath } });
+  assert.equal(r.impl, 'tool');
+  assert.equal(r.path, toolPath);
+});
+
+test('resolvePort: cai no FALLBACK próprio quando a ferramenta sumiu (Risco B)', () => {
+  const r = resolvePort('packer', { toolPaths: { packer: '/nao/existe/repomix.cjs' } });
+  assert.equal(r.impl, 'fallback');
+  assert.match(r.path, /packer-fallback\.js$/);
+});
+
+test('resolvePort: papel desconhecido lança (erro explícito, não silencioso)', () => {
+  assert.throws(() => resolvePort('inexistente', {}), /papel desconhecido/i);
+});
+
+test('PORTS declara os papéis com fallback real (Art. VIII: 2+ implementações)', () => {
+  assert.ok(PORTS.memory && PORTS.packer);
+  for (const p of Object.values(PORTS)) assert.ok(p.fallback, 'todo papel precisa de fallback real');
+});
+
+test('portStatus: reporta impl de cada papel (auditável)', () => {
+  const st = portStatus({ toolPaths: { packer: '/nao/existe', memory: '/nao/existe' } });
+  assert.equal(st.packer.impl, 'fallback');
+  assert.equal(st.memory.impl, 'fallback');
+});
