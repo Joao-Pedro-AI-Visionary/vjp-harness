@@ -1,4 +1,4 @@
-# Spec — Método Durável: Portões, Dial de Coreografia e Aferidor de Confiança
+# Spec — Método Durável: Portões, Dial de Rigor e Aferidor de Confiança
 
 > **Data:** 2026-07-11 · **Autor:** João Pedro (V-JP) · **Status:** Design (aguardando revisão)
 > **Slug:** `metodo-duravel-portoes-dial` · **Branch:** `feat/metodo-duravel-portoes-dial`
@@ -19,18 +19,18 @@ Restam **quatro riscos** não cobertos, e **uma tensão** nova:
 | C | **Resultados acumulados** (memória, ADRs, specs) presos no formato da ferramenta | ❌ Não coberto — risco real de lock-in |
 | D | **Método** só existe "colado" às ferramentas (sem contrato que permita troca) | Parcial (nomeação por papel ajuda; falta o contrato) |
 
-**Tensão nova (evolução das LLMs):** os modelos melhoram continuamente e já executam loops multi-passo sozinhos. A **coreografia** atual (forçar o modelo pelo pipeline de 4 agentes, decompor em micro-passos) dá **previsibilidade**, mas cobra um **imposto de tokens** que cresce à medida que o modelo fica capaz de fazer o loop sem tutela. O usuário precisa de um meio-termo **medido**, não chutado: nem cauteloso demais (queima tokens), nem frouxo demais (perde previsibilidade).
+**Tensão nova (evolução das LLMs):** os modelos melhoram continuamente e já executam loops multi-passo sozinhos. A **rigor** atual (forçar o modelo pelo pipeline de 4 agentes, decompor em micro-passos) dá **previsibilidade**, mas cobra um **imposto de tokens** que cresce à medida que o modelo fica capaz de fazer o loop sem tutela. O usuário precisa de um meio-termo **medido**, não chutado: nem cauteloso demais (queima tokens), nem frouxo demais (perde previsibilidade).
 
 ## 2. Princípio Central
 
-> **Trave o RESULTADO (portão), não o CAMINHO (coreografia). Ao longo do tempo, migre orçamento de coreografia → portão, e só afrouxe a coreografia quando o modelo *provar* melhora contra a sua própria régua.**
+> **Trave o RESULTADO (portão), não o CAMINHO (rigor). Ao longo do tempo, migre orçamento de rigor → portão, e só afrouxe o rigor quando o modelo *provar* melhora contra a sua própria régua.**
 
 ### 2.1. A assimetria que fundamenta o princípio
 
-- **Coreografia** (impor os passos): custo vira **desperdício** conforme os modelos melhoram — paga-se para obrigar um modelo capaz a dar passinhos que ele daria sozinho. *Piora com o tempo.*
+- **Rigor** (impor os passos): custo vira **desperdício** conforme os modelos melhoram — paga-se para obrigar um modelo capaz a dar passinhos que ele daria sozinho. *Piora com o tempo.*
 - **Portão** (checar o resultado): valor **cresce** conforme se solta o modelo — quanto mais livre, mais se precisa de checagem dura, barata e determinística de que a régua foi batida. *Melhora com o tempo.*
 
-Logo, a estratégia não é um número fixo, é uma **direção**: investir no portão, afinar a coreografia.
+Logo, a estratégia não é um número fixo, é uma **direção**: investir no portão, afinar o rigor.
 
 ### 2.2. Como o princípio mata os 4 riscos + a tensão
 
@@ -39,7 +39,7 @@ Logo, a estratégia não é um número fixo, é uma **direção**: investir no p
 - **Risco A/B** → troca-se a implementação atrás do portão; o portão não muda.
 - **Risco C** → o portão **exige** a saída em formato aberto e próprio (`spec.md`, `decisions.md`, log de prova viva); o dado nasce do V-JP, não da ferramenta.
 - **Risco D** → o método vira contrato explícito (invariantes verificáveis), não uma sequência amarrada à marca da peça.
-- **Tensão LLM** → afina-se só a coreografia (dial); a previsibilidade mora no portão, que permanece.
+- **Tensão LLM** → afina-se só o rigor (dial); a previsibilidade mora no portão, que permanece.
 
 ## 3. Arquitetura — Componentes
 
@@ -49,10 +49,10 @@ Tarefa ───────────────────────┐
                               ▼
                      ┌──────────────────┐   consulta   ┌───────────────────────┐
                      │   DIAL DE NÍVEL   │◄────────────►│  AFERIDOR DE CONFIANÇA │
-                     │  (0..3 coreografia)│  confiança   │ (history.jsonl + probe)│
+                     │  (0..3 rigor)│  confiança   │ (history.jsonl + probe)│
                      └────────┬─────────┘  por classe   └───────────▲───────────┘
                               ▼                                      │ grava run
-             executa no nível escolhido (coreografia)               │
+             executa no nível escolhido (rigor)               │
              [Maestro/BSD · adaptadores das ferramentas]            │
                               ▼                                      │
                      ┌──────────────────┐                           │
@@ -68,9 +68,9 @@ Tarefa ───────────────────────┐
 Os invariantes que definem "pronto" **independente de ferramenta e de modelo**. Já existem 9 artigos em `AGENT_RULES.md §0`; esta spec **não os reescreve** — ela os classifica em duas naturezas para tornar o dial possível:
 
 - **Invariantes de RESULTADO** (viram Portão; nunca afrouxam): código nasce de spec (Art. materializado em `spec.md`); prova viva antes de "pronto" (Art. III/IV); contrato-primeiro back↔front↔DB (Art. IV); decisão registrada com alternativa+porquê (ADR em `.gbrain/decisions.md`); segurança OWASP (Art. IX); saída em formato aberto e próprio (novo — cobre Risco C).
-- **Invariantes de CAMINHO** (viram Coreografia; afrouxáveis pelo dial): pipeline de 4 agentes, decomposição em micro-passos, especialistas por camada, número de retries.
+- **Invariantes de CAMINHO** (viram Rigor; afrouxáveis pelo dial): pipeline de 4 agentes, decomposição em micro-passos, especialistas por camada, número de retries.
 
-> **Regra de ouro:** um invariante só entra na Coreografia (afrouxável) se sua ausência puder ser **detectada pelo Portão**. Se não dá pra detectar no resultado, ele **tem** que ser invariante de resultado.
+> **Regra de ouro:** um invariante só entra na Rigor (afrouxável) se sua ausência puder ser **detectada pelo Portão**. Se não dá pra detectar no resultado, ele **tem** que ser invariante de resultado.
 
 ### 3.2. Portões (gates) — garantia + sensor
 
@@ -88,11 +88,11 @@ Checagens **determinísticas** que rodam ao fim de toda tarefa. Papel duplo: (1)
 
 Cada execução de portão **emite um registro** (ver §3.4). Gate é barato e não depende do modelo — por isso serve de sensor.
 
-### 3.3. Dial de Nível — quanta coreografia
+### 3.3. Dial de Nível — quanto rigor
 
-Nível = quantidade de coreografia imposta. Escolhido por **`risco da tarefa × confiança medida`** (não por sensação). Os **Portões rodam em TODO nível** — o que muda é só a coreografia.
+Nível = quantidade de rigor imposta. Escolhido por **`risco da tarefa × confiança medida`** (não por sensação). Os **Portões rodam em TODO nível** — o que muda é só o rigor.
 
-| Nível | Coreografia | Quando |
+| Nível | Rigor | Quando |
 |---|---|---|
 | **0 — Só Portões** | Modelo faz o loop sozinho; harness só aplica os portões no fim | Baixo risco **e** confiança alta medida na classe |
 | **1 — Leve** | Plano curto + portões | Risco médio, ou confiança ainda em formação |
@@ -112,7 +112,7 @@ Nível = quantidade de coreografia imposta. Escolhido por **`risco da tarefa × 
   "ts": "2026-07-11T14:00:00Z",
   "model_id": "claude-opus-4-8",      // statusline-context.js já sabe
   "task_class": "frontend",            // do trigger (prod|migration|frontend|backend|db|config)
-  "level": 0,                          // nível de coreografia usado
+  "level": 0,                          // nível de rigor usado
   "shadow_level": 1,                   // nível do probe sombra rodado em paralelo (ou null)
   "first_try_pass": true,              // passou TODOS os portões sem retry?
   "shadow_first_try_pass": true,       // idem para o probe sombra
@@ -149,7 +149,7 @@ Cada ferramenta de terceiro fica atrás de uma **interface fina por papel** (`Me
 
 1. **Classifica risco** — trigger por caminho/extensão (`prod`, `migration`, `.tsx`, `.repository.ts`…) → `task_class`.
 2. **Escolhe nível** — Dial consulta o Aferidor: `nível = max(piso_da_classe, nível_recomendado_pela_confiança)`.
-3. **Executa** — coreografia do nível escolhido, ferramentas atrás dos adaptadores; probe sombra roda em paralelo se aplicável.
+3. **Executa** — rigor do nível escolhido, ferramentas atrás dos adaptadores; probe sombra roda em paralelo se aplicável.
 4. **Portões** — todos rodam; garantem o resultado e emitem registro.
 5. **Grava** — append em `history.jsonl` (§3.4).
 6. **Aferidor atualiza** — recalcula janela; promove/demove a classe se cruzar limiar.

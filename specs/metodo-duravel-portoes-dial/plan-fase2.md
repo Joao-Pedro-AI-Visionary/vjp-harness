@@ -1,8 +1,8 @@
-# Método Durável — Fase 2: Dial de Coreografia (0–3) — Implementation Plan
+# Método Durável — Fase 2: Dial de Rigor (0–3) — Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development. Steps use checkbox (`- [ ]`).
 
-**Goal:** Um dial que escolhe QUANTA coreografia rodar por `risco da classe × confiança`, `nível = clamp(max(piso_da_classe, recomendado), 0, 3)`, com piso de segurança que nunca é rebaixado. O `bsd.js` passa a computar o nível no início da feature, **honrar** o nível pulando estágios upfront (via stub DRY) e **registrar o nível real** no `RUN_RECORD` (não mais fixo 0). A entrada `recomendado` é plugável — na Fase 2 é sempre o padrão conservador (coreografia máxima); a Fase 3 injeta a confiança medida.
+**Goal:** Um dial que escolhe QUANTO rigor rodar por `risco da classe × confiança`, `nível = clamp(max(piso_da_classe, recomendado), 0, 3)`, com piso de segurança que nunca é rebaixado. O `bsd.js` passa a computar o nível no início da feature, **honrar** o nível pulando estágios upfront (via stub DRY) e **registrar o nível real** no `RUN_RECORD` (não mais fixo 0). A entrada `recomendado` é plugável — na Fase 2 é sempre o padrão conservador (rigor máximo); a Fase 3 injeta a confiança medida.
 
 **Architecture:** Novo módulo puro `template/tools/dial.js` + config `template/config/dial.json` (mesmo padrão de `gates.js`/`verify.js`). Wiring mínimo e seguro no `bsd.js`: como o nível-default é 3 (todos os estágios habilitados), o comportamento atual não muda até a Fase 3 baixar o nível.
 
@@ -29,7 +29,7 @@
 - [ ] **Step 1: Create the config** `template/config/dial.json`:
 ```json
 {
-  "comment": "Dial de coreografia (Fase 2). Nível MAIOR = MAIS coreografia. Piso = mínimo por classe (segurança). selectLevel = clamp(max(piso, recomendado), 0, 3).",
+  "comment": "Dial de rigor (Fase 2). Nível MAIOR = MAIS rigor. Piso = mínimo por classe (segurança). selectLevel = clamp(max(piso, recomendado), 0, 3).",
   "levels": {
     "0": "Só Portões — modelo faz o loop; harness só aplica os portões",
     "1": "Leve — plano curto + portões",
@@ -45,7 +45,7 @@
 
 - [ ] **Step 2: Write the failing test** `template/tools/tests/dial.test.mjs`:
 ```js
-// dial.js: escolha de coreografia por risco × confiança (Fase 2).
+// dial.js: escolha de rigor por risco × confiança (Fase 2).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { selectLevel, stageEnabled, describeLevel, loadDialConfig } from '../dial.js';
@@ -57,7 +57,7 @@ const cfg = {
   stageMinLevel: { planner: 1, nfr: 3, contract: 2, researcher: 2 },
 };
 
-test('sem recomendado -> usa conservativeDefault (coreografia máxima)', () => {
+test('sem recomendado -> usa conservativeDefault (rigor máximo)', () => {
   assert.equal(selectLevel({ taskClass: 'frontend', recommended: null, config: cfg }), 3);
   assert.equal(selectLevel({ taskClass: 'config', config: cfg }), 3);
 });
@@ -69,7 +69,7 @@ test('piso nunca é rebaixado, mesmo com recomendado baixo', () => {
   assert.equal(selectLevel({ taskClass: 'config', recommended: 0, config: cfg }), 0);     // piso 0 -> pode 0
 });
 
-test('recomendado ALTO empurra pra CIMA (baixa confiança = mais coreografia)', () => {
+test('recomendado ALTO empurra pra CIMA (baixa confiança = mais rigor)', () => {
   assert.equal(selectLevel({ taskClass: 'config', recommended: 2, config: cfg }), 2);
 });
 
@@ -108,9 +108,9 @@ test('loadDialConfig lê o dial.json real do harness', () => {
 ```js
 #!/usr/bin/env node
 /**
- * V-JP Harness: Dial de Coreografia (Fase 2).
- * Escolhe QUANTA coreografia por (risco da classe × confiança medida).
- * nível = clamp(max(piso_da_classe, recomendado), 0, 3). MAIOR = MAIS coreografia.
+ * V-JP Harness: Dial de Rigor (Fase 2).
+ * Escolhe QUANTO rigor por (risco da classe × confiança medida).
+ * nível = clamp(max(piso_da_classe, recomendado), 0, 3). MAIOR = MAIS rigor.
  * Piso nunca é rebaixado (segurança). recomendado=null -> conservativeDefault. — João Pedro (V-JP)
  */
 import fs from 'fs';
@@ -127,7 +127,7 @@ export function loadDialConfig(configPath) {
 
 function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
 
-// nível efetivo. recomendado null/undefined -> conservativeDefault (coreografia máxima, sem confiança).
+// nível efetivo. recomendado null/undefined -> conservativeDefault (rigor máximo, sem confiança).
 export function selectLevel({ taskClass, recommended = null, config }) {
   const piso = config.pisos[taskClass] ?? config.pisos.config ?? 0;
   const rec = (recommended == null) ? config.conservativeDefault : recommended;
@@ -191,7 +191,7 @@ import { loadDialConfig, selectLevel, stageEnabled } from './dial.js';
 
 - [ ] **Step 2: Compute o nível upfront.** Dentro de `executeFeature`, LOGO ANTES do laço `for (const unit of units) {`, insira:
 ```js
-  // --- Dial de Coreografia (Fase 2): classe upfront (do spec) + nível ---
+  // --- Dial de Rigor (Fase 2): classe upfront (do spec) + nível ---
   let dialConfig = null, taskLevel = 3, upfrontClass = 'config';
   try {
     dialConfig = loadDialConfig();
@@ -234,7 +234,7 @@ git commit -m "feat(bsd): computa/honra nível do Dial e registra nível real (F
 ```json
 {
   "id": "dial",
-  "name": "Dial de Coreografia (V-JP)",
+  "name": "Dial de Rigor (V-JP)",
   "tier": "core",
   "priority": 16,
   "required": true,
@@ -250,14 +250,14 @@ git commit -m "feat(bsd): computa/honra nível do Dial e registra nível real (F
 
 - [ ] **Step 3: Create** `template/tools/dial.md`:
 ```markdown
-# Dial de Coreografia (V-JP)
+# Dial de Rigor (V-JP)
 
-Escolhe QUANTA coreografia rodar. `nível = clamp(max(piso_da_classe, recomendado), 0, 3)`.
-MAIOR = MAIS coreografia. O **piso** por classe é o mínimo de segurança e nunca é rebaixado
+Escolhe QUANTO rigor rodar. `nível = clamp(max(piso_da_classe, recomendado), 0, 3)`.
+MAIOR = MAIS rigor. O **piso** por classe é o mínimo de segurança e nunca é rebaixado
 (ex.: `prod`/`migration` = 3). `recomendado` vem da confiança medida (Aferidor, Fase 3);
-sem confiança, usa `conservativeDefault` (3, coreografia máxima). Config: `.harness/config/dial.json`.
+sem confiança, usa `conservativeDefault` (3, rigor máximo). Config: `.harness/config/dial.json`.
 
-| Nível | Coreografia |
+| Nível | Rigor |
 |---|---|
 | 0 | Só Portões (modelo faz o loop) |
 | 1 | Leve (plano curto + portões) |
@@ -269,7 +269,7 @@ Uso: `node .harness/tools/dial.js --class <classe> [--recommended <0-3>] [--json
 Ver spec: `specs/metodo-duravel-portoes-dial/spec.md` §3.3.
 ```
 
-- [ ] **Step 4:** `REGISTRY.md` — add 1 linha (Dial de Coreografia, V-JP, 1.12.0) no mesmo formato das demais + nota de changelog `**v1.12.0:** Dial de Coreografia (Fase 2)`.
+- [ ] **Step 4:** `REGISTRY.md` — add 1 linha (Dial de Rigor, V-JP, 1.12.0) no mesmo formato das demais + nota de changelog `**v1.12.0:** Dial de Rigor (Fase 2)`.
 
 - [ ] **Step 5: Gate verde** — `cd template/tools && npm run check` → todos os testes verdes + `Determinismo OK` (agora contando `dial`). Cole o tail.
 

@@ -136,7 +136,7 @@ export function readRecords(historyPath) {
 function mean(xs) { return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0; }
 function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
 
-// Recomenda um nível de coreografia p/ (task_class × model_id). PURA. Maior = mais coreografia.
+// Recomenda um nível de rigor p/ (task_class × model_id). PURA. Maior = mais rigor.
 // O Dial aplica o piso depois (max(piso, recomendado)); aqui podemos recomendar abaixo do piso.
 export function recommendLevel({ records, taskClass, modelId = null, config }) {
   const N = config.windowSize ?? 20;
@@ -197,7 +197,7 @@ git commit -m "feat(aferidor): analisador recommendLevel (janela, promoção/dem
 
 ## Task 2: Wire a recomendação no bsd.js
 
-Contexto: `bsd.js` (Fase 2) tem `taskLevel = selectLevel({ taskClass: upfrontClass, recommended: null, config: dialConfig });` dentro do bloco `--- Dial de Coreografia (Fase 2)`.
+Contexto: `bsd.js` (Fase 2) tem `taskLevel = selectLevel({ taskClass: upfrontClass, recommended: null, config: dialConfig });` dentro do bloco `--- Dial de Rigor (Fase 2)`.
 
 - [ ] **Step 1:** Add import após `import { loadDialConfig, selectLevel, stageEnabled } from './dial.js';`:
 ```js

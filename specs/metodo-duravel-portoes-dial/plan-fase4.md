@@ -177,7 +177,7 @@ git commit -m "feat(sombra): probe sombra + conjunto-canário + runner plugável
 
 ## Task 2: Wire o probe sombra no bsd.js (opt-in VJP_SHADOW)
 
-Contexto: no bloco `--- Dial de Coreografia`, após computar `taskLevel`, `upfrontClass`, `dialConfig`. O bloco `RUN_RECORD` chama `buildRunRecord({ now, modelId, taskClass, level: taskLevel, gates })` — buildRunRecord aceita `shadowLevel`/`shadowFirstTryPass` (default null).
+Contexto: no bloco `--- Dial de Rigor`, após computar `taskLevel`, `upfrontClass`, `dialConfig`. O bloco `RUN_RECORD` chama `buildRunRecord({ now, modelId, taskClass, level: taskLevel, gates })` — buildRunRecord aceita `shadowLevel`/`shadowFirstTryPass` (default null).
 
 - [ ] **Step 1:** Import após a linha do aferidor-analise:
 ```js

@@ -1,11 +1,11 @@
-# Dial de Coreografia (V-JP)
+# Dial de Rigor (V-JP)
 
-Escolhe QUANTA coreografia rodar. `nível = clamp(max(piso_da_classe, recomendado), 0, 3)`.
-MAIOR = MAIS coreografia. O **piso** por classe é o mínimo de segurança e nunca é rebaixado
+Escolhe QUANTO rigor de processo aplicar. `nível = clamp(max(piso_da_classe, recomendado), 0, 3)`.
+MAIOR = MAIS rigor. O **piso** por classe é o mínimo de segurança e nunca é rebaixado
 (ex.: `prod`/`migration` = 3). `recomendado` vem da confiança medida (Aferidor, Fase 3);
-sem confiança, usa `conservativeDefault` (3, coreografia máxima). Config: `.harness/config/dial.json`.
+sem confiança, usa `conservativeDefault` (3, rigor máximo). Config: `.harness/config/dial.json`.
 
-| Nível | Coreografia |
+| Nível | Rigor |
 |---|---|
 | 0 | Só Portões (modelo faz o loop) |
 | 1 | Leve (plano curto + portões) |

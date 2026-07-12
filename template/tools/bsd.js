@@ -296,7 +296,7 @@ async function executeFeature(feature, opts = {}) {
     const { worktreePath, branch, gitMode } = await step('Criar Worktree', ++stepIdx, TOTAL, () => createWorktree(feature));
     console.log(`  ${COLORS.dim}Worktree: ${worktreePath} (${gitMode ? 'git' : 'fallback'})${COLORS.reset}`);
 
-    // --- Dial de Coreografia (Fase 2): classe upfront (do spec) + nível ---
+    // --- Dial de Rigor (Fase 2): classe upfront (do spec) + nível ---
     let dialConfig = null, taskLevel = 3, upfrontClass = 'config', shadowLevel = null, shadowPass = null;
     try {
       dialConfig = loadDialConfig();

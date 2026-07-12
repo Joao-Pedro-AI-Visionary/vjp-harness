@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * V-JP Harness: Dial de Coreografia (Fase 2).
- * Escolhe QUANTA coreografia por (risco da classe × confiança medida).
- * nível = clamp(max(piso_da_classe, recomendado), 0, 3). MAIOR = MAIS coreografia.
+ * V-JP Harness: Dial de Rigor (Fase 2).
+ * Escolhe QUANTO rigor por (risco da classe × confiança medida).
+ * nível = clamp(max(piso_da_classe, recomendado), 0, 3). MAIOR = MAIS rigor.
  * Piso nunca é rebaixado (segurança). recomendado=null -> conservativeDefault. — João Pedro (V-JP)
  */
 import fs from 'fs';
@@ -19,7 +19,7 @@ export function loadDialConfig(configPath) {
 
 function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
 
-// nível efetivo. recomendado null/undefined -> conservativeDefault (coreografia máxima, sem confiança).
+// nível efetivo. recomendado null/undefined -> conservativeDefault (rigor máximo, sem confiança).
 export function selectLevel({ taskClass, recommended = null, config }) {
   const piso = config.pisos[taskClass] ?? config.pisos.config ?? 0;
   const rec = (recommended == null) ? config.conservativeDefault : recommended;

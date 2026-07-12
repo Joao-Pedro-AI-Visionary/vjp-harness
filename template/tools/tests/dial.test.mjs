@@ -1,4 +1,4 @@
-// dial.js: escolha de coreografia por risco × confiança (Fase 2).
+// dial.js: escolha de rigor por risco × confiança (Fase 2).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { selectLevel, stageEnabled, describeLevel, loadDialConfig } from '../dial.js';
@@ -10,7 +10,7 @@ const cfg = {
   stageMinLevel: { planner: 1, nfr: 3, contract: 2, researcher: 2 },
 };
 
-test('sem recomendado -> usa conservativeDefault (coreografia máxima)', () => {
+test('sem recomendado -> usa conservativeDefault (rigor máximo)', () => {
   assert.equal(selectLevel({ taskClass: 'frontend', recommended: null, config: cfg }), 3);
   assert.equal(selectLevel({ taskClass: 'config', config: cfg }), 3);
 });
@@ -22,7 +22,7 @@ test('piso nunca é rebaixado, mesmo com recomendado baixo', () => {
   assert.equal(selectLevel({ taskClass: 'config', recommended: 0, config: cfg }), 0);
 });
 
-test('recomendado ALTO empurra pra CIMA (baixa confiança = mais coreografia)', () => {
+test('recomendado ALTO empurra pra CIMA (baixa confiança = mais rigor)', () => {
   assert.equal(selectLevel({ taskClass: 'config', recommended: 2, config: cfg }), 2);
 });
 

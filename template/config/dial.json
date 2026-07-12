@@ -1,5 +1,5 @@
 {
-  "comment": "Dial de coreografia (Fase 2). Nível MAIOR = MAIS coreografia. Piso = mínimo por classe (segurança). selectLevel = clamp(max(piso, recomendado), 0, 3).",
+  "comment": "Dial de Rigor (Fase 2). Nível MAIOR = MAIS rigor. Piso = mínimo por classe (segurança). selectLevel = clamp(max(piso, recomendado), 0, 3).",
   "levels": {
     "0": "Só Portões — modelo faz o loop; harness só aplica os portões",
     "1": "Leve — plano curto + portões",
