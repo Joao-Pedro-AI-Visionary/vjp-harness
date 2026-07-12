@@ -97,3 +97,21 @@
   silenciosamente: `main()` nunca rodava, script saía com exit 0 e zero output, sem erro nenhum.
   Corrigido comparando `fs.realpathSync` dos dois lados, com fallback pro comportamento antigo se
   `realpathSync` falhar.
+## 2026-07-12 — Fase 2 Task 2 — Wire do Dial de Coreografia no bsd.js (computa nível upfront, honra estágios, registra nível real)
+- **Decisão:** `bsd.js` passa a computar o nível do Dial (`selectLevel`) uma vez no início de `executeFeature`
+  (classe derivada dos caminhos citados em `specMd` via `classifyTaskClass`, `recommended: null` — Fase 3
+  injeta a confiança medida), a **honrar** esse nível pulando os 4 estágios upfront (planner/nfr/contract/
+  researcher) via stub `DRY.*` quando `!stageOn(<estágio>)`, e a **registrar o nível real** (`taskLevel`) no
+  `RUN_RECORD` em vez do `level: 0` fixo herdado da Fase 1. `dial.js`/`dial.json` (Task 1, commit
+  `6f861c6`) são consumidos em try/catch: sem config carregável, cai em nível 3 (conservador), preservando
+  100% do comportamento pré-Dial.
+- **Alternativa descartada:** (A) Deixar o `bsd.js` sem alteração até a Fase 3 injetar `recommended` de
+  verdade (adiar o wiring); (B) Honrar o nível recalculando por estágio individualmente em vez de uma vez
+  upfront por feature.
+- **Porquê:** Ver `specs/metodo-duravel-portoes-dial/plan-fase2.md` Task 2 — o objetivo da Fase 2 é o
+  `bsd.js` já **usar** o Dial (não só ele existir isolado em `dial.js`), com nível-default 3 garantindo
+  zero mudança de comportamento observável até a Fase 3 baixar o nível via confiança medida. (A) foi
+  rejeitada porque deixaria `dial.js` morto/não-integrado, violando o próprio plano da fase. (B) foi
+  rejeitada porque o nível é uma propriedade da FEATURE/task (classe upfront), não de cada estágio
+  isoladamente — recalcular por estágio adicionaria complexidade sem ganho (mesma classe, mesmo piso,
+  mesmo `recommended` nulo em toda a feature nesta fase).
