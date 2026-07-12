@@ -11,3 +11,6 @@ template/tools/superpowers/
 # segredos locais de transporte — nunca commitar
 machine/SECRETS.local.txt
 *.local.txt
+
+# worktrees isoladas de execução (nunca commitar)
+.worktrees/
