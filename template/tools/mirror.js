@@ -19,10 +19,17 @@ export function sha256File(filePath) {
   return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
 }
 
+// Componentes que têm ARTEFATO espelhável. Fora: `bundled` (já é nosso) e `external-stack`
+// (é uma escolha de stack — Hono/Drizzle/etc — não um artefato baixável).
+const NOT_MIRRORABLE = new Set(['bundled', 'external-stack']);
+
+export function mirrorableEntries(registry) {
+  return (registry.components || []).filter((c) => c.source && !NOT_MIRRORABLE.has(c.source.type) && !c.removed);
+}
+
 // Manifesto: um arquivo por upstream EXTERNO (bundled é nosso, não precisa de espelho).
 export function buildMirrorManifest(registry, mirrorDir = DEFAULT_MIRROR_DIR) {
-  const entries = (registry.components || [])
-    .filter((c) => c.source && c.source.type !== 'bundled' && !c.removed)
+  const entries = mirrorableEntries(registry)
     .map((c) => ({
       id: c.id,
       name: c.name,
@@ -55,14 +62,45 @@ export function auditMirror(manifest) {
   return { healthy: results.length > 0 && results.every((r) => r.status === 'ok'), results };
 }
 
-// ---- rede (opt-in, NÃO testado): baixa os upstreams git pinados p/ o espelho ----
-function fetchGitEntry(entry, mirrorDir) {
+// ---- rede (opt-in): baixa os upstreams pinados (git, npm, pip) p/ o espelho ----
+// Comando de download por tipo de upstream. PURA (só monta o comando; não executa).
+// npm/pip são o Risco B mais provável (pacote despublicado) — por isso precisam de espelho.
+// Tipo desconhecido -> null (não inventa comando).
+export function fetchCmdFor(entry, mirrorDir) {
+  const dest = path.join(mirrorDir, `.tmp-${entry.id}`);
+  switch (entry.type) {
+    case 'git':
+      return { kind: 'git', cmd: `git clone --quiet --depth 1 ${entry.tag ? `--branch ${entry.tag}` : ''} ${entry.url} ${JSON.stringify(dest)}`, dest };
+    case 'npm':
+      return { kind: 'npm', cmd: `npm pack ${entry.package}@${entry.version}`, dest };
+    case 'pip':
+      // `python3 -m pip` em vez de `pip`: em muitas máquinas (macOS incluso) o binário `pip`
+      // não existe no PATH, mas o módulo está lá. Forma robusta.
+      return { kind: 'pip', cmd: `python3 -m pip download ${entry.package}==${entry.version} -d ${JSON.stringify(dest)} --no-deps`, dest };
+    default:
+      return null;
+  }
+}
+
+// Baixa UMA entrada (rede). Empacota em tar.gz e devolve o sha256. Erro -> lança (o chamador reporta).
+function fetchEntry(entry, mirrorDir) {
   fs.mkdirSync(mirrorDir, { recursive: true });
-  const tmp = path.join(mirrorDir, `.tmp-${entry.id}`);
-  fs.rmSync(tmp, { recursive: true, force: true });
-  execSync(`git clone --quiet --depth 1 ${entry.tag ? `--branch ${entry.tag}` : ''} ${entry.url} ${JSON.stringify(tmp)}`, { stdio: 'ignore' });
-  execSync(`tar -czf ${JSON.stringify(entry.archive)} -C ${JSON.stringify(tmp)} .`, { stdio: 'ignore' });
-  fs.rmSync(tmp, { recursive: true, force: true });
+  const plan = fetchCmdFor(entry, mirrorDir);
+  if (!plan) throw new Error(`tipo de upstream sem método de espelho: ${entry.type}`);
+  fs.rmSync(plan.dest, { recursive: true, force: true });
+
+  if (plan.kind === 'git') {
+    execSync(plan.cmd, { stdio: 'ignore' });
+  } else if (plan.kind === 'npm') {
+    // npm pack gera o .tgz no cwd -> baixamos dentro do dest e re-empacotamos com nome canônico
+    fs.mkdirSync(plan.dest, { recursive: true });
+    execSync(plan.cmd, { cwd: plan.dest, stdio: 'ignore' });
+  } else if (plan.kind === 'pip') {
+    execSync(plan.cmd, { stdio: 'ignore' }); // pip cria o dest
+  }
+
+  execSync(`tar -czf ${JSON.stringify(entry.archive)} -C ${JSON.stringify(plan.dest)} .`, { stdio: 'ignore' });
+  fs.rmSync(plan.dest, { recursive: true, force: true });
   return sha256File(entry.archive);
 }
 
@@ -78,12 +116,20 @@ function main() {
 
   if (argv.includes('--fetch')) {
     fs.mkdirSync(mirrorDir, { recursive: true });
-    for (const e of manifest.entries.filter((x) => x.type === 'git' && x.url)) {
-      try { e.sha256 = fetchGitEntry(e, mirrorDir); console.log(`  ✔ espelhado ${e.id} (${e.sha256.slice(0, 12)})`); }
-      catch (err) { console.log(`  ✗ falhou ${e.id}: ${err.message}`); }
+    let okN = 0; const failed = [];
+    for (const e of manifest.entries) {
+      try {
+        e.sha256 = fetchEntry(e, mirrorDir);
+        okN++;
+        console.log(`  ✔ espelhado ${e.id} [${e.type}] (${e.sha256.slice(0, 12)})`);
+      } catch (err) {
+        failed.push(e.id);
+        console.log(`  ✗ falhou ${e.id} [${e.type}]: ${String(err.message).split('\n')[0]}`);
+      }
     }
     fs.writeFileSync(mp, JSON.stringify(manifest, null, 2));
-    console.log(`\nmanifesto: ${mp}`);
+    console.log(`\n${okN}/${manifest.entries.length} espelhados · manifesto: ${mp}`);
+    if (failed.length) console.log(`⚠ falharam: ${failed.join(', ')} (ferramenta ausente ou upstream fora do ar)`);
     return;
   }
 

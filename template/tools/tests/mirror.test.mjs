@@ -72,3 +72,29 @@ test('auditMirror: agrega o estado do espelho (healthy só se TODOS ok)', () => 
   assert.equal(a2.healthy, true);
   fs.rmSync(d, { recursive: true, force: true });
 });
+
+// --- Espelho de pacotes npm/pip (fecha o buraco: pacote despublicado é o Risco B mais provável) ---
+import { fetchCmdFor, mirrorableEntries } from '../mirror.js';
+
+test('mirrorableEntries: exclui bundled E external-stack (não têm artefato p/ baixar)', () => {
+  const r = { components: [
+    { id: 'rtk', version: '1', source: { type: 'git', url: 'u' } },
+    { id: 'repomix', version: '1.16.0', source: { type: 'npm', package: 'repomix' } },
+    { id: 'pg', version: '0.3.0', source: { type: 'pip', package: 'postgres-mcp' } },
+    { id: 'bsd', version: '1', source: { type: 'bundled' } },
+    { id: 'hono', version: 'n/a', source: { type: 'external-stack' } },
+  ] };
+  const ids = mirrorableEntries(r).map((e) => e.id);
+  assert.deepEqual(ids, ['rtk', 'repomix', 'pg']);
+});
+
+test('fetchCmdFor: npm usa npm pack (inclui escopado); pip usa pip download; git usa clone', () => {
+  assert.match(fetchCmdFor({ type: 'npm', package: 'repomix', version: '1.16.0' }, '/m').cmd, /npm pack repomix@1\.16\.0/);
+  assert.match(fetchCmdFor({ type: 'npm', package: '@opengsd/x', version: '1.1.0' }, '/m').cmd, /npm pack @opengsd\/x@1\.1\.0/);
+  assert.match(fetchCmdFor({ type: 'pip', package: 'postgres-mcp', version: '0.3.0' }, '/m').cmd, /python3 -m pip download postgres-mcp==0\.3\.0/);
+  assert.equal(fetchCmdFor({ type: 'git', url: 'u' }, '/m').kind, 'git');
+});
+
+test('fetchCmdFor: tipo desconhecido -> null (não inventa comando)', () => {
+  assert.equal(fetchCmdFor({ type: 'zzz' }, '/m'), null);
+});
