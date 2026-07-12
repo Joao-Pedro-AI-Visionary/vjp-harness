@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "comment": "Conjunto-canário: tarefas douradas p/ o probe sombra. Fixo, determinístico, versionado. expectLevel/expectStages = comportamento correto do Dial dado 'recommended'.",
+  "fixtures": [
+    { "id": "frontend-tsx", "taskClass": "frontend", "recommended": 0, "expectLevel": 1, "expectStages": { "planner": true, "nfr": false, "contract": false, "researcher": false } },
+    { "id": "backend-service", "taskClass": "backend", "recommended": 0, "expectLevel": 1, "expectStages": { "planner": true, "nfr": false, "contract": false, "researcher": false } },
+    { "id": "config-doc", "taskClass": "config", "recommended": 0, "expectLevel": 0, "expectStages": { "planner": false, "nfr": false, "contract": false, "researcher": false } },
+    { "id": "prod-critico", "taskClass": "prod", "recommended": 0, "expectLevel": 3, "expectStages": { "planner": true, "nfr": true, "contract": true, "researcher": true } }
+  ]
+}
