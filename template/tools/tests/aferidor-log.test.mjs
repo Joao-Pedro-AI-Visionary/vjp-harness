@@ -27,3 +27,39 @@ test('sem match conhecido cai em config', () => {
   assert.equal(classifyTaskClass(['README.md']), 'config');
   assert.equal(classifyTaskClass([]), 'config');
 });
+
+import { buildRunRecord } from '../aferidor-log.js';
+
+const baseInput = {
+  now: '2026-07-11T14:00:00.000Z',
+  modelId: 'claude-opus-4-8',
+  taskClass: 'frontend',
+  level: 0,
+  gates: { 'spec-presente': 'green', 'saida-aberta': 'green' },
+};
+
+test('first_try_pass=true quando retries=0 e todos os portões green', () => {
+  const r = buildRunRecord({ ...baseInput, retries: 0 });
+  assert.equal(r.first_try_pass, true);
+  assert.equal(r.event, 'RUN_RECORD');
+  assert.equal(r.model_id, 'claude-opus-4-8');
+  assert.equal(r.task_class, 'frontend');
+  assert.equal(r.ts, '2026-07-11T14:00:00.000Z');
+});
+
+test('first_try_pass=false com retries>0 mesmo tudo green', () => {
+  const r = buildRunRecord({ ...baseInput, retries: 1 });
+  assert.equal(r.first_try_pass, false);
+});
+
+test('first_try_pass=false se algum portão não é green (unknown ≠ green)', () => {
+  const r = buildRunRecord({ ...baseInput, gates: { 'spec-presente': 'green', 'prova-viva': 'unknown' } });
+  assert.equal(r.first_try_pass, false);
+});
+
+test('defaults: shadow_level null, human_intervened false, tokens null', () => {
+  const r = buildRunRecord(baseInput);
+  assert.equal(r.shadow_level, null);
+  assert.equal(r.human_intervened, false);
+  assert.equal(r.tokens, null);
+});

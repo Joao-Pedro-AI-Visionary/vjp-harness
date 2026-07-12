@@ -19,3 +19,29 @@ export function classifyTaskClass(paths = []) {
   if (/\.ts(\b|$)|\.cs(\b|$)|\/api\/|\/backend\//.test(p)) return 'backend';
   return 'config';
 }
+
+// Constrói o registro de run (schema §3.4). PURA — recebe o clock (`now`) e os dados; não lê nada.
+// first_try_pass = passou TODOS os portões sem retry. unknown/red ≠ green.
+export function buildRunRecord(input) {
+  const {
+    now, modelId, taskClass, level,
+    shadowLevel = null, gates = {}, retries = 0,
+    humanIntervened = false, shadowFirstTryPass = null, tokens = null,
+  } = input;
+  const values = Object.values(gates);
+  const firstTryPass = retries === 0 && values.length > 0 && values.every((s) => s === 'green');
+  return {
+    ts: now,
+    event: 'RUN_RECORD',
+    model_id: modelId,
+    task_class: taskClass,
+    level,
+    shadow_level: shadowLevel,
+    first_try_pass: firstTryPass,
+    shadow_first_try_pass: shadowFirstTryPass,
+    retries,
+    human_intervened: humanIntervened,
+    gates,
+    tokens,
+  };
+}
