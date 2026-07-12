@@ -55,8 +55,17 @@ export function summarizeProbe(results) {
   return { shadow_first_try_pass: passed === rs.length, rate: passed / rs.length, n: rs.length, results: rs };
 }
 
-// Runner LLM (toca a rede). Pergunta à IA cada fixture e julga. Erro/sem-config -> null.
-export async function probeLlm({ harnessDir, canary, maxFixtures = 4, agentId = 'sombra' } = {}) {
+// Runner LLM (toca a rede). Pergunta à IA cada fixture e julga.
+//
+// LINHA CRÍTICA — infra != modelo (spec §5, mesma disciplina do `unknown ≠ green`):
+//   • chamada LANÇOU (rede caiu, API fora, timeout, sem chave) = falha de INFRA
+//       -> passed: null  => NÃO entra no placar (não vira "o modelo piorou").
+//   • a IA RESPONDEU, mas errou/veio ilegível                 = falha do MODELO
+//       -> passed: false => entra no placar.
+// Sem isso, uma queda de rede poluiria a medição do Aferidor. (Achado rodando de verdade.)
+//
+// chatFn é injetável só p/ teste (default: o chat real do llm.js).
+export async function probeLlm({ harnessDir, canary, maxFixtures = 4, agentId = 'sombra', chatFn = chat } = {}) {
   let cfg;
   try {
     cfg = loadLlmConfig(harnessDir || path.resolve(DIR, '..'));
@@ -66,16 +75,21 @@ export async function probeLlm({ harnessDir, canary, maxFixtures = 4, agentId = 
   const cn = canary || loadCanaryLlm();
   const fixtures = (cn.fixtures || []).slice(0, maxFixtures);   // Art. LLM10: teto de consumo
   const results = [];
+  let infraFails = 0;
   for (const fx of fixtures) {
     try {
-      const text = await chat({ system: fx.system || 'Responda SOMENTE JSON.', user: fx.user, cfg, agentId });
-      const answer = extractJson(text);
+      const text = await chatFn({ system: fx.system || 'Responda SOMENTE JSON.', user: fx.user, cfg, agentId });
+      const answer = extractJson(text);           // respondeu: julga o MODELO (ilegível = erro dele)
       results.push(judgeFixture(fx, answer));
     } catch (e) {
-      results.push({ id: fx.id, passed: false, detail: `erro na chamada: ${String(e.message).slice(0, 80)}` });
+      infraFails++;                                // não respondeu: INFRA, não conta
+      results.push({ id: fx.id, passed: null, detail: `infra (não medido): ${String(e.message).slice(0, 60)}` });
     }
   }
-  return summarizeProbe(results);
+  const out = summarizeProbe(results);
+  out.results = results;                           // preserva as linhas de infra p/ o relatório
+  if (infraFails) out.skipped = `${infraFails}/${fixtures.length} não medidas (LLM/rede fora)`;
+  return out;
 }
 
 // ---- CLI (Art. II): node sombra-llm.js --probe [--json]  (toca a rede) ----
