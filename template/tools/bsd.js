@@ -14,6 +14,7 @@ import { loadLlmConfig, checkConnectivity } from './llm.js';
 import { buildContext, runPlanner, runNfrPlanner, runContract, runResearcher, runExecutor, runReviewer, DRY } from './agents.js';
 import { buildRunRecord, classifyTaskClass, appendRunRecord } from './aferidor-log.js';
 import { evaluateGates } from './gates.js';
+import { loadDialConfig, selectLevel, stageEnabled } from './dial.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -292,6 +293,17 @@ async function executeFeature(feature, opts = {}) {
     const { worktreePath, branch, gitMode } = await step('Criar Worktree', ++stepIdx, TOTAL, () => createWorktree(feature));
     console.log(`  ${COLORS.dim}Worktree: ${worktreePath} (${gitMode ? 'git' : 'fallback'})${COLORS.reset}`);
 
+    // --- Dial de Coreografia (Fase 2): classe upfront (do spec) + nível ---
+    let dialConfig = null, taskLevel = 3, upfrontClass = 'config';
+    try {
+      dialConfig = loadDialConfig();
+      const specPaths = (String(specMd || '').match(/[\w./-]+\.(?:ts|tsx|cs|sql|ya?ml|prisma)/g) || []);
+      upfrontClass = classifyTaskClass(specPaths.length ? specPaths : [feature]);
+      taskLevel = selectLevel({ taskClass: upfrontClass, recommended: null, config: dialConfig }); // Fase 3 injeta 'recommended'
+      console.log(`  ${COLORS.dim}Dial: classe=${upfrontClass} → nível ${taskLevel}${COLORS.reset}`);
+    } catch (e) { /* sem config: mantém nível 3 (conservador) */ }
+    const stageOn = (s) => !dialConfig || stageEnabled(taskLevel, s, dialConfig);
+
     for (const unit of units) {
       const unitTag = unit.id ? `${unit.id}` : 'feature';
       const unitLabel = unit.id ? `${feature} — ${unit.id}: ${unit.text}` : feature;
@@ -299,22 +311,22 @@ async function executeFeature(feature, opts = {}) {
 
       // Planner
       const plan = await step(`Planner (${unitTag})`, ++stepIdx, TOTAL,
-        () => dryRun ? DRY.planner() : runPlanner({ feature: unitLabel, ctx, cfg, spec: specMd }));
+        () => (dryRun || !stageOn('planner')) ? DRY.planner() : runPlanner({ feature: unitLabel, ctx, cfg, spec: specMd }));
       console.log(`  ${COLORS.dim}Risco: ${plan.risk} · ${plan.strategy}${COLORS.reset}`);
 
       // NFR Planner (fila/assíncrono/paralelismo/perf — decidido ANTES do código)
       const nfr = await step(`NFR (${unitTag})`, ++stepIdx, TOTAL,
-        () => dryRun ? DRY.nfrPlanner() : runNfrPlanner({ feature: unitLabel, plan, ctx, cfg, spec: specMd }));
+        () => (dryRun || !stageOn('nfr')) ? DRY.nfrPlanner() : runNfrPlanner({ feature: unitLabel, plan, ctx, cfg, spec: specMd }));
       console.log(`  ${COLORS.dim}NFR: fila=${nfr.needsQueue} async=${nfr.async} paralelismo=${nfr.parallelism}${COLORS.reset}`);
 
       // Contrato-primeiro (fonte da verdade compartilhada Back↔Front)
       const contract = await step(`Contrato de API (${unitTag})`, ++stepIdx, TOTAL,
-        () => dryRun ? DRY.contract() : runContract({ feature: unitLabel, plan, ctx, cfg, spec: specMd }));
+        () => (dryRun || !stageOn('contract')) ? DRY.contract() : runContract({ feature: unitLabel, plan, ctx, cfg, spec: specMd }));
       console.log(`  ${COLORS.dim}Endpoints no contrato: ${(contract.endpoints || []).length}${COLORS.reset}`);
 
       // Researcher
       const research = await step(`Researcher (${unitTag})`, ++stepIdx, TOTAL,
-        () => dryRun ? DRY.researcher() : runResearcher({ feature: unitLabel, plan, ctx, cfg, spec: specMd }));
+        () => (dryRun || !stageOn('researcher')) ? DRY.researcher() : runResearcher({ feature: unitLabel, plan, ctx, cfg, spec: specMd }));
       console.log(`  ${COLORS.dim}Arquivos impactados: ${(research.impactedFiles || []).join(', ') || '—'}${COLORS.reset}`);
 
       // Loop Executor → testes → Reviewer (máx. maxRetries tentativas), escopado a esta unit/task
@@ -412,7 +424,7 @@ async function executeFeature(feature, opts = {}) {
         now: new Date().toISOString(),
         modelId: process.env.VJP_MODEL_ID || 'unknown',
         taskClass: classifyTaskClass(changed),
-        level: 0,               // Fase 2 introduz o Dial; por ora, nível fixo 0 no registro
+        level: taskLevel,
         gates,
       });
       appendRunRecord(HISTORY_FILE, record);
