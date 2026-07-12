@@ -16,6 +16,7 @@ import { buildRunRecord, classifyTaskClass, appendRunRecord } from './aferidor-l
 import { evaluateGates } from './gates.js';
 import { loadDialConfig, selectLevel, stageEnabled } from './dial.js';
 import { readRecords, recommendLevel } from './aferidor-analise.js';
+import { shadowLevelFor, runCanaryProbe, dialConsistencyRunner, loadCanary } from './sombra.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -295,7 +296,7 @@ async function executeFeature(feature, opts = {}) {
     console.log(`  ${COLORS.dim}Worktree: ${worktreePath} (${gitMode ? 'git' : 'fallback'})${COLORS.reset}`);
 
     // --- Dial de Coreografia (Fase 2): classe upfront (do spec) + nível ---
-    let dialConfig = null, taskLevel = 3, upfrontClass = 'config';
+    let dialConfig = null, taskLevel = 3, upfrontClass = 'config', shadowLevel = null, shadowPass = null;
     try {
       dialConfig = loadDialConfig();
       const specPaths = (String(specMd || '').match(/[\w./-]+\.(?:ts|tsx|cs|sql|ya?ml|prisma)/g) || []);
@@ -304,6 +305,18 @@ async function executeFeature(feature, opts = {}) {
       const recommended = recommendLevel({ records: recs, taskClass: upfrontClass, modelId: process.env.VJP_MODEL_ID || 'unknown', config: dialConfig });
       taskLevel = selectLevel({ taskClass: upfrontClass, recommended, config: dialConfig });
       console.log(`  ${COLORS.dim}Dial: classe=${upfrontClass} → nível ${taskLevel}${COLORS.reset}`);
+
+      // Probe sombra (Fase 4, opt-in via VJP_SHADOW): mede o nível mais frouxo p/ de-riscar promoção.
+      if (process.env.VJP_SHADOW && dialConfig) {
+        shadowLevel = shadowLevelFor(taskLevel, upfrontClass, dialConfig);
+        if (shadowLevel != null) {
+          try {
+            const agg = runCanaryProbe({ canary: loadCanary(), runner: dialConsistencyRunner(dialConfig) });
+            shadowPass = agg.shadow_first_try_pass;
+            console.log(`  ${COLORS.dim}Sombra: nível ${shadowLevel} → pass=${shadowPass}${COLORS.reset}`);
+          } catch { /* canário ausente: sombra fica null */ }
+        }
+      }
     } catch (e) { /* sem config: mantém nível 3 (conservador) */ }
     const stageOn = (s) => !dialConfig || stageEnabled(taskLevel, s, dialConfig);
 
@@ -428,6 +441,8 @@ async function executeFeature(feature, opts = {}) {
         modelId: process.env.VJP_MODEL_ID || 'unknown',
         taskClass: classifyTaskClass(changed),
         level: taskLevel,
+        shadowLevel,
+        shadowFirstTryPass: shadowPass,
         gates,
       });
       appendRunRecord(HISTORY_FILE, record);
