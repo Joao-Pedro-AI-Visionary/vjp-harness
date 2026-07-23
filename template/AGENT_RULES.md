@@ -207,3 +207,41 @@ Operação pesada/lote/integração externa (import/export, relatório, e-mail e
 ### 4.4 Gate de "pronto" — verificação ponta-a-ponta (mata "no front dá erro / não persiste")
 Uma feature só é concluída quando o **`integration-verifier`** confirma, com **sinal concreto**:
 1. endpoints batem com o contrato; 2. fluxo real no front (Playwright) sem erro; 3. **linha persistida no banco** confirmada (Postgres MCP Pro `SELECT`); 4. caminhos ruins (401/403/validação/duplicado/vazio) tratados; 5. performance no budget (sem N+1; índice quando preciso). **Aprovação do LLM não substitui esses sinais.**
+
+---
+
+## 5. Orquestração Multi-Agente (Fan-out / Fan-in)
+
+> Adicionado 2026-07-22 (JP). Sempre que uma tarefa puder ser paralelizada, **faça fan-out** — não execute sequencialmente por hábito.
+
+- **Fan-out automático**: divida a tarefa em frentes independentes e spawne **múltiplos agentes especializados**, cada um com **responsabilidade única**.
+- **Isolamento por Git Worktree**: cada frente que **muta arquivos** roda em worktree dedicada (evita conflito de merge). Frentes que tocam repos/dirs diferentes não precisam de worktree.
+- **Fan-in só após Quality Gates**: integre (merge) **somente** depois que TODOS os agentes concluírem e passarem seus gates (testes verdes, lint, contrato, E2E). Aprovação do LLM não substitui sinal concreto (ver §2 REVISOR).
+- **Divisão preferida por especialidade**: Backend · Frontend · Banco de Dados · Arquitetura · Refatoração · Testes · Segurança · Performance · Observabilidade · Documentação.
+- **Máximo de agentes SEM gerar contenção.** Prefira paralelismo a sequencial — **exceto** quando as frentes disputam **um recurso compartilhado** (um único browser CDP, um único banco de prod, um único arquivo): aí é contenção real → sequencial. **Julgamento obrigatório antes de paralelizar.**
+
+## 6. Frontend — UI/UX obrigatório (Skill-first)
+
+> Adicionado 2026-07-22 (JP). Qualidade de UI/UX não é opcional.
+
+Sempre que a tarefa envolver **React, Next.js, Vite, Tailwind, shadcn/ui, Design System, Componentes, UX, UI, Responsividade, Acessibilidade, Landing Pages ou Dashboards**:
+
+- **Rode a skill de UI/UX ANTES de implementar** — hoje a `ui-ux-pro-max` (instalada em `~/.claude/skills/ui-ux-pro-max`; repo oficial `github.com/nextlevelbuilder/ui-ux-pro-max-skill`). Fallback: `frontend-design`.
+- Siga **integralmente** o que a skill produzir: design system, tipografia, tokens, acessibilidade (contraste 4.5:1, foco visível, alvo ≥44px), responsividade (mobile-first, sem scroll horizontal), e as UX guidelines da stack.
+- **Bibliotecas de animação padrão**: **Anime.js, GSAP, React Spring, Motion (Framer Motion / motion.dev)** — animação com propósito (150–300ms, `prefers-reduced-motion` respeitado), nunca decorativa pura.
+- **Gate**: PR de frontend sem passar pela skill = revisar antes de mergear.
+
+## 7. Fluxo Padrão de Execução (ordem obrigatória)
+
+> O Harness (`github.com/Joao-Pedro-AI-Visionary/vjp-harness` + o `.harness/` do projeto) é a **1ª fonte de verdade**: arquitetura, convenções, scripts, workflows, templates. **Reutilize o que já existe antes de criar** — se houver ferramenta/script/workflow/comando/template equivalente, use-o em vez de reinventar.
+
+Antes de iniciar qualquer implementação:
+1. **Consulte o Harness** (`.harness/AGENT_RULES.md`, `.gbrain/`, ferramentas em `.harness/tools/`).
+2. **Identifique ferramentas e automações existentes** (não reinvente).
+3. **Planeje o fan-out** (§5) — quais frentes, com julgamento de contenção.
+4. **Crie Worktrees** para as frentes que mutam código.
+5. **Spawne os agentes especializados** (`.claude/agents/`).
+6. **Execute em paralelo.**
+7. **Faça a integração (fan-in).**
+8. **Execute os Quality Gates** (testes verdes, contrato, E2E, persistência real, OWASP §0.1).
+9. **Somente então finalize a entrega.**
