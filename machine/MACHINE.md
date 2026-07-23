@@ -40,8 +40,10 @@ flowchart TD
 
 | Arquivo | Papel |
 |---|---|
-| `CLAUDE.md` | Só `@RTK.md` (instruções globais mínimas, de propósito — economia de tokens) |
+| `CLAUDE.md` | `@RTK.md` + `@HARNESS.md` (importa a referência do RTK e as Regras Globais do harness) |
 | `RTK.md` | Referência de uso do RTK (meta-comandos, `rtk gain`, hook transparente) |
+| `HARNESS.md` | **Regras Globais do harness** — fonte canônica das políticas de toda sessão/projeto (idioma, metodologias, papel padrão, engenharia, organização, Harness como 1ª fonte de verdade, orquestração fan-out/fan-in, UI/UX Pro Max obrigatória) |
+| `AGENTS.md` | Espelho fiel do `HARNESS.md` para CLIs que leem `~/AGENTS.md` (codex, opencode, pi genérico). O bootstrap instala em `$HOME/AGENTS.md` |
 | `settings.template.json` | settings completo: modelo `claude-fable-5[1m]`, hook rtk, statusline, plugin vercel, allowedTools, MCPs |
 | `statusline-context.js` | Statusline custom: tokens de contexto + percentual (lê transcript) |
 | `skills/` | 50 skills leves vendorizadas (a `gstack` NÃO — 1.5 GB com node_modules; reinstala via gstack, ver bootstrap) |
@@ -59,6 +61,7 @@ flowchart TD
 - **48 da família gstack** (instaladas pelo gstack; preamble-tier no frontmatter): planejamento (`autoplan`, `plan-ceo/design/eng/devex-review`, `office-hours`, `plan-tune`), design (`design-consultation`, `design-shotgun`, `design-html`, `design-review`), QA/validação (`qa`, `qa-only`, `verify`-like `browse`, `benchmark`, `health`, `devex-review`), entrega (`ship`, `land-and-deploy`, `landing-report`, `canary`, `document-release`, `document-generate`, `retro`), segurança (`cso`, `careful`, `freeze`, `guard`, `unfreeze`), browser (`gstack`, `browse`, `connect-chrome`, `scrape`, `skillify`, `setup-browser-cookies`, `open-gstack-browser`, `pair-agent`), memória/contexto (`learn`, `context-save`, `context-restore`, `setup-gbrain`, `sync-gbrain`), outros (`codex`, `investigate`, `review`, `make-pdf`, `setup-deploy`, `gstack-upgrade`, `benchmark-models`, `harness-engineering`).
 - **2 próprias (criadas 2026-06-12)**: `fullstack-validate` e `arch-review` — ver §4.
 - **1 oficial Anthropic**: `frontend-design` (anti "AI slop" visual; copiada de `anthropics/skills` @ `575462609294`).
+- **1 externa self-contained**: `ui-ux-pro-max` (base de design UI/UX pesquisável — 84 estilos, 192 paletas, 74 pares de fontes, etc). NÃO vendorizada nem via plugin marketplace (o registry deste `~/.claude` tem paths Windows e quebraria). Instala/atualiza pelo script `skills/ui-ux-pro-max/reinstall.sh` deste repo (clona `nextlevelbuilder/ui-ux-pro-max-skill` e re-aplica o patch `${CLAUDE_PLUGIN_ROOT}`→absoluto, `python`→`python3`). O `bootstrap.sh` chama esse reinstall no passo 6. Uso obrigatório para tarefas de front — ver `HARNESS.md` §"Frontend — UI/UX Pro Max obrigatória".
 
 ### 2.4b Hooks de validação por projeto (templates genéricos — `machine/hooks/`)
 
@@ -168,3 +171,4 @@ As duas skills novas:
 - **2026-06-12** — Pacote criado. Hook rtk duplicado removido do `settings.json`. Skills `fullstack-validate` e `arch-review` criadas e vendorizadas. 48 skills gstack copiadas para `export/skills/`.
 - **2026-06-12 (tarde)** — Pesquisa online: §5b adicionado (RTK 0.42.3 disponível, CVE no Postgres MCP pinado no registry, hooks PostToolUse/Stop de validação, Context7/Sentry MCP, fallbackModel).
 - **2026-06-12 (aplicação)** — Tudo do §5b aplicado: RTK 0.42.3 instalado + pin atualizado; registry com `supabase-mcp` novo e `postgres-mcp` deprecado; skill `frontend-design` oficial instalada+vendorizada; `fallbackModel` e `context7` no settings; templates de hooks genéricos em `machine/hooks/` (sem referência a projetos — instalação sob demanda via `install-hooks.sh`, validados em teste de ponta a ponta); `cleanup-stale-mcps.sh` criado (rodar com CC fechado); `settings.template.json` regenerado; bootstrap.sh com RTK 0.42.3 musl.
+- **2026-07-23** — Regras globais viram canônicas no repo: `machine/export/HARNESS.md` (fonte da verdade das Regras Globais, incl. 3 seções novas: Harness como 1ª fonte de verdade, Orquestração fan-out/fan-in + fluxo de 9 passos, UI/UX Pro Max obrigatória) e `machine/export/AGENTS.md` (espelho cross-CLI). `export/CLAUDE.md` passa a importar `@HARNESS.md`. Skill `ui-ux-pro-max` adicionada em `skills/ui-ux-pro-max/reinstall.sh` (portável via `$HOME`). `bootstrap.sh` atualizado: copia `HARNESS.md`, instala `~/AGENTS.md` e chama o reinstall da ui-ux-pro-max (passo 6).

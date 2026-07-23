@@ -56,9 +56,12 @@ fi
 # ---------------------------------------------------------------- configs ~/.claude
 step "5/8 Configs em ~/.claude"
 mkdir -p "$CLAUDE_DIR"
-for f in CLAUDE.md RTK.md statusline-context.js; do
+for f in CLAUDE.md RTK.md HARNESS.md statusline-context.js; do
   cp -v "$EXPORT/$f" "$CLAUDE_DIR/$f"
 done
+# Regras globais cross-CLI (codex/opencode/pi genérico leem ~/AGENTS.md).
+# Espelho fiel do HARNESS.md — fonte canônica é este repo.
+cp -v "$EXPORT/AGENTS.md" "$HOME/AGENTS.md"
 if [ -f "$CLAUDE_DIR/settings.json" ]; then
   cp "$CLAUDE_DIR/settings.json" "$CLAUDE_DIR/settings.json.pre-bootstrap.$(date +%Y%m%d-%H%M%S)"
   echo "backup do settings.json existente criado"
@@ -77,6 +80,14 @@ cp -rv "$EXPORT/skills/." "$CLAUDE_DIR/skills/" | tail -1
 echo "skills instaladas: $(ls "$CLAUDE_DIR/skills" | wc -l)"
 echo "⚠️  a skill 'gstack' (browse daemon, 1.5GB) não é vendorizada:"
 echo "    instale o gstack pelo instalador oficial e rode /gstack-upgrade na primeira sessão."
+
+# ui-ux-pro-max: skill self-contained (NÃO via plugin marketplace — registry tem paths Windows).
+# Clona o repo oficial e re-aplica o patch de caminho. Idempotente.
+UIUX_REINSTALL="$HERE/../skills/ui-ux-pro-max/reinstall.sh"
+if [ -f "$UIUX_REINSTALL" ]; then
+  echo "→ instalando/atualizando skill ui-ux-pro-max"
+  bash "$UIUX_REINSTALL" || echo "⚠️  ui-ux-pro-max falhou (rode manualmente: bash $UIUX_REINSTALL)"
+fi
 
 # ---------------------------------------------------------------- gbrain
 step "7/8 GBrain"
