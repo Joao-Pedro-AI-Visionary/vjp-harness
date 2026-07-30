@@ -10,6 +10,7 @@
 > **v1.14.0:** Probe Sombra + Conjunto-Canário (Fase 4)
 > **v1.15.0:** Portas (adaptadores c/ fallback) + Mirror de Upstreams (Fase 5)
 > **v1.16.0:** Sombra de Verdade — runner LLM (amostrado)
+> **v1.17.0:** `AGENT_RULES.md §8` — Protocolo de Orquestração de Grafos & Verificação Adversarial (nó verificador cético separado do executor; gate de reatividade de estado + propagação de dado; formato de resposta com evidência obrigatória). Corrige também o cabeçalho do `AGENT_RULES.md`, defasado em v1.10.3 desde a série 1.11–1.16.
 
 ## Como verificar
 
