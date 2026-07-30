@@ -1,6 +1,6 @@
 # V-JP Harness Agent Rules & Guidelines
 
-> Autoria: **João Pedro (V-JP)** · github.com/Joao-Pedro-AI-Visionary · v1.17.0
+> Autoria: **João Pedro (V-JP)** · github.com/Joao-Pedro-AI-Visionary · v1.18.0
 
 Este documento define as regras de sistema e diretrizes operacionais para todos os agentes de IA que operam sob a orquestração do **V-JP Harness**. Qualquer agente deve ler, respeitar e aplicar estritamente as regras abaixo.
 
@@ -283,6 +283,8 @@ Passo 1 verde com passo 2 vermelho = **a feature está quebrada**, ainda que "pa
 - [ ] **Validação de Estado** — o componente altera seu estado interno corretamente ao receber o evento?
 - [ ] **Validação de Impacto** — o evento altera real e reativamente as variáveis/funções da regra de negócio (ex.: base de cálculo fiscal)?
 - [ ] **Teste / Execução** — testes unitários, de componente, ou um script node de validação/build foram **executados** e provam que a alteração funciona sem quebrar o build.
+
+**Gate mecânico (não confie na convenção):** a checklist acima só vale se algo a impuser. Repos privados **não têm branch protection** sem GitHub Pro (a API responde `403`), então o portão é local: o hook `pre-push` em `.harness/tools/hooks/pre-push` **bloqueia o push quando os testes falham**. Instalação e comportamento em `.harness/tools/hooks/README.md`. Sem ele, os artigos III (Test-First) e §2 (gate por sinal concreto) são só texto.
 
 **Protocolo em caso de falha:**
 1. Trate o erro **no nó atual**, sem contaminar o resto da aplicação.

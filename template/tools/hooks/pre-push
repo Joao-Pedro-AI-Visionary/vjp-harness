@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# ---------------------------------------------------------------------------
+# pre-push global — V-JP
+#
+# Substitui a branch protection do GitHub (que exige Pro em repo privado).
+# Bloqueia o push se os testes do repo falharem.
+#
+# Instalado via:  git config --global core.hooksPath ~/.githooks
+#
+# Como o hook descobre o comando de teste, nesta ordem:
+#   1. git config hooks.testcmd "<comando>"   <- override por repo (vence tudo)
+#   2. package.json na raiz com script "test" -> npm test
+#   3. nenhum dos dois -> pula, avisando (não trava repo sem teste)
+#
+# Pular em emergência:  git push --no-verify
+# ---------------------------------------------------------------------------
+set -uo pipefail
+
+RED=$'\033[31m'; GRN=$'\033[32m'; YLW=$'\033[33m'; DIM=$'\033[2m'; BLD=$'\033[1m'; RST=$'\033[0m'
+say() { printf '%s\n' "$*" >&2; }
+
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+cd "$REPO_ROOT" || exit 0
+
+# --- 1. Só roda se houver commit novo indo pro remoto -----------------------
+# stdin do pre-push: <local_ref> <local_sha> <remote_ref> <remote_sha>
+ZERO=$(git hash-object --stdin </dev/null | tr '[:xdigit:]' '0')
+HAS_WORK=0
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+  [ -z "${local_sha:-}" ] && continue
+  # deleção de branch (local_sha todo zero) não precisa de teste
+  [ "$local_sha" = "$ZERO" ] && continue
+  if [ "$remote_sha" = "$ZERO" ]; then
+    HAS_WORK=1                      # branch nova
+  elif [ -n "$(git rev-list --count "$remote_sha".."$local_sha" 2>/dev/null || echo 1)" ]; then
+    HAS_WORK=1
+  fi
+done
+[ "$HAS_WORK" -eq 0 ] && exit 0
+
+# --- 2. Node do WSL, não o node.exe do Windows ------------------------------
+# Sem isso, o PATH do Windows vaza no WSL e `npm` resolve pro node.exe,
+# que não enxerga os paths do Linux e quebra com MODULE_NOT_FOUND.
+if [[ ":$PATH:" == *":/mnt/c/"* ]]; then
+  PATH=$(printf '%s' "$PATH" | tr ':' '\n' | grep -v '^/mnt/c' | paste -sd:)
+  export PATH
+fi
+if ! command -v node >/dev/null 2>&1; then
+  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+  # shellcheck disable=SC1091
+  [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" >/dev/null 2>&1
+fi
+
+# --- 3. Descobre o comando de teste ----------------------------------------
+TEST_CMD=$(git config --get hooks.testcmd || true)
+SOURCE="git config hooks.testcmd"
+
+if [ -z "$TEST_CMD" ]; then
+  if [ -f package.json ] && node -e 'process.exit(require("./package.json").scripts?.test?0:1)' 2>/dev/null; then
+    TEST_CMD="npm test"
+    SOURCE="package.json (script test)"
+  fi
+fi
+
+if [ -z "$TEST_CMD" ]; then
+  say ""
+  say "${YLW}⚠ pre-push: nenhum teste configurado neste repo — push liberado sem gate.${RST}"
+  say "${DIM}  Para ativar:  git config hooks.testcmd \"<comando de teste>\"${RST}"
+  say ""
+  exit 0
+fi
+
+# --- 4. Roda o gate ---------------------------------------------------------
+say ""
+say "${BLD}▶ pre-push: rodando o gate antes de subir${RST}"
+say "${DIM}  repo   : $(basename "$REPO_ROOT")${RST}"
+say "${DIM}  comando: $TEST_CMD   ($SOURCE)${RST}"
+say "${DIM}  node   : $(command -v node >/dev/null 2>&1 && node -v || echo 'NÃO ENCONTRADO')${RST}"
+say ""
+
+OUT=$(mktemp); trap 'rm -f "$OUT"' EXIT
+if bash -c "$TEST_CMD" >"$OUT" 2>&1; then
+  say "${GRN}✔ gate verde — push liberado.${RST}"
+  say ""
+  exit 0
+fi
+
+say "${RED}${BLD}✖ PUSH BLOQUEADO — os testes falharam.${RST}"
+say ""
+say "${DIM}--- últimas 30 linhas ---${RST}"
+tail -30 "$OUT" >&2
+say "${DIM}--- fim ---${RST}"
+say ""
+say "Conserte os testes antes de subir."
+say "${DIM}Emergência (use com consciência):  git push --no-verify${RST}"
+say ""
+exit 1
