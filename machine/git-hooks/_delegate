@@ -1,9 +1,0 @@
-#!/bin/sh
-# Repassa o hook para o do proprio repo, se existir.
-# Existe porque core.hooksPath global desliga .git/hooks — sem isto, um hook instalado
-# por um projeto (gate de push do harness, husky, etc.) sumiria em silencio.
-# Ver D-01 em docs/superpowers/specs/2026-08-05-git-commit-msg-guard-design.md
-GITDIR=$(git rev-parse --git-common-dir 2>/dev/null) || exit 0
-LOCAL="$GITDIR/hooks/$(basename "$0")"
-[ -x "$LOCAL" ] && exec "$LOCAL" "$@"
-exit 0
