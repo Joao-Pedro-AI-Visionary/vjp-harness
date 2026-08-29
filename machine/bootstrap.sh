@@ -74,7 +74,7 @@ sed -e "s|/home/jp|$HOME|g" \
 echo "settings.json instalado (hook rtk, statusline, MCPs chrome-devtools+gbrain)"
 
 # ---------------------------------------------------------------- skills
-step "6/8 Skills (48 gstack-family + fullstack-validate + arch-review)"
+step "6/8 Skills (gstack-family + fullstack-validate + arch-review + test-gate + pr-review)"
 mkdir -p "$CLAUDE_DIR/skills"
 cp -rv "$EXPORT/skills/." "$CLAUDE_DIR/skills/" | tail -1
 echo "skills instaladas: $(ls "$CLAUDE_DIR/skills" | wc -l)"

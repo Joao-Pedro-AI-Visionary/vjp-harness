@@ -6,6 +6,7 @@
  */
 import fs from 'fs';
 import path from 'path';
+import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { evaluateRegistry } from './verify.js';
 
@@ -29,6 +30,30 @@ export function checkOpenOutputs(featureDir, gbrainDecisionsPath) {
   return specOk && adrOk ? 'green' : 'red';
 }
 
+// Portão prova-viva (v1.19.0): o sinal que a skill `test-gate` deixa em .bsd/prova-viva.json.
+// Regra dura: verde só vale para o COMMIT em que o teste rodou. Sinal de outro commit não
+// prova o código atual — vira 'red'. Sem sinal (ou sem como provar a frescura) => 'unknown',
+// que NÃO marca pronto (mesma lei do topo do arquivo).
+export function checkProvaViva(provaVivaPath, { headCommit = null } = {}) {
+  let sinal;
+  try {
+    sinal = JSON.parse(fs.readFileSync(provaVivaPath, 'utf8'));
+  } catch {
+    return 'unknown'; // ausente ou ilegível: infra do portão indisponível
+  }
+  if (sinal.result !== 'pass') return 'red'; // teste vermelho é vermelho, commit à parte
+  if (!sinal.commit || !headCommit) return 'unknown'; // frescura não provável
+  return sinal.commit === headCommit ? 'green' : 'red'; // recibo velho não paga a compra de hoje
+}
+
+// HEAD do repo (null quando não há git ou o comando falha — o portão trata como 'unknown').
+export function resolveHeadCommit(root) {
+  try {
+    return execSync('git rev-parse HEAD', { cwd: root, stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString().trim() || null;
+  } catch { return null; }
+}
+
 // Portão determinismo: reusa evaluateRegistry (nenhum required em drift/missing).
 export function checkDeterminism(registry, opts = {}) {
   const { fail } = evaluateRegistry(registry, opts);
@@ -40,15 +65,19 @@ export function checkDeterminism(registry, opts = {}) {
 export const ENFORCED_GATES = ['spec-presente', 'adr-presente', 'saida-aberta', 'determinismo'];
 
 // Consolida a "definição de pronto". ctx: { featureDir, gbrainDecisionsPath, registry?,
-// registryOpts?, provaViva?, contrato?, owasp? }. Retorna { passed, gates, enforced }.
+// registryOpts?, provaVivaPath?, headCommit?, provaViva?, contrato?, owasp? }. Retorna { passed, gates, enforced }.
 export function evaluateGates(ctx) {
   const gates = {
     'spec-presente': checkSpecPresent(ctx.featureDir),
     'adr-presente': checkAdrPresent(ctx.gbrainDecisionsPath),
     'saida-aberta': checkOpenOutputs(ctx.featureDir, ctx.gbrainDecisionsPath),
     'determinismo': ctx.registry ? checkDeterminism(ctx.registry, ctx.registryOpts || {}) : 'unknown',
-    // sinais externos (fiados em fases futuras): 'unknown' se ausentes
-    'prova-viva': ctx.provaViva || 'unknown',
+    // prova-viva: fiado na v1.19.0 (sinal do test-gate). Sem provaVivaPath, mantém o
+    // comportamento antigo (ctx.provaViva ou 'unknown') — compatibilidade com chamadores velhos.
+    'prova-viva': ctx.provaVivaPath
+      ? checkProvaViva(ctx.provaVivaPath, { headCommit: ctx.headCommit })
+      : (ctx.provaViva || 'unknown'),
+    // sinais externos ainda declarativos (decisão consciente, ver ADR v1.19.0): 'unknown'
     'contrato-bate': ctx.contrato || 'unknown',
     'owasp': ctx.owasp || 'unknown',
   };
@@ -73,7 +102,10 @@ function main() {
   const registryPath = path.join(root, '.harness', 'registry.json');
   const registry = fs.existsSync(registryPath) ? JSON.parse(fs.readFileSync(registryPath, 'utf8')) : null;
 
-  const result = evaluateGates({ featureDir, gbrainDecisionsPath, registry });
+  const provaVivaPath = path.join(root, '.bsd', 'prova-viva.json');
+  const headCommit = resolveHeadCommit(root);
+
+  const result = evaluateGates({ featureDir, gbrainDecisionsPath, registry, provaVivaPath, headCommit });
   if (asJson) { console.log(JSON.stringify(result, null, 2)); }
   else {
     for (const [k, v] of Object.entries(result.gates)) {

@@ -11,6 +11,7 @@
 > **v1.15.0:** Portas (adaptadores c/ fallback) + Mirror de Upstreams (Fase 5)
 > **v1.16.0:** Sombra de Verdade — runner LLM (amostrado)
 > **v1.18.0:** Gate local de push (`tools/hooks/pre-push`) — bloqueia push com teste falhando; substitui a branch protection do GitHub, indisponível em repo privado sem plano Pro. Torna mecânicos o Art. III, a §2 e a §8.4.
+> **v1.19.0:** Portões de qualidade `test-gate` + `pr-review` como skills GLOBAIS (`~/.claude/skills/`, instaladas pelo `bootstrap.sh` passo 6, verificadas pelo `--doctor`). Fia o portão **`prova-viva`** no `gates.js`: recibo em `.bsd/prova-viva.json` conferido contra o `HEAD` — **verde de outro commit conta como vermelho**. Rigor proporcional pelo Dial (`stageMinLevel: test-gate=1, pr-review=2`), sem lei nova. `contrato-bate` e `owasp` seguem `unknown` por decisão consciente (ADR). Ver `specs/quality-gates-pr-review-test-gate/spec.md`.
 > **v1.17.0:** `AGENT_RULES.md §8` — Protocolo de Orquestração de Grafos & Verificação Adversarial (nó verificador cético separado do executor; gate de reatividade de estado + propagação de dado; formato de resposta com evidência obrigatória). Corrige também o cabeçalho do `AGENT_RULES.md`, defasado em v1.10.3 desde a série 1.11–1.16.
 
 ## Como verificar
@@ -69,6 +70,9 @@ node .harness/tools/bsd.js --doctor --json   # saída para CI
 | git (GBrain, Superpowers, RTK) | tag / commit SHA | **Total** se instalar pelo ref pinado |
 | binário (RTK) | versão + `rtk --version` | **Alta** — verificada, origem externa |
 | skill/spec (Frontend Designer) | ref do `anthropics/skills` | spec vendorizada em `tools/` |
+
+| 22 | 🆕 **Portão de Teste — prova viva** | Skill (bundled) | V-JP (base: pacote `claude-code-quality-skills`) | `1.19.0` | `~/.claude/skills/test-gate/` — escreve `.bsd/prova-viva.json` | ⬜ |
+| 23 | 🆕 **Portão de Review — revisor cético** | Skill (bundled) | V-JP (base: pacote `claude-code-quality-skills`) | `1.19.0` | `~/.claude/skills/pr-review/` — lê `.gbrain/lessons.md` antes do diff | ⬜ |
 
 ## Atualizando um pin
 

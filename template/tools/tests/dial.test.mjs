@@ -53,3 +53,31 @@ test('loadDialConfig lê o dial.json real do harness', () => {
   assert.equal(real.conservativeDefault, 3);
   assert.equal(real.pisos.prod, 3);
 });
+
+// ---- v1.19.0: portões de qualidade entram no Dial (rigor proporcional ao risco) ----
+test('stageMinLevel real: test-gate e pr-review escalam com o piso da classe', () => {
+  const config = loadDialConfig();
+  const nivel = (taskClass) => selectLevel({ taskClass, recommended: 0, config });
+  const roda = (taskClass, stage) => stageEnabled(nivel(taskClass), stage, config);
+
+  // config = risco 0: nenhum portão de qualidade (mexer num JSON não dispara review)
+  assert.equal(roda('config', 'test-gate'), false);
+  assert.equal(roda('config', 'pr-review'), false);
+
+  // backend/frontend = piso 1: prova que funciona, sem cerimônia de review
+  assert.equal(roda('backend', 'test-gate'), true);
+  assert.equal(roda('backend', 'pr-review'), false);
+  assert.equal(roda('frontend', 'test-gate'), true);
+  assert.equal(roda('frontend', 'pr-review'), false);
+
+  // db = piso 2: os dois
+  assert.equal(roda('db', 'test-gate'), true);
+  assert.equal(roda('db', 'pr-review'), true);
+
+  // migration/prod = piso 3: os dois + NFR upfront (que já era)
+  for (const c of ['migration', 'prod']) {
+    assert.equal(roda(c, 'test-gate'), true);
+    assert.equal(roda(c, 'pr-review'), true);
+    assert.equal(roda(c, 'nfr'), true);
+  }
+});

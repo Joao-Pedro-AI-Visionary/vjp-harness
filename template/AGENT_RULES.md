@@ -1,6 +1,6 @@
 # V-JP Harness Agent Rules & Guidelines
 
-> Autoria: **João Pedro (V-JP)** · github.com/Joao-Pedro-AI-Visionary · v1.18.0
+> Autoria: **João Pedro (V-JP)** · github.com/Joao-Pedro-AI-Visionary · v1.19.0
 
 Este documento define as regras de sistema e diretrizes operacionais para todos os agentes de IA que operam sob a orquestração do **V-JP Harness**. Qualquer agente deve ler, respeitar e aplicar estritamente as regras abaixo.
 
@@ -165,6 +165,7 @@ OWASP LLM Top 10 + OWASP Top 10 web na checklist de **toda** feature. Razão: de
 ### 🛡️ Agente: REVISOR / REVIEWER (Validação via MCPs + Documentação)
 - **Objetivo**: Testar estritamente o código gerado pelo Executor e validar documentação Diátaxis.
 - **Diretrizes**:
+  - **Rode a skill `pr-review`** sobre o `git diff` — nunca criando worktree (§1.6). Ela é o nó verificador cético da §8.3 e lê `.gbrain/lessons.md` antes do diff: reincidência em lição já paga é blocker. **Quando rodar é decisão do Dial**, não sua: `node .harness/tools/dial.js --class <classe> --json` → `stages["pr-review"]` (nível ≥2: `db`, `migration`, `prod`). Abaixo disso, review é opcional — regra que admite o caso pequeno é regra que sobrevive.
   - **Gate por sinal concreto (não confie na alegação do agente).** O autorizador de merge é o **sinal objetivo**: teste verde. A aprovação do Revisor NUNCA sobrepõe teste falho — merge exige `aprovado E testes verdes`. (Padrão Janitor/Bernstein, v1.7.0; coberto por teste em `tools/tests/merge-gate.test.mjs`.)
   - Acione o **Validador de Banco (Postgres MCP Pro, `crystaldba/postgres-mcp`)** para verificar migrations, introspecção e validar o plano de execução (`EXPLAIN` com cost model do planner) e **simular índices hipotéticos (HypoPG)** antes de criar. Use o modo `restricted` (read-only) contra produção. Gate barato complementar quando não houver banco ao vivo: `prisma migrate diff` / `prisma validate`.
   - Acione o **Validador de UI / E2E (Playwright MCP)** para rodar testes E2E se rotas frontend foram expostas ou modificadas.
@@ -248,7 +249,7 @@ Antes de iniciar qualquer implementação:
 5. **Spawne os agentes especializados** (`.claude/agents/`).
 6. **Execute em paralelo.**
 7. **Faça a integração (fan-in).**
-8. **Execute os Quality Gates** (testes verdes, contrato, E2E, persistência real, OWASP §0.1).
+8. **Execute os Quality Gates** (testes verdes, contrato, E2E, persistência real, OWASP §0.1) na ordem `test-gate` → `pr-review` → merge. **O Dial diz quais rodam** (`dial.js --class <classe> --json`): classe `config` não roda nenhum; `backend`/`frontend` rodam `test-gate`; `db`/`migration`/`prod` rodam os dois. O `test-gate` deixa a prova viva assinada em `.bsd/prova-viva.json`, conferida por `gates.js` — **verde de outro commit conta como vermelho**.
 9. **Rode o Grafo de Verificação Adversarial (§8)** e responda no formato obrigatório (§8.5).
 10. **Somente então finalize a entrega.**
 

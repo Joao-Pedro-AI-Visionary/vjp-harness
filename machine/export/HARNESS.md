@@ -55,6 +55,19 @@ Sempre que uma tarefa puder ser paralelizada, **prefira paralelismo a execução
 ### Fluxo padrão de implementação (9 passos)
 1. Consultar o Harness. 2. Identificar ferramentas/automações existentes. 3. Planejar o fan-out. 4. Criar worktrees. 5. Spawnar os agentes especializados. 6. Executar em paralelo. 7. Fan-in (integração). 8. Rodar os Quality Gates. 9. Só então finalizar a entrega.
 
+## Portões de qualidade — `test-gate` e `pr-review` (rigor proporcional)
+Duas skills globais em `~/.claude/skills/`, fonte em `vjp-harness/machine/export/skills/`:
+- **`test-gate`** — gera/roda os testes da mudança (teto de 2 tentativas), respeita o runner do repo e **deixa a prova viva assinada** em `.bsd/prova-viva.json`.
+- **`pr-review`** — revisor cético sobre `git diff` (nunca worktree), lê `.gbrain/lessons.md` antes do diff, teto de 10 achados.
+
+**Quanto rigor é decisão do Dial, não regra fixa** — em projeto com `.harness/`:
+`node .harness/tools/dial.js --class <config|frontend|backend|db|migration|prod> --json` → campo `stages`.
+Classe `config` não roda nenhum · `backend`/`frontend` rodam `test-gate` · `db`/`migration`/`prod` rodam os dois.
+Em projeto sem `.harness/`, use o bom senso: mudança de risco real roda os dois.
+
+O `gates.js` confere a prova viva contra o `HEAD`: **verde de outro commit conta como vermelho**.
+Ele avisa, não barra — quem barra é o `pre-push` (teste vermelho trava o push).
+
 ## Frontend — UI/UX Pro Max obrigatória
 Sempre que a tarefa envolver **React, Next.js, Vite, Tailwind, shadcn/ui, Design System, Componentes, UX, UI, Responsividade, Acessibilidade, Landing Pages ou Dashboards**:
 - Use **obrigatoriamente a skill `ui-ux-pro-max`** ANTES de iniciar a implementação (instalada em `~/.claude/skills/ui-ux-pro-max`; base local pesquisável via `python3 ~/.claude/skills/ui-ux-pro-max/scripts/search.py`). Repo oficial: https://github.com/nextlevelbuilder/ui-ux-pro-max-skill

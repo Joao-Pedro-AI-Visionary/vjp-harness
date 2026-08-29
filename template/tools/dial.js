@@ -47,7 +47,7 @@ function main() {
   const level = selectLevel({ taskClass, recommended, config });
   const out = {
     taskClass, recommended, level, description: describeLevel(level, config),
-    stages: Object.fromEntries(['planner', 'nfr', 'contract', 'researcher'].map((s) => [s, stageEnabled(level, s, config)])),
+    stages: Object.fromEntries(Object.keys(config.stageMinLevel).map((s) => [s, stageEnabled(level, s, config)])),
   };
   console.log(argv.includes('--json') ? JSON.stringify(out, null, 2)
     : `classe=${taskClass} recomendado=${recommended == null ? '(conservador)' : recommended} -> nível ${level} (${out.description})`);

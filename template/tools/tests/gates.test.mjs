@@ -82,3 +82,77 @@ test('ENFORCED_GATES tem exatamente os 4 verificáveis da Fase 1', () => {
   assert.deepEqual([...ENFORCED_GATES].sort(),
     ['adr-presente', 'determinismo', 'saida-aberta', 'spec-presente']);
 });
+
+// ---- Portão prova-viva (v1.19.0): sinal do test-gate com carimbo de commit ----
+import { checkProvaViva } from '../gates.js';
+
+function provaFile(dir, obj) {
+  const p = path.join(dir, 'prova-viva.json');
+  fs.writeFileSync(p, typeof obj === 'string' ? obj : JSON.stringify(obj));
+  return p;
+}
+
+test('checkProvaViva: ausente => unknown (infra ausente não polui a medição)', () => {
+  const d = tmp();
+  assert.equal(checkProvaViva(path.join(d, 'prova-viva.json'), { headCommit: 'abc123' }), 'unknown');
+  fs.rmSync(d, { recursive: true, force: true });
+});
+
+test('checkProvaViva: JSON inválido => unknown (não é prova de falha)', () => {
+  const d = tmp();
+  const p = provaFile(d, '{ isso não é json');
+  assert.equal(checkProvaViva(p, { headCommit: 'abc123' }), 'unknown');
+  fs.rmSync(d, { recursive: true, force: true });
+});
+
+test('checkProvaViva: result fail => red mesmo com o commit certo', () => {
+  const d = tmp();
+  const p = provaFile(d, { result: 'fail', commit: 'abc123', command: 'npm test' });
+  assert.equal(checkProvaViva(p, { headCommit: 'abc123' }), 'red');
+  fs.rmSync(d, { recursive: true, force: true });
+});
+
+test('checkProvaViva: verde de OUTRO commit => red (sinal velho não prova o código atual)', () => {
+  const d = tmp();
+  const p = provaFile(d, { result: 'pass', commit: 'aaaaaaa', command: 'npm test' });
+  assert.equal(checkProvaViva(p, { headCommit: 'bbbbbbb' }), 'red');
+  fs.rmSync(d, { recursive: true, force: true });
+});
+
+test('checkProvaViva: pass + commit igual ao HEAD => green', () => {
+  const d = tmp();
+  const p = provaFile(d, { result: 'pass', commit: 'abc123', command: 'npx jest x.spec.ts' });
+  assert.equal(checkProvaViva(p, { headCommit: 'abc123' }), 'green');
+  fs.rmSync(d, { recursive: true, force: true });
+});
+
+test('checkProvaViva: sem campo commit OU HEAD irresolvível => unknown (frescura não provável)', () => {
+  const d = tmp();
+  const semCommit = provaFile(d, { result: 'pass', command: 'npm test' });
+  assert.equal(checkProvaViva(semCommit, { headCommit: 'abc123' }), 'unknown');
+  const comCommit = provaFile(d, { result: 'pass', commit: 'abc123' });
+  assert.equal(checkProvaViva(comCommit, { headCommit: null }), 'unknown');
+  fs.rmSync(d, { recursive: true, force: true });
+});
+
+test('evaluateGates: provaVivaPath fiado reflete no portão, sem entrar em ENFORCED_GATES', () => {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), 'vjp-gates-pv-'));
+  const adr = path.join(d, 'decisions.md');
+  fs.writeFileSync(path.join(d, 'spec.md'), '# spec');
+  fs.writeFileSync(adr, '## D1');
+  const okReg = { harnessVersion: '9.9.9', components: [
+    { id: 'a', name: 'A', tier: 'core', priority: 1, required: true,
+      verify: { type: 'command', cmd: 'node --version', expect: 'v' } },
+  ] };
+  const pv = provaFile(d, { result: 'pass', commit: 'deadbee' });
+  const verde = evaluateGates({ featureDir: d, gbrainDecisionsPath: adr, registry: okReg,
+    provaVivaPath: pv, headCommit: 'deadbee' });
+  assert.equal(verde.gates['prova-viva'], 'green');
+
+  // sinal velho vira red — mas NÃO derruba o passed (portão não é enforced)
+  const velho = evaluateGates({ featureDir: d, gbrainDecisionsPath: adr, registry: okReg,
+    provaVivaPath: pv, headCommit: 'outro01' });
+  assert.equal(velho.gates['prova-viva'], 'red');
+  assert.equal(velho.passed, true, 'prova-viva avisa, não barra (não está em ENFORCED_GATES)');
+  fs.rmSync(d, { recursive: true, force: true });
+});
