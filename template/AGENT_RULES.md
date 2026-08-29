@@ -103,6 +103,11 @@ OWASP LLM Top 10 + OWASP Top 10 web na checklist de **toda** feature. Razão: de
 3. **Persistência de Aprendizado (GBrain)**: Sempre consulte `.gbrain/` antes de propor qualquer design técnico para evitar repetição de erros passados ou violações arquiteturais.
 4. **Crash-Safe e Auditoria**: Toda transação de agente deve registrar logs imediatos no `.bsd/history.jsonl` e atualizar o dashboard `.bsd/STATE.md`.
 5. **Documentação Diátaxis**: Nenhuma feature está completa sem documentação no quadrante apropriado (Tutorial, How-to, Reference, ou Explanation). Consulte `.harness/tools/diataxis-docs.md` para o framework completo.
+6. **Orçamento de memória (teto de 2 agentes simultâneos)**: a máquina de trabalho tem **8 GB de RAM** e o modo de falha dela é OOM, não CPU. O `bsd.js` já é uma fila estrita — o risco mora na camada interativa (subagentes do Claude Code), onde cada sessão ociosa custa 400–600 MB. Regras:
+   - **No máximo 2 subagentes simultâneos** (3 só quando os três forem de leitura). Seis frentes viram três ondas de dois, nunca um disparo de seis. Vale também para `parallel()`/`pipeline()` dentro de Workflow.
+   - **Um servidor de dev por vez.** Reaproveite o que já estiver na porta e derrube o que você subir.
+   - **Revisão trabalha sobre `git diff`**, não sobre uma worktree nova: o revisor não precisa de Language Server nem de `node_modules` para ler uma mudança.
+   - **Worktree só quando houver escrita concorrente de verdade.** Worktree acumula `node_modules` e já custou 26 GB de disco neste monorepo; para leitura/review ela é puro desperdício.
 
 ---
 
