@@ -69,7 +69,7 @@ Hooks **portáveis, sem referência a projeto nenhum** — NÃO são instalados 
 Aplica-se sob demanda, em qualquer projeto Node/TS:
 
 ```bash
-bash ~/vjp-harness/machine/hooks/install-hooks.sh /caminho/do/projeto
+bash ~/.local/share/vjp-harness/machine/hooks/install-hooks.sh /caminho/do/projeto
 ```
 
 | Template | Evento | Comportamento (auto-detecta pnpm/yarn/bun/npm) |
@@ -151,7 +151,7 @@ As duas skills novas:
 ## 5. Pendências recomendadas (com tradeoff)
 
 1. **🔴 Rotacionar chaves expostas** no `~/.claude.json`: Brave Search, Browserbase (key + project), Stitch (token + refresh token Google). Estão em plaintext num arquivo que já circulou entre máquinas. Custo: 15 min. Tradeoff: nenhum — só fazer.
-2. **🔴 Remover os 9 MCPs stale Windows** do `~/.claude.json` (lista em §2.5): pronto para rodar — `bash ~/vjp-harness/machine/cleanup-stale-mcps.sh` com o Claude Code **fechado** (faz backup e usa `claude mcp remove --scope user`). Tradeoff: se voltar a usar o PC Windows, reconfigura lá (os configs são por máquina mesmo).
+2. **🔴 Remover os 9 MCPs stale Windows** do `~/.claude.json` (lista em §2.5): pronto para rodar — `bash ~/.local/share/vjp-harness/machine/cleanup-stale-mcps.sh` com o Claude Code **fechado** (faz backup e usa `claude mcp remove --scope user`). Tradeoff: se voltar a usar o PC Windows, reconfigura lá (os configs são por máquina mesmo).
 3. **🟡 Bloco `env` do settings** (`CLAUDE_CODE_USE_OPENAI=1` → proxy `:3099` "gqwen/coder-model"): parece experimento antigo. Se o proxy não está mais em uso, remover — risco de comportamento surpresa em update do CC. Tradeoff: se ainda usa o roteamento qwen, manter e documentar aqui qual serviço sobe o `:3099`.
 4. **🟡 Drift do gbrain**: instalado 0.18.2, `template/registry.json` pina 0.35.1.0. Alinhar (upgrade do global ou ajuste do pin) e rodar `bsd.js --doctor`. Tradeoff: upgrade pode mudar schema da memória — fazer backup do `.gbrain/` antes.
 5. ✅ **`frontend-design`**: resolvido instalando como skill direto de `anthropics/skills` (sem plugin/marketplace) — ver §5b.6.
@@ -171,5 +171,6 @@ As duas skills novas:
 - **2026-06-12** — Pacote criado. Hook rtk duplicado removido do `settings.json`. Skills `fullstack-validate` e `arch-review` criadas e vendorizadas. 48 skills gstack copiadas para `export/skills/`.
 - **2026-06-12 (tarde)** — Pesquisa online: §5b adicionado (RTK 0.42.3 disponível, CVE no Postgres MCP pinado no registry, hooks PostToolUse/Stop de validação, Context7/Sentry MCP, fallbackModel).
 - **2026-06-12 (aplicação)** — Tudo do §5b aplicado: RTK 0.42.3 instalado + pin atualizado; registry com `supabase-mcp` novo e `postgres-mcp` deprecado; skill `frontend-design` oficial instalada+vendorizada; `fallbackModel` e `context7` no settings; templates de hooks genéricos em `machine/hooks/` (sem referência a projetos — instalação sob demanda via `install-hooks.sh`, validados em teste de ponta a ponta); `cleanup-stale-mcps.sh` criado (rodar com CC fechado); `settings.template.json` regenerado; bootstrap.sh com RTK 0.42.3 musl.
+- **2026-08-29 (v1.19.0, correção de path)** — `~/vjp-harness` → `~/.local/share/vjp-harness` em `export/HARNESS.md`, `export/AGENTS.md` e neste arquivo: o diretório antigo **não existe** nesta máquina, então os comandos documentados de `install.sh`, `install-hooks.sh`, `cleanup-stale-mcps.sh` e do reinstall da `ui-ux-pro-max` falhavam. `AGENTS.md` reespelhado com a seção "Portões de qualidade" (tinha ficado defasado). Path Linux `/home/jp/...` na descrição do patch da ui-ux trocado por `$HOME/...` (o script já respeitava `$HOME`).
 - **2026-08-29 (v1.19.0)** — Portões de qualidade `test-gate` e `pr-review` adicionados como skills globais em `machine/export/skills/` (o passo 6 do bootstrap já as instala em `~/.claude/skills/`; registradas no `template/registry.json` com `verify.type: "skill"`, então o `--doctor` acusa ausência). Fia o portão **`prova-viva`** no `gates.js`: recibo em `.bsd/prova-viva.json` conferido contra o `HEAD` — verde de outro commit conta como vermelho. Rigor proporcional pelo Dial (`stageMinLevel: test-gate=1, pr-review=2`), sem lei nova. `machine/export/HARNESS.md` ganhou a seção "Portões de qualidade". Spec: `specs/quality-gates-pr-review-test-gate/spec.md`.
 - **2026-07-23** — Regras globais viram canônicas no repo: `machine/export/HARNESS.md` (fonte da verdade das Regras Globais, incl. 3 seções novas: Harness como 1ª fonte de verdade, Orquestração fan-out/fan-in + fluxo de 9 passos, UI/UX Pro Max obrigatória) e `machine/export/AGENTS.md` (espelho cross-CLI). `export/CLAUDE.md` passa a importar `@HARNESS.md`. Skill `ui-ux-pro-max` adicionada em `skills/ui-ux-pro-max/reinstall.sh` (portável via `$HOME`). `bootstrap.sh` atualizado: copia `HARNESS.md`, instala `~/AGENTS.md` e chama o reinstall da ui-ux-pro-max (passo 6).

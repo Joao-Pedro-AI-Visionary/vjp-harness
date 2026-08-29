@@ -1,6 +1,6 @@
 # V-JP Harness — Regras Globais (núcleo de todos os projetos)
 
-Fonte de verdade: **vjp-harness** (`~/vjp-harness`, github `Joao-Pedro-AI-Visionary/vjp-harness`).
+Fonte de verdade: **vjp-harness** (`~/.local/share/vjp-harness`, github `Joao-Pedro-AI-Visionary/vjp-harness`).
 Estas regras valem para **toda sessão e todo projeto** deste usuário, em qualquer CLI.
 Objetivo: extrair sempre o melhor do stack sem precisar reexplicar a cada vez.
 
@@ -33,13 +33,13 @@ Objetivo: extrair sempre o melhor do stack sem precisar reexplicar a cada vez.
 ## Harness completo por-projeto (sob demanda)
 - Para instalar o harness completo (`.harness/.gbrain/.bsd`) num projeto específico:
   ```bash
-  bash ~/vjp-harness/install.sh --target <dir> --name <nome>
+  bash ~/.local/share/vjp-harness/install.sh --target <dir> --name <nome>
   ```
 - Idempotente. Só rodar quando o JP pedir.
 
 ## Harness como PRIMEIRA fonte de verdade (obrigatório)
 Antes de implementar **qualquer** funcionalidade:
-1. **Consulte o Harness** (`~/vjp-harness`, github `Joao-Pedro-AI-Visionary/vjp-harness`) — é a fonte oficial de contexto, arquitetura, convenções, automações, scripts, ferramentas, docs, padrões e workflows.
+1. **Consulte o Harness** (`~/.local/share/vjp-harness`, github `Joao-Pedro-AI-Visionary/vjp-harness`) — é a fonte oficial de contexto, arquitetura, convenções, automações, scripts, ferramentas, docs, padrões e workflows.
 2. **Reutilize o que já existe** — se houver ferramenta, script, workflow, comando, template ou padrão equivalente, use-o em vez de reinventar.
 3. Só crie solução nova quando o Harness não cobrir o caso.
 
@@ -53,11 +53,28 @@ Sempre que uma tarefa puder ser paralelizada, **prefira paralelismo a execução
 - Orquestração determinística pesada (loops/condicionais/fan-out em escala) usa o **Workflow tool**; ele exige opt-in — quando o JP pedir explicitamente (ou disser "ultra"/"ultracode"), pode disparar sem reperguntar.
 
 ### Fluxo padrão de implementação (9 passos)
-1. Consultar o Harness. 2. Identificar ferramentas/automações existentes. 3. Planejar o fan-out. 4. Criar worktrees. 5. Spawnar os agentes especializados. 6. Executar em paralelo. 7. Fan-in (integração). 8. Rodar os Quality Gates. 9. Só então finalizar a entrega.
+1. Consultar o Harness. 2. Identificar ferramentas/automações existentes. 3. Planejar o fan-out. 4. Criar worktrees. 5. Spawnar os agentes especializados. 6. Executar em paralelo. 7. Fan-in (integração). 8. Rodar os Quality Gates (`test-gate` → `pr-review` → merge, conforme o Dial). 9. Só então finalizar a entrega.
+
+## Portões de qualidade — `test-gate` e `pr-review` (rigor proporcional)
+Duas skills globais em `~/.claude/skills/`, fonte em `~/.local/share/vjp-harness/machine/export/skills/`:
+- **`test-gate`** — gera/roda os testes da mudança (teto de 2 tentativas), respeita o runner do repo e **deixa a prova viva assinada** em `.bsd/prova-viva.json`.
+- **`pr-review`** — revisor cético sobre `git diff` (nunca worktree), lê `.gbrain/lessons.md` antes do diff, teto de 10 achados.
+
+**Quanto rigor é decisão do Dial, não regra fixa** — em projeto com `.harness/`:
+`node .harness/tools/dial.js --class <config|frontend|backend|db|migration|prod> --json` → campo `stages`.
+Classe `config` não roda nenhum · `backend`/`frontend` rodam `test-gate` · `db`/`migration`/`prod` rodam os dois.
+Em projeto sem `.harness/`, use o bom senso: mudança de risco real roda os dois.
+
+O `gates.js` confere a prova viva contra o `HEAD`: **verde de outro commit conta como vermelho**.
+Ele avisa, não barra — quem barra é o `pre-push` (teste vermelho trava o push).
+
+⚠️ Projeto cujo `.harness/` foi instalado antes da v1.19.0 tem o motor velho: os dois portões
+rodam sempre (sem a régua do Dial) e o `gates.js` não confere a prova viva. Para atualizar:
+`bash ~/.local/share/vjp-harness/install.sh --target <dir> --name <nome> --force --yes`
 
 ## Frontend — UI/UX Pro Max obrigatória
 Sempre que a tarefa envolver **React, Next.js, Vite, Tailwind, shadcn/ui, Design System, Componentes, UX, UI, Responsividade, Acessibilidade, Landing Pages ou Dashboards**:
 - Use **obrigatoriamente a skill `ui-ux-pro-max`** ANTES de iniciar a implementação (instalada em `~/.claude/skills/ui-ux-pro-max`; base local pesquisável via `python3 ~/.claude/skills/ui-ux-pro-max/scripts/search.py`). Repo oficial: https://github.com/nextlevelbuilder/ui-ux-pro-max-skill
 - A implementação deve seguir integralmente as recomendações da skill: design system, tipografia, cores/tokens, acessibilidade, responsividade, UX guidelines e boas práticas da stack.
 - **Motion/animação**: preferir, conforme o caso, **GSAP**, **Motion (motion.dev)**, **React Spring** e **Anime.js** — animação com significado (150–300ms), respeitando `prefers-reduced-motion`.
-- Atualizar a skill: reinstalar do repo e re-aplicar o patch de caminho (`${CLAUDE_PLUGIN_ROOT}` → `/home/jp/.claude/skills/ui-ux-pro-max`, `python`→`python3`).
+- Atualizar a skill: reinstalar do repo e re-aplicar o patch de caminho (`${CLAUDE_PLUGIN_ROOT}` → `$HOME/.claude/skills/ui-ux-pro-max`, `python`→`python3`).
