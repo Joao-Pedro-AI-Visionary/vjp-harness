@@ -63,6 +63,22 @@ export function parseGrep(out, limit = 10) {
   return { total: rows.length, rows: rows.slice(0, limit) };
 }
 
+// `remove` é nome comum: separa o que cita a classe (ou seu campo injetado `fooService`) ou mora
+// no mesmo módulo do símbolo, do resto (provavelmente outras classes com o mesmo método).
+export function rankGrep(rows, qualifiedName) {
+  const parts = String(qualifiedName || '').split('.');
+  const cls = parts.length >= 2 ? parts[parts.length - 2] : '';
+  const field = cls ? cls[0].toLowerCase() + cls.slice(1) : '';
+  const moduleDir = (() => {
+    const i = parts.indexOf('src');
+    return i >= 0 && parts.length - i > 3 ? `src/${parts[i + 1]}/` : '';
+  })();
+  const hit = (r) => (cls && (r.snippet.includes(cls) || r.snippet.includes(field))) || (moduleDir && r.file.replace(/\\/g, '/').startsWith(moduleDir));
+  const same = [], other = [];
+  for (const r of rows || []) (hit(r) ? same : other).push(r);
+  return { same, other, cls };
+}
+
 // `cmd pos1 pos2 --k v --flag` -> { cmd, pos: [...], opts: { k: 'v', flag: true } }
 export function parseArgs(argv) {
   const [cmd, ...rest] = argv;
@@ -216,12 +232,17 @@ export function main(argv = process.argv.slice(2), cwd = process.cwd()) {
     if (zero && opts.grep !== false && !asJson) {
       const pat = grepPattern(fn);
       const g = pat ? spawnSync('git', ['grep', '-n', '-E', pat, '--', '*.ts', '*.tsx', '*.js', '*.mjs', '*.cs', ':!*.d.ts'], { cwd, encoding: 'utf8' }) : null;
-      const found = parseGrep(g?.stdout, Number(opts.limit || LIMITS.callersLimit));
+      const limit = Number(opts.limit || LIMITS.callersLimit);
+      const found = parseGrep(g?.stdout, Number.MAX_SAFE_INTEGER);
+      const qn = (res.text || '').match(/^function:\s*(\S+)/m)?.[1] || fn;
+      const { same, other, cls } = rankGrep(found.rows, qn);
       if (found.total === 0) process.stdout.write('textual: 0 ocorrências de `' + pat + '` no repo — aí sim é candidato a código morto\n');
+      else if (same.length === 0) process.stdout.write(`textual: 0 citando ${cls || 'a classe'} ou o módulo; ${other.length} ocorrência(s) do mesmo nome em outras classes — candidato a código morto, confirme no arquivo\n`);
       else {
-        process.stdout.write(`textual: ${found.total} ocorrência(s) no repo (o grafo não segue injeção de dependência; confirme no arquivo):\n`);
-        for (const r of found.rows) process.stdout.write(`  ${r.file}:${r.line}  ${r.snippet}\n`);
-        if (found.total > found.rows.length) process.stdout.write(`  … +${found.total - found.rows.length} (aumente --limit)\n`);
+        process.stdout.write(`textual: ${same.length} ocorrência(s) citando ${cls || 'a classe'} ou o módulo (o grafo não segue injeção de dependência; confirme no arquivo):\n`);
+        for (const r of same.slice(0, limit)) process.stdout.write(`  ${r.file}:${r.line}  ${r.snippet}\n`);
+        if (same.length > limit) process.stdout.write(`  … +${same.length - limit} (aumente --limit)\n`);
+        if (other.length) process.stdout.write(`  outras ${other.length} ocorrência(s) do mesmo nome de método em outras classes — ignoradas\n`);
       }
     }
     return;

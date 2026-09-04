@@ -1,7 +1,21 @@
 // cbm.js: porta do Mapa de Código — as partes puras (sem binário, sem git).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizePath, pickProject, pickSuggestion, parseArgs, extractResult, resolveBase, grepPattern, parseGrep, LIMITS } from '../cbm.js';
+import { normalizePath, pickProject, pickSuggestion, parseArgs, extractResult, resolveBase, grepPattern, parseGrep, rankGrep, LIMITS } from '../cbm.js';
+
+test('rankGrep: prioriza quem cita a classe, o campo injetado ou mora no módulo do símbolo', () => {
+  const rows = [
+    { file: 'src/anexos/anexos.controller.ts', line: 22, snippet: 'return this.anexosService.remove(req.user, id);' },
+    { file: 'src/form-sessions/form-sessions.controller.ts', line: 65, snippet: 'return this.formSessionsService.remove(req.user, id);' },
+    { file: 'src/form-sessions/remove.spec.ts', line: 75, snippet: 'const out = await svc.remove(PARTNER, id);' },
+    { file: 'test/e2e/fluxo.spec.ts', line: 9, snippet: 'new FormSessionsService(db).remove(p, id)' },
+  ];
+  const r = rankGrep(rows, 'proj.src.form-sessions.form-sessions.service.FormSessionsService.remove');
+  assert.equal(r.cls, 'FormSessionsService');
+  assert.deepEqual(r.same.map((x) => x.line), [65, 75, 9]);
+  assert.deepEqual(r.other.map((x) => x.line), [22]);
+  assert.deepEqual(rankGrep(rows, 'remove').same, []);
+});
 
 test('grepPattern: usa só o método, escapa e aceita espaço antes do parêntese', () => {
   assert.equal(grepPattern('FormSessionsService.remove'), '\\.remove[[:space:]]*\\(');
