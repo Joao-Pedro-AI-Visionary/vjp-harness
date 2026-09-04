@@ -1,4 +1,4 @@
-version: "1.20.0"
+version: "1.21.0"
 author: "João Pedro (V-JP) <dev.jp.991@gmail.com> · github.com/Joao-Pedro-AI-Visionary"
 project:
   name: "__PROJECT_NAME__"
@@ -81,9 +81,10 @@ mcp:
       - "prisma"
   codebase_memory:
     enabled: true
-    version: "0.8.1"
+    version: "0.10.8"
     package: "codebase-memory-mcp"
     path: ".harness/tools/node_modules/codebase-memory-mcp/bin.js"
+    port: ".harness/tools/cbm.js"   # v1.21.0: porta única (impact/callers/find), orçamento fixo; MCP só em escopo local
     trigger_extensions:
       - ".ts"
       - ".tsx"

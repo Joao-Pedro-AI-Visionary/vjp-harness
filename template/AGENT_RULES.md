@@ -1,6 +1,6 @@
 # V-JP Harness Agent Rules & Guidelines
 
-> Autoria: **João Pedro (V-JP)** · github.com/Joao-Pedro-AI-Visionary · v1.19.0
+> Autoria: **João Pedro (V-JP)** · github.com/Joao-Pedro-AI-Visionary · v1.21.0
 
 Este documento define as regras de sistema e diretrizes operacionais para todos os agentes de IA que operam sob a orquestração do **V-JP Harness**. Qualquer agente deve ler, respeitar e aplicar estritamente as regras abaixo.
 
@@ -124,7 +124,7 @@ OWASP LLM Top 10 + OWASP Top 10 web na checklist de **toda** feature. Razão: de
 - **Objetivo**: Mapear arquivos impactados e projetar a estrutura técnica a ser modificada ou criada.
 - **Diretrizes**:
   - Faça varredura semântica dos repositórios usando o **Empacotador de Repositório (Repomix)** + **Compressor de Contexto (RTK)** — visão do todo, comprimida.
-  - Para impacto **cirúrgico**, acione o **Mapa de Código (Codebase Memory MCP)** na camada interativa: mapeie o diff do git → símbolos afetados + blast radius/risco, detecte código morto e resolva o grafo de chamadas. Complementa o Empacotador+Compressor — não o substitui (resolução semântica cobre TypeScript e C#).
+  - Para impacto **cirúrgico**, use a **porta do Mapa de Código** (`node .harness/tools/cbm.js impact | callers | find`, v1.21.0): o diff do git → símbolos afetados, quem os chama, specs que já os cobrem — em ~300 tokens. **Orçamento: até 3 chamadas por revisão/portão, sem `semantic_query`.** `callers_total: 0` não prova código morto (injeção de dependência). Complementa o Empacotador+Compressor — não o substitui (resolução semântica cobre TypeScript e C#). O MCP correspondente é opcional e só em escopo local do projeto.
   - **API-First**: Para toda feature que expõe ou modifica uma API REST, gere ou atualize o schema OpenAPI 3.1 (`openapi-v*.yaml`) como PRIMEIRO artefato de design, antes de mapear implementação. Mensageria/eventos seguem AsyncAPI 3.0. Consulte `.gbrain/api-schemas.md` para schemas existentes.
   - Ative o **Guia de Design de UI (Frontend Designer)** se alterações impactarem componentes de interface (`web/`, `frontend/`, `mobile/`).
   - Especifique exatamente quais entidades do banco, migrations ou repositories serão alteradas.

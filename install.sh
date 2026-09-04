@@ -188,6 +188,7 @@ if [ -e "$GITIGNORE" ] || [ -d "$TARGET/.git" ]; then
   add_ignore ".bsd/worktrees/"
   add_ignore ".bsd/history.jsonl"
   add_ignore ".gbrain/brain.pglite/"
+  add_ignore ".codebase-memory/"
   ok ".gitignore atualizado"
 fi
 
@@ -200,7 +201,19 @@ if [ "$DO_INSTALL" -eq 1 ]; then
     warn "Sem package-lock.json — usando npm install (menos determinístico)."
     ( cd "$HARNESS_DIR/tools" && npm install --no-audit --no-fund --loglevel=error )
   fi
-  ok "Ferramentas instaladas (repomix, gsd, codebase-memory-mcp, playwright-mcp)"
+  ok "Ferramentas instaladas (repomix, gsd, codebase-memory-mcp 0.10.8, playwright-mcp)"
+  # v1.21.0 — grafo de código: sem UI (porta 9749) nem watcher; a porta cbm.js chama em modo cli
+  CBM_BIN="$HARNESS_DIR/tools/node_modules/codebase-memory-mcp/bin.js"
+  if [ -f "$CBM_BIN" ]; then
+    node "$CBM_BIN" config set ui_enabled false >/dev/null 2>&1 || true
+    node "$CBM_BIN" config set auto_watch false >/dev/null 2>&1 || true
+    if command -v claude >/dev/null 2>&1 && ! ( cd "$TARGET" && claude mcp get codebase-memory >/dev/null 2>&1 ); then
+      ( cd "$TARGET" && claude mcp add -s local codebase-memory -- node .harness/tools/node_modules/codebase-memory-mcp/bin.js >/dev/null 2>&1 ) \
+        && ok "MCP codebase-memory registrado em escopo LOCAL deste projeto (nunca global)" \
+        || warn "não registrei o MCP local; opcional — a porta cbm.js funciona sem ele"
+    fi
+    info "Indexe quando quiser: node .harness/tools/cbm.js index  (impact/callers/find — ver tools/codebase-memory-mcp.md)"
+  fi
   info "Postgres MCP Pro (crystaldba) roda fora do npm: 'uvx postgres-mcp==0.3.0' ou Docker. Ver tools/postgres-mcp.md."
 else
   warn "npm install pulado (--no-install). Rode depois: (cd .harness/tools && npm ci)"

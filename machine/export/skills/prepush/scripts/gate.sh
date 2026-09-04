@@ -250,6 +250,14 @@ if skip cobertura; then marca cobertura pulado; else
   done
   if [ -z "$SEM_TESTE" ]; then ok "cobertura da mudança: todo arquivo alterado tem teste vizinho"; marca cobertura ok
   else warn "arquivos alterados SEM teste vizinho (a skill decide se gera):"; for f in $SEM_TESTE; do say "    $f"; done; marca cobertura aviso "$SEM_TESTE"; fi
+  # raio de impacto pelo grafo de código (harness >= 1.21) — informativo, uma chamada, nunca bloqueia
+  if [ -f "$ROOT/.harness/tools/cbm.js" ] && [ "$SEM_BASE" -eq 0 ] && command -v node >/dev/null 2>&1; then
+    CBM_OUT=$(cd "$ROOT" && node .harness/tools/cbm.js impact --base "$REMOTE/$BASE" 2>/dev/null) && {
+      say "  raio de impacto (cbm.js impact · $REMOTE/$BASE):"
+      printf '%s\n' "$CBM_OUT" | grep -E '^(changed_files|seed_symbols|impacted_total|impacted_modules):|^  [a-zA-Z0-9_./-]+ [0-9]+$' | sed 's/^/    /'
+      [ -n "$LOGDIR" ] && printf '%s\n' "$CBM_OUT" > "$LOGDIR/impacto.txt" 2>/dev/null
+    }
+  fi
 fi
 
 # ── Resumo ──────────────────────────────────────────────────────────────────

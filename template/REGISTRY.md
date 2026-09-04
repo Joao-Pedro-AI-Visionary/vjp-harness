@@ -37,7 +37,7 @@ node .harness/tools/bsd.js --doctor --json   # saída para CI
 | 8 | **Validador de UI / E2E** | Servidor MCP | [`modelcontextprotocol/servers`](https://github.com/modelcontextprotocol/servers) (Playwright MCP) | `0.0.75` | runtime (Claude/Cursor) via `config/mcp.json` | ⬜ |
 | 9 | **Guia de Design de UI** | Skill / Spec | [`anthropics/skills`](https://github.com/anthropics/skills) (Frontend Designer) | `main` | `.harness/tools/frontend-designer.md` | ⬜ |
 | 10 | **Banco Supabase (opcional)** | Servidor MCP | [`supabase-community/supabase-mcp`](https://github.com/supabase-community/supabase-mcp) | `0.8.2` | runtime — **só projetos Supabase pontuais** | ⬜ |
-| 11 | 🆕 **Mapa de Código** | Servidor MCP (NPM) | [`DeusData/codebase-memory-mcp`](https://github.com/DeusData/codebase-memory-mcp) | `0.8.1` | runtime — reforça o **Pesquisador** (TS/C#) | ⬜ |
+| 11 | **Mapa de Código** | Binário via NPM (modo `cli`) + MCP opcional | [`DeusData/codebase-memory-mcp`](https://github.com/DeusData/codebase-memory-mcp) | `0.10.8` | `.harness/tools/` — chamado pela porta #25; MCP só em escopo local | ⬜ |
 | 12 | 🆕 **Validador de Banco (EXPLAIN/índices)** | Servidor MCP (pip/Docker) | [`crystaldba/postgres-mcp`](https://github.com/crystaldba/postgres-mcp) (Postgres MCP Pro) | `0.3.0` | runtime — **Revisor** (EXPLAIN + HypoPG), substitui #7 | ⬜ |
 | 13 | 🆕 **Stack Alternativa — Hono + Drizzle + Zod (Bun)** | Stack externa | [`hono`](https://hono.dev/) + [`drizzle-orm`](https://orm.drizzle.team/) + [`zod`](https://zod.dev/) + [`bun`](https://bun.sh/) | n/a (escolha por projeto) | projeto (NÃO em `.harness/`) — ver `tools/hono-drizzle.md` + ADR v1.10.2 | ⬜ |
 | 14 | 🆕 **Arquiteto Vertical Slice + DDD** | Skill / Arquitetura | Skill nativa VJP Harness | `1.0.0` | `.harness/tools/vertical-slice-ddd.md` | ⬜ |
@@ -54,13 +54,14 @@ node .harness/tools/bsd.js --doctor --json   # saída para CI
 
 **Obrigatórios (núcleo determinístico):** Maestro, Empacotador de Repositório, Planejador Spec-Driven, Portões, Aferidor de Confiança, Dial de Rigor, Aferidor de Confiança — Analisador, Probe Sombra + Conjunto-Canário, Portas — Adaptadores por Papel, Mirror de Upstreams, Sombra de Verdade — Runner LLM — pinados via `package-lock.json` (`npm ci`) ou nativos do harness (`gates.js`/`aferidor-log.js`/`dial.js`/`aferidor-analise.js`/`sombra.js`/`ports.js`/`mirror.js`/`sombra-llm.js`).
 **Opcionais:** instalados sob demanda; o `--doctor` os reporta como `[opt]` sem bloquear (a menos que `--strict`).
+**Novidades v1.21.0:** #25 `cbm.js` liga o #11 aos portões (`pr-review` §2, `test-gate` §5, `prepush` camada 5) com orçamento fixo de contexto; pin do #11 0.8.1 → 0.10.8. Spec em `specs/codebase-memory-portoes/`.
 **Novidades v1.7.0:** #11 codebase-memory-mcp (npm, pinado), #12 Postgres MCP Pro (substitui o #7 vulnerável; roda via `uvx`/Docker). Detalhes e justificativa em [`../.gbrain/decisions.md`](../.gbrain/decisions.md) e `upgrades/v1.7.0/`.
 
 ## Notas de pinagem
 
 - **GSD Redux**: o repo canônico é `open-gsd/get-shit-done-redux` (pacote npm `@opengsd/get-shit-done-redux`).
 - **GBrain**: tag mais recente `eval-run-v0.35.1.0-baseline` (→ `0.35.1.0`). Instalado via `/setup-gbrain` (binário bun).
-- **MCPs (npm)**: `@playwright/mcp@0.0.75` e `codebase-memory-mcp@0.8.1` são pinados via `package-lock.json` em `.harness/tools` e injetados no runtime via `config/mcp.json`. Nunca `@latest`.
+- **MCPs (npm)**: `@playwright/mcp@0.0.75` e `codebase-memory-mcp@0.10.8` são pinados via `package-lock.json` em `.harness/tools`. Playwright é injetado no runtime via `config/mcp.json`; o codebase-memory é chamado pela porta `tools/cbm.js` (modo `cli`, sem servidor) e só vira MCP em escopo local do projeto, nunca global. Nunca `@latest`.
 - **Postgres MCP Pro** (`crystaldba/postgres-mcp@0.3.0`): roda fora do npm — `uvx postgres-mcp==0.3.0` (Python 3.12+) ou Docker `crystaldba/postgres-mcp:0.3.0`. Substitui o antigo `server-postgres@0.6.2`, **removido na v1.7.0** por SQL injection e descontinuação upstream.
 
 ## Tiers de determinismo
@@ -72,6 +73,7 @@ node .harness/tools/bsd.js --doctor --json   # saída para CI
 | binário (RTK) | versão + `rtk --version` | **Alta** — verificada, origem externa |
 | skill/spec (Frontend Designer) | ref do `anthropics/skills` | spec vendorizada em `tools/` |
 
+| 25 | 🆕 **Porta do Mapa de Código** | Script / Porta | Nativo V-JP Harness (João Pedro) | `1.21.0` | `.harness/tools/cbm.js` — `impact`/`callers`/`find`, ~300 tokens, chamado por `pr-review`, `test-gate`, `prepush` | ⬜ |
 | 22 | 🆕 **Portão de Teste — prova viva** | Skill (bundled) | V-JP (base: pacote `claude-code-quality-skills`) | `1.19.0` | `~/.claude/skills/test-gate/` — escreve `.bsd/prova-viva.json` | ⬜ |
 | 23 | 🆕 **Portão de Review — revisor cético** | Skill (bundled) | V-JP (base: pacote `claude-code-quality-skills`) | `1.19.0` | `~/.claude/skills/pr-review/` — lê `.gbrain/lessons.md` antes do diff | ⬜ |
 
