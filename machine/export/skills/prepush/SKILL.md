@@ -49,7 +49,7 @@ Opcional, só com o sim do usuário: TestSprite MCP (`mcp__TestSprite__*`) contr
 Quem implementou não aprova o próprio código (§8.3). Dois revisores de naturezas diferentes:
 
 1. **Skill `pr-review`** (harness): lê `.gbrain/lessons.md`/`decisions.md` antes do diff, revisa sobre `git diff origin/<base>...HEAD` sem worktree, saída blocker/should-fix/nit com `file:line`, teto de 10. Dial: roda a partir do nível 2 (`db`, `migration`, `prod`); abaixo disso rode mesmo assim quando a mudança toca auth, dinheiro, dado de cliente ou contrato de API — o `/prepush` é o momento de pagar esse custo.
-2. **`/code-review high`** (Skill `code-review`, subagente separado): pega lógica, borda e regressão que a checklist não lista.
+2. **`/code-review high`** (Skill `code-review`, subagente separado): pega lógica, borda e regressão que a checklist não lista. **Armadilha:** nesta máquina o nome `code-review` resolve para a skill do plugin GSD (revisão por fase, exige `.planning/`), não para o `/code-review` nativo. Se a skill carregada falar em "phase"/`REVIEW.md` do GSD, não rode: dispare um `Agent` general-purpose como revisor independente (sem o seu contexto de autor, só leitura, sem jest), com o mesmo formato blocker/should-fix/nit e `file:line`.
 3. **CodeRabbit CLI** se instalado (`cr review --base <base> --agent`, grátis 3/h) ou **Greptile CLI** (`greptile review --branch <base> --agent`): segunda opinião de outro fornecedor.
 
 Loop de correção: **blocker** e qualquer coisa de segurança → corrija → camada 4 de novo → rerevise. **Máximo 2 rodadas** (§2); se a terceira ainda tiver blocker, pare e leve ao usuário. Should-fix vai para a resposta; nits idem, não bloqueiam.

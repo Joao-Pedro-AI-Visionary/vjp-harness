@@ -194,6 +194,8 @@ tem_script() { [ -f package.json ] && node -e 'process.exit(require("./package.j
 if skip estatico; then marca estatico pulado; else
   EST_OK=1; EST_NOTA=""
   for s in typecheck type-check lint; do
+    # `git config prepush.lint off` para script quebrado no repo (ex.: ESLint 9 sem flat config).
+    if [ "$(git config --get "prepush.$s" || true)" = "off" ]; then warn "$s desligado por git config prepush.$s"; continue; fi
     if tem_script "$s"; then
       say "${DIM}▶ npm run $s${RST}"
       if npm run -s "$s" >"$LOGDIR/$s.log" 2>&1; then ok "$s"; else fail "$s falhou (log: $LOGDIR/$s.log)"; tail -15 "$LOGDIR/$s.log" | sed 's/^/    /' >&2; EST_OK=0; EST_NOTA="$EST_NOTA $s"; fi
