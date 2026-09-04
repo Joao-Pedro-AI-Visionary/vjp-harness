@@ -64,6 +64,7 @@ Duas skills globais em `~/.claude/skills/`, fonte em `~/.local/share/vjp-harness
 **Quanto rigor é decisão do Dial, não regra fixa** — em projeto com `.harness/`:
 `node .harness/tools/dial.js --class <config|frontend|backend|db|migration|prod> --json` → campo `stages`.
 Classe `config` não roda nenhum · `backend`/`frontend` rodam `test-gate` · `db`/`migration`/`prod` rodam os dois.
+- **Grafo de código** (v1.21) — `node .harness/tools/cbm.js impact` antes de abrir vizinho às cegas; `callers` só em símbolo de risco alto. **Até 3 chamadas por revisão/portão, sem `semantic_query`**; binário ausente = segue sem grafo. Zero chamadores no grafo dispara o fallback textual da porta (`textual: N` com `file:line`); só `textual: 0` é candidato a código morto. O MCP fica opcional e em escopo local do projeto, nunca global: cada MCP global paga presença em toda sessão.
 Em projeto sem `.harness/`, use o bom senso: mudança de risco real roda os dois.
 
 O `gates.js` confere a prova viva contra o `HEAD`: **verde de outro commit conta como vermelho**.

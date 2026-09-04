@@ -28,7 +28,7 @@ bash ~/.claude/skills/prepush/scripts/gate.sh [--base <branch>] [--json /tmp/pre
 | 2 | segredos | `gitleaks` nos commits a subir + varredura interna (AWS, chave privada, GitHub, Google, Slack, Stripe, JWT, URL com senha, `password=`), `.env` entrando, **caminho de máquina pessoal** (`/home/fulano`, `C:\Users\fulano` — placeholders passam) | sim |
 | 3 | estático | `npm run typecheck/lint` se existirem; `npm audit` high+ em prod (aviso; `git config prepush.audit block` trava); `ruff` em Python | sim (audit: aviso) |
 | 4 | testes | `prepush.testcmd` → `hooks.testcmd` → `npm test` / `pytest` / `go test` — **suíte completa**, log em `$TMPDIR/prepush-<repo>/testes.log` | sim |
-| 5 | cobertura da mudança | lista arquivo alterado sem teste vizinho | aviso → camada 6 |
+| 5 | cobertura da mudança | lista arquivo alterado sem teste vizinho; com `.harness/tools/cbm.js` (harness ≥ 1.21) anexa o **raio de impacto** do grafo (símbolos mudados, quem os chama, specs que já os cobrem) — uma chamada, ~300 tokens, nunca bloqueia | aviso → camada 6 |
 
 Saída: relatório em stderr, `PREPUSH_RESULT=ok|bloqueado` em stdout, JSON opcional. Códigos: 0 ok, 1 bloqueado, 2 ambiente. Primeira publicação (sem base no remoto) varre toda a história.
 

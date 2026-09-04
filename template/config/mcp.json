@@ -13,7 +13,7 @@
       }
     },
     "codebase-memory": {
-      "_comment": "Codebase Memory MCP v0.8.1 (DeusData) — grafo de símbolos p/ o RESEARCHER. Pinado via npm ci. Complementa Repomix+RTK.",
+      "_comment": "Codebase Memory MCP v0.10.8 (DeusData) — grafo de símbolos. OPCIONAL desde a v1.21.0: os portões usam a porta .harness/tools/cbm.js (modo cli, zero tool no contexto). Se quiser as tools no Claude Code, registre SÓ em escopo local: claude mcp add -s local codebase-memory -- node .harness/tools/node_modules/codebase-memory-mcp/bin.js. Nunca no ~/.claude.json global. Não rode o `install` do binário (reescreve config de 43 clientes).",
       "command": "node",
       "args": [
         ".harness/tools/node_modules/codebase-memory-mcp/bin.js"

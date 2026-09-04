@@ -70,7 +70,13 @@ locators resilientes, nada de `waitForTimeout`. Nenhum runner hospedado/SaaS.
 
 ## 5. O loop (teto de 2 — §2 do AGENT_RULES)
 
-1. Identifique os símbolos mudados (`git diff` + abrir os arquivos).
+1. Identifique os símbolos mudados. Com harness ≥ 1.21, **uma** chamada resolve e diz quais
+   specs já exercitam cada símbolo (linhas `spec Module`): símbolo mudado sem spec no raio
+   de impacto é o que você escreve.
+   ```bash
+   node .harness/tools/cbm.js impact --base origin/<base>   # código 3 = sem grafo, siga com git diff
+   ```
+   Sem harness: `git diff` + abrir os arquivos. Nunca mais de 2 chamadas ao grafo aqui.
 2. Escreva/ajuste **só** os specs que cobrem esses símbolos.
 3. Rode o **comando mais estreito** que os exercita.
    Ex.: `npx jest src/billing/application/charge-invoice.usecase.spec.ts --runInBand`
