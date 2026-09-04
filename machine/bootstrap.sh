@@ -74,10 +74,12 @@ sed -e "s|/home/jp|$HOME|g" \
 echo "settings.json instalado (hook rtk, statusline, MCPs chrome-devtools+gbrain)"
 
 # ---------------------------------------------------------------- skills
-step "6/8 Skills (gstack-family + fullstack-validate + arch-review + test-gate + pr-review)"
+step "6/8 Skills (gstack-family + fullstack-validate + arch-review + test-gate + pr-review + prepush)"
 mkdir -p "$CLAUDE_DIR/skills"
 cp -rv "$EXPORT/skills/." "$CLAUDE_DIR/skills/" | tail -1
 echo "skills instaladas: $(ls "$CLAUDE_DIR/skills" | wc -l)"
+# prepush: hook global de push (core.hooksPath ~/.githooks) — v1.20
+[ -f "$CLAUDE_DIR/skills/prepush/reinstall.sh" ] && bash "$CLAUDE_DIR/skills/prepush/reinstall.sh" | tail -2
 echo "⚠️  a skill 'gstack' (browse daemon, 1.5GB) não é vendorizada:"
 echo "    instale o gstack pelo instalador oficial e rode /gstack-upgrade na primeira sessão."
 

@@ -59,6 +59,7 @@ Sempre que uma tarefa puder ser paralelizada, **prefira paralelismo a execução
 Duas skills globais em `~/.claude/skills/`, fonte em `~/.local/share/vjp-harness/machine/export/skills/`:
 - **`test-gate`** — gera/roda os testes da mudança (teto de 2 tentativas), respeita o runner do repo e **deixa a prova viva assinada** em `.bsd/prova-viva.json`.
 - **`pr-review`** — revisor cético sobre `git diff` (nunca worktree), lê `.gbrain/lessons.md` antes do diff, teto de 10 achados.
+- **`prepush`** (v1.20) — o portão de **push**: fetch+rebase obrigatório na base, gitleaks/segredos/caminho pessoal, estático, suíte completa; depois encadeia `test-gate` → `pr-review` + `/code-review` → push/PR. O hook global `~/.githooks/pre-push` (instalado por `reinstall.sh`) bloqueia push com branch atrás, segredo ou teste quebrado mesmo fora do Claude. **Nada sobe sem passar por ele.**
 
 **Quanto rigor é decisão do Dial, não regra fixa** — em projeto com `.harness/`:
 `node .harness/tools/dial.js --class <config|frontend|backend|db|migration|prod> --json` → campo `stages`.

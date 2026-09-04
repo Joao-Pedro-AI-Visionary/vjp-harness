@@ -46,3 +46,17 @@ No WSL o `PATH` do Windows vaza para o shell Linux e o `npm` acaba resolvendo pa
 ## Verificação
 
 Testado com push real contra um remote bare local, nos quatro cenários da tabela acima — todos confirmados. O escape hatch (`--no-verify`) é intencional: um gate sem saída de emergência vira um gate que as pessoas desinstalam.
+
+## v1.20 — gate em camadas com a skill `/prepush`
+
+Se `~/.claude/skills/prepush/scripts/gate.sh` existir, o hook delega a ele em vez de rodar só os testes. Aí o push também é **bloqueado** quando:
+
+| Situação | Motivo |
+|---|---|
+| branch não contém `origin/<base>` ou o upstream | faltou `pull`/`rebase` — rode `/prepush`, que rebaseia sozinho |
+| segredo, `.env`, chave privada, URL com senha ou caminho `C:\Users\fulano` nos commits | gitleaks + varredura interna |
+| branch atrás **e** árvore suja | commit ou stash, depois `/prepush` |
+
+Instalação da skill + hook: `bash machine/export/skills/prepush/reinstall.sh` (a partir do clone do `vjp-harness`), ou `machine/bootstrap.sh` passo 6. Config por repo (`prepush.base`, `prepush.testcmd`, `prepush.hook.testes off`, `prepush.audit block`) em `skills/prepush/reference/camadas-e-mercado.md`.
+
+O gate busca a base por refspec explícito: remoto sem `remote.origin.fetch` (só atualiza `FETCH_HEAD`) fazia `origin/main` ficar velho para sempre — foi assim neste próprio repo em 04/09/2026.

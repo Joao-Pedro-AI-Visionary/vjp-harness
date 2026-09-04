@@ -290,7 +290,7 @@ Passo 1 verde com passo 2 vermelho = **a feature está quebrada**, ainda que "pa
 - [ ] **Validação de Impacto** — o evento altera real e reativamente as variáveis/funções da regra de negócio (ex.: base de cálculo fiscal)?
 - [ ] **Teste / Execução** — testes unitários, de componente, ou um script node de validação/build foram **executados** e provam que a alteração funciona sem quebrar o build.
 
-**Gate mecânico (não confie na convenção):** a checklist acima só vale se algo a impuser. Repos privados **não têm branch protection** sem GitHub Pro (a API responde `403`), então o portão é local: o hook `pre-push` em `.harness/tools/hooks/pre-push` **bloqueia o push quando os testes falham**. Instalação e comportamento em `.harness/tools/hooks/README.md`. Sem ele, os artigos III (Test-First) e §2 (gate por sinal concreto) são só texto.
+**Gate mecânico (não confie na convenção):** a checklist acima só vale se algo a impuser. Repos privados **não têm branch protection** sem GitHub Pro (a API responde `403`), então o portão é local: o hook `pre-push` em `.harness/tools/hooks/pre-push` **bloqueia o push quando os testes falham** — e, com a skill global `/prepush` (v1.20), também quando a branch está **atrás da base** (faltou pull) ou quando há **segredo/`.env`/caminho pessoal** nos commits. Antes de subir, rode `/prepush`: sincroniza, varre, roda a suíte e encadeia `test-gate` → `pr-review`/`/code-review` → push. Instalação e comportamento em `.harness/tools/hooks/README.md`. Sem ele, os artigos III (Test-First) e §2 (gate por sinal concreto) são só texto.
 
 **Protocolo em caso de falha:**
 1. Trate o erro **no nó atual**, sem contaminar o resto da aplicação.
