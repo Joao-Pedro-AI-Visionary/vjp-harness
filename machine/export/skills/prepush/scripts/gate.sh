@@ -40,9 +40,16 @@ warn() { say "${YLW}⚠ $*${RST}"; }
 fail() { say "${RED}✖ $*${RST}"; }
 skip() { case ",$SKIP," in *",$1,"*) return 0;; esac; return 1; }
 
-declare -A ST; declare -A NOTA
+# Estado por camada, sem array associativo: o bash do macOS e 3.2, onde
+# `declare -A` nao existe e o indice vira expressao aritmetica -- com `set -u`
+# a primeira marcacao morre em "sync: unbound variable". Um par de variaveis
+# por camada roda igual em bash 3.2, 5.x, Git Bash e WSL.
+ST_sync=""; ST_segredos=""; ST_estatico=""; ST_testes=""; ST_cobertura=""
+NOTA_sync=""; NOTA_segredos=""; NOTA_estatico=""; NOTA_testes=""; NOTA_cobertura=""
 BLOQUEADO=0
-marca() { ST[$1]="$2"; NOTA[$1]="${3:-}"; [ "$2" = "bloqueado" ] && BLOQUEADO=1; return 0; }
+marca() { eval "ST_$1=\$2; NOTA_$1=\${3:-}"; [ "$2" = "bloqueado" ] && BLOQUEADO=1; return 0; }
+st()   { eval "printf '%s' \"\${ST_$1:-}\""; }
+nota() { eval "printf '%s' \"\${NOTA_$1:-}\""; }
 
 # Binários instalados pelo winget ficam fora do PATH do Git Bash até reabrir o shell.
 if [ -n "${LOCALAPPDATA:-}" ] && command -v cygpath >/dev/null 2>&1; then
@@ -119,10 +126,10 @@ else
       ok "sincronizada: contém $REMOTE/$BASE$([ -n "$UPSTREAM" ] && [ "$UPSTREAM" != "$REMOTE/$BASE" ] && echo " e $UPSTREAM")"
       marca sync ok
     elif [ "$SUJA" -eq 1 ]; then
-      fail "branch ATRÁS de $REMOTE/$BASE${UPSTREAM:+/$UPSTREAM} e árvore suja: commit ou stash, depois rode /prepush"
+      fail "branch ATRÁS de $REMOTE/$BASE$([ -n "$UPSTREAM" ] && [ "$UPSTREAM" != "$REMOTE/$BASE" ] && echo " e $UPSTREAM") e árvore suja: commit ou stash, depois rode /prepush"
       marca sync bloqueado "atras da base + arvore suja"
     elif [ "$NO_REBASE" -eq 1 ]; then
-      fail "branch ATRÁS de $REMOTE/$BASE${UPSTREAM:+/$UPSTREAM}: faça pull/rebase antes (rode /prepush)"
+      fail "branch ATRÁS de $REMOTE/$BASE$([ -n "$UPSTREAM" ] && [ "$UPSTREAM" != "$REMOTE/$BASE" ] && echo " e $UPSTREAM"): faça pull/rebase antes (rode /prepush)"
       marca sync bloqueado "atras da base"
     else
       say "${DIM}▶ rebase em $REMOTE/$BASE${RST}"
@@ -132,7 +139,7 @@ else
         if [ "$ALVO" != "$REMOTE/$BASE" ] && ! git merge-base --is-ancestor "$REMOTE/$BASE" HEAD; then
           git rebase --quiet "$REMOTE/$BASE" >>"$LOGDIR/rebase.log" 2>&1 || { git rebase --abort; fail "conflito ao rebasear em $REMOTE/$BASE (abortado)"; marca sync bloqueado "conflito"; }
         fi
-        [ "${ST[sync]:-}" != "bloqueado" ] && { ok "rebase feito em $ALVO"; marca sync ok "rebase em $ALVO"; }
+        [ "$ST_sync" != "bloqueado" ] && { ok "rebase feito em $ALVO"; marca sync ok "rebase em $ALVO"; }
       else
         git rebase --abort 2>/dev/null
         fail "conflito no rebase em $ALVO (abortado). Resolva à mão: git rebase $ALVO"
@@ -245,14 +252,17 @@ fi
 
 # ── Resumo ──────────────────────────────────────────────────────────────────
 say ""; say "${BLD}resumo${RST}"
-for k in sync segredos estatico testes cobertura; do printf '  %-10s %-10s %s\n' "$k" "${ST[$k]:-?}" "${NOTA[$k]:-}" >&2; done
+for k in sync segredos estatico testes cobertura; do
+  s_=$(st "$k"); [ -n "$s_" ] || s_='?'
+  printf '  %-10s %-10s %s\n' "$k" "$s_" "$(nota "$k")" >&2
+done
 say "${DIM}  logs: $LOGDIR${RST}"
 if [ -n "$JSON" ]; then
   {
     printf '{"repo":"%s","branch":"%s","base":"%s/%s","commits":%s,"camadas":{' "$(basename "$ROOT")" "$BRANCH" "$REMOTE" "$BASE" "$N_OUT"
     first=1; for k in sync segredos estatico testes cobertura; do
       [ $first -eq 0 ] && printf ','; first=0
-      printf '"%s":{"status":"%s","nota":"%s"}' "$k" "${ST[$k]:-}" "$(printf '%s' "${NOTA[$k]:-}" | tr -d '"\n' | cut -c1-300)"
+      printf '"%s":{"status":"%s","nota":"%s"}' "$k" "$(st "$k")" "$(nota "$k" | tr -d '"\n' | cut -c1-300)"
     done
     printf '},"resultado":"%s","logs":"%s"}\n' "$([ $BLOQUEADO -eq 0 ] && echo ok || echo bloqueado)" "$LOGDIR"
   } >"$JSON"
