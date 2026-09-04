@@ -119,9 +119,18 @@ else
   SUJA=0; [ -n "$(git status --porcelain --untracked-files=no)" ] && SUJA=1
   [ "$SUJA" -eq 1 ] && { warn "árvore suja (não sobe no push, mas impede rebase):"; git status --short --untracked-files=no | head -6 | sed 's/^/    /' >&2; }
   {
-    ATRAS=0
+    ATRAS=0; ATRAS_UP=0
     git merge-base --is-ancestor "$REMOTE/$BASE" HEAD || ATRAS=1
-    if [ -n "$UPSTREAM" ] && [ "$(git rev-list --count "HEAD..$UPSTREAM")" -gt 0 ]; then ATRAS=1; fi
+    # `git checkout -b feat origin/homol` registra a BASE como upstream da feature:
+    # isso não é "a cópia remota desta branch", então não conta como ATRAS_UP.
+    if [ -n "$UPSTREAM" ] && [ "$UPSTREAM" != "$REMOTE/$BASE" ] && [ "$(git rev-list --count "HEAD..$UPSTREAM")" -gt 0 ]; then ATRAS=1; ATRAS_UP=1; fi
+    # No hook, feature branch atrás da BASE é aviso: a PR cobra o rebase no merge, e
+    # bloquear aqui cria corrida em repo movimentado (a base anda durante a suíte).
+    # Atrás do PRÓPRIO upstream continua bloqueando — isso é o "faltou pull" real.
+    if [ "$ATRAS" -eq 1 ] && [ "$ATRAS_UP" -eq 0 ] && [ "$HOOK" -eq 1 ] && [ "$BRANCH" != "$BASE" ]; then
+      warn "branch atrás de $REMOTE/$BASE ($(git rev-list --count "HEAD..$REMOTE/$BASE") commit(s)); a PR vai pedir rebase — /prepush faz isso"
+      ATRAS=0
+    fi
     if [ "$ATRAS" -eq 0 ]; then
       ok "sincronizada: contém $REMOTE/$BASE$([ -n "$UPSTREAM" ] && [ "$UPSTREAM" != "$REMOTE/$BASE" ] && echo " e $UPSTREAM")"
       marca sync ok
@@ -223,12 +232,20 @@ if skip testes; then marca testes pulado; else
     elif [ -f pytest.ini ] || [ -f conftest.py ] || grep -qs "\[tool.pytest" pyproject.toml; then TEST_CMD="pytest -q";
     elif [ -f go.mod ]; then TEST_CMD="go test ./..."; fi
   fi
+  RECIBO="$LOGDIR/testes-ok.sha"; HEAD_SHA=$(git rev-parse HEAD)
   if [ -z "$TEST_CMD" ]; then
     warn "nenhum comando de teste (git config prepush.testcmd \"...\")"; marca testes pulado "sem comando"
+  elif [ "$HOOK" -eq 1 ] && [ -f "$RECIBO" ] && [ "$(cat "$RECIBO" 2>/dev/null)" = "$HEAD_SHA" ] \
+       && [ -n "$(find "$RECIBO" -mmin -30 2>/dev/null)" ]; then
+    # Prova viva do /prepush: mesma suíte, mesmo HEAD, há menos de 30 min. Rodar de
+    # novo só abre janela para a base andar — foi assim que o push travou 2x em 04/09.
+    ok "testes: reaproveitando o gate verde de $(date -r "$RECIBO" +%H:%M) para este mesmo HEAD (${HEAD_SHA:0:7})"
+    marca testes ok "recibo do /prepush"
   else
     say "${DIM}▶ $TEST_CMD${RST}"
     if bash -c "$TEST_CMD" >"$LOGDIR/testes.log" 2>&1; then
       ok "testes: $( { grep -E '^Tests:|passed|passing|ok ' "$LOGDIR/testes.log" | tail -1; } | tr -s ' ' | cut -c1-100)"
+      printf '%s' "$HEAD_SHA" > "$RECIBO"
       marca testes ok
     else
       fail "testes falharam (log: $LOGDIR/testes.log)"
