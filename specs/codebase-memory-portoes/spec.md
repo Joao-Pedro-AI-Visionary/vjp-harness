@@ -13,7 +13,7 @@ O `codebase-memory-mcp` está pinado desde a v1.7.0 (0.8.1) e documentado como "
 3. **Três pontos de encaixe, e só três.** `pr-review` §2 (antes de abrir vizinho), `test-gate` §5 passo 1 (quais símbolos e quais specs já os cobrem), `prepush` camada 5 (raio de impacto no relatório do gate, informativo). Fora do GSD, fora do BSD headless.
 4. **Nunca bloqueia.** Binário ausente → código 3, uma linha, o fluxo segue. Erro do grafo → código 2, idem. O grafo é pista, não sinal concreto (§2: merge exige teste verde).
 5. **Bump do pin** 0.8.1 → 0.10.8 (lockfile regenerado). UI (porta 9749) e watcher desligados por config persistida. `install.sh` ignora `.codebase-memory/` e registra o MCP local se o CLI `claude` existir.
-6. **"Sem chamadores" não é prova** em NestJS (injeção de dependência pode não resolver). Escrito na doc e nos skills.
+6. **"Sem chamadores" não é prova** em NestJS (injeção de dependência não resolve). `callers` com zero no grafo cai para `git grep` e imprime `textual: N` com `file:line`; só `textual: 0` é candidato a código morto.
 
 ## Fora de escopo
 

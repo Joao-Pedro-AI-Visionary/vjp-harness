@@ -530,7 +530,7 @@
       "dest": ".harness/tools/cbm.js",
       "version": "1.21.0",
       "install": "Porta única para o grafo de código: status | index | impact [--base] | callers <Classe.metodo> | find <termo>. Orçamento fixo (LIMITS: profundidade 2, 3 linhas por símbolo, ~300 tokens; até 3 chamadas por review/gate; sem semantic_query). Chamada por pr-review §2, test-gate §5 e prepush camada 5. Binário ausente = código 3 e o fluxo segue; nunca bloqueia. Resolve `Classe.metodo` pelo sufixo do qualified_name. Ver tools/codebase-memory-mcp.md.",
-      "note": "Adotado na v1.21.0. O MCP fica opcional e só em escopo local do projeto (claude mcp add -s local); nunca global — cada MCP global paga presença em toda sessão. callers_total 0 não prova código morto em NestJS (injeção de dependência).",
+      "note": "Adotado na v1.21.0. O MCP fica opcional e só em escopo local do projeto (claude mcp add -s local); nunca global — cada MCP global paga presença em toda sessão. callers_total 0 não prova código morto em NestJS (injeção de dependência): a porta cai para git grep e imprime textual: N.",
       "verify": {
         "type": "file",
         "path": "tools/cbm.js"

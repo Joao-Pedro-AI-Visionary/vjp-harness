@@ -1,7 +1,22 @@
 // cbm.js: porta do Mapa de Código — as partes puras (sem binário, sem git).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizePath, pickProject, pickSuggestion, parseArgs, extractResult, resolveBase, LIMITS } from '../cbm.js';
+import { normalizePath, pickProject, pickSuggestion, parseArgs, extractResult, resolveBase, grepPattern, parseGrep, LIMITS } from '../cbm.js';
+
+test('grepPattern: usa só o método, escapa e aceita espaço antes do parêntese', () => {
+  assert.equal(grepPattern('FormSessionsService.remove'), '\\.remove[[:space:]]*\\(');
+  assert.equal(grepPattern('remove'), '\\.remove[[:space:]]*\\(');
+  assert.equal(grepPattern('a.b.c-1'), '\\.c1[[:space:]]*\\(');
+  assert.equal(grepPattern(''), '');
+});
+
+test('parseGrep: `git grep -n` vira linhas com arquivo, linha e trecho, respeitando o limite', () => {
+  const out = 'src/a.controller.ts:41:    return this.svc.remove(id, user);\nsrc/a.spec.ts:12:  await svc.remove("x");\nlixo sem formato\n';
+  const r = parseGrep(out, 1);
+  assert.equal(r.total, 2);
+  assert.deepEqual(r.rows, [{ file: 'src/a.controller.ts', line: 41, snippet: 'return this.svc.remove(id, user);' }]);
+  assert.deepEqual(parseGrep('', 5), { total: 0, rows: [] });
+});
 
 test('pickSuggestion: `Classe.metodo` resolve pelo sufixo do qualified_name', () => {
   const sugg = [

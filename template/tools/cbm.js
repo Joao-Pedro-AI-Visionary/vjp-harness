@@ -45,6 +45,24 @@ export function pickSuggestion(suggestions, fn) {
   return (suggestions || []).filter((s) => String(s.qualified_name || '').endsWith(suffix));
 }
 
+// Fallback textual para o buraco da injeção de dependência (NestJS): `this.svc.remove(` não resolve
+// no grafo, mas aparece no texto. Regex ERE para `git grep -E`: `.remove(` com espaço opcional.
+export function grepPattern(fn) {
+  const method = String(fn || '').split('.').pop().replace(/[^A-Za-z0-9_]/g, '');
+  return method ? `\\.${method}[[:space:]]*\\(` : '';
+}
+
+// Saída do `git grep -n` -> linhas `path:line: código` -> [{file,line,snippet}], até `limit`.
+export function parseGrep(out, limit = 10) {
+  const rows = [];
+  for (const l of String(out || '').split('\n')) {
+    const m = l.match(/^(.+?):(\d+):(.*)$/);
+    if (!m) continue;
+    rows.push({ file: m[1], line: Number(m[2]), snippet: m[3].trim().slice(0, 90) });
+  }
+  return { total: rows.length, rows: rows.slice(0, limit) };
+}
+
 // `cmd pos1 pos2 --k v --flag` -> { cmd, pos: [...], opts: { k: 'v', flag: true } }
 export function parseArgs(argv) {
   const [cmd, ...rest] = argv;
@@ -192,7 +210,21 @@ export function main(argv = process.argv.slice(2), cwd = process.cwd()) {
       }
       if (res.error) fail(res.error, 2);
     }
-    return emit(res, asJson, `cbm callers · ${fn}`);
+    emit(res, asJson, `cbm callers · ${fn}`);
+    // Grafo diz zero: confere no texto antes de alguém concluir "código morto".
+    const zero = res.data?.callers_total === 0 || /^callers_total:\s*0\b/m.test(res.text || '');
+    if (zero && opts.grep !== false && !asJson) {
+      const pat = grepPattern(fn);
+      const g = pat ? spawnSync('git', ['grep', '-n', '-E', pat, '--', '*.ts', '*.tsx', '*.js', '*.mjs', '*.cs', ':!*.d.ts'], { cwd, encoding: 'utf8' }) : null;
+      const found = parseGrep(g?.stdout, Number(opts.limit || LIMITS.callersLimit));
+      if (found.total === 0) process.stdout.write('textual: 0 ocorrências de `' + pat + '` no repo — aí sim é candidato a código morto\n');
+      else {
+        process.stdout.write(`textual: ${found.total} ocorrência(s) no repo (o grafo não segue injeção de dependência; confirme no arquivo):\n`);
+        for (const r of found.rows) process.stdout.write(`  ${r.file}:${r.line}  ${r.snippet}\n`);
+        if (found.total > found.rows.length) process.stdout.write(`  … +${found.total - found.rows.length} (aumente --limit)\n`);
+      }
+    }
+    return;
   }
 
   if (cmd === 'find') {

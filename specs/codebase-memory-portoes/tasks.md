@@ -12,4 +12,5 @@
 - [x] T10 — `machine/export/HARNESS.md`: bullet do orçamento do grafo nos portões
 - [x] T11 — Prova viva: `(cd template/tools && node --test tests/cbm.test.mjs)` verde; `cbm.js impact` real no Partner-Web-Backend (≈1 KB)
 - [x] T12 — ADR local em `.gbrain/decisions.md` do Partner-Web-Backend (`.gbrain` não vai pro remoto)
+- [x] T14 — `callers`: fallback textual (`git grep`) quando o grafo dá zero; testes de `grepPattern`/`parseGrep`; doc + skill + AGENT_RULES
 - [x] T13 — Instalar: skills em `~/.claude/skills` (Windows + WSL); `cbm.js` + doc no `.harness/tools` do Partner-Web-Backend; MCP local registrado
