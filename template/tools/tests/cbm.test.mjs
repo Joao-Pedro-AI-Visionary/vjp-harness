@@ -16,17 +16,17 @@ test('pickSuggestion: `Classe.metodo` resolve pelo sufixo do qualified_name', ()
 });
 
 test('normalizePath: barra invertida, barra final e caixa não importam', () => {
-  assert.equal(normalizePath('C:\\Users\\JP\\Projects\\Api\\'), 'c:/users/jp/projects/api');
-  assert.equal(normalizePath('/home/jp/api'), '/home/jp/api');
+  assert.equal(normalizePath(String.raw`C:\Users\fulano\Projects\Api` + '\\'), 'c:/users/fulano/projects/api');
+  assert.equal(normalizePath('/home/fulano/api'), '/home/fulano/api');
 });
 
 test('pickProject: acha pelo root_path, não pelo nome derivado', () => {
   const projects = [
-    { name: 'C-Users-JP-Projects-Api', root_path: 'C:/Users/JP/Projects/Api' },
-    { name: 'home-jp-outro', root_path: '/home/jp/outro' },
+    { name: 'C-Users-fulano-Projects-Api', root_path: 'C:/Users/fulano/Projects/Api' },
+    { name: 'home-fulano-outro', root_path: '/home/fulano/outro' },
   ];
-  assert.equal(pickProject(projects, 'C:\\Users\\JP\\Projects\\Api').name, 'C-Users-JP-Projects-Api');
-  assert.equal(pickProject(projects, '/home/jp/nada'), null);
+  assert.equal(pickProject(projects, String.raw`C:\Users\fulano\Projects\Api`).name, 'C-Users-fulano-Projects-Api');
+  assert.equal(pickProject(projects, '/home/fulano/nada'), null);
   assert.equal(pickProject(undefined, '/x'), null);
 });
 
