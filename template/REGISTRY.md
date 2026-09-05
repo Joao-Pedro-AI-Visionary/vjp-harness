@@ -3,6 +3,7 @@
 > Matriz determinística de instalação. Espelho legível de [`registry.json`](./registry.json) — a **fonte da verdade** machine-readable consumida pelo verificador (`tools/verify.js`).
 >
 > **Regra de ouro:** toda versão é **pinada**. Nada de `@latest`. O `--doctor` falha em drift.
+> **v1.21.1:** Orçamento mecânico de testes (`tools/test-budget.js` + `dial.testBudget`) — anti-loop Codex (`VJP_CODEX=1` / `VJP_TEST_BUDGET=1`). Contador em `.bsd/test-budget.json`; stop-continue não zera. Default Codex 1 run + 1 edit; Dial 3 no máximo 2/2.
 > **v1.10.2:** Constitution 9 artigos + OWASP Security em `AGENT_RULES.md §0/§0.1`; skill `vjp-orchestration` (Context Bundle, Adversarial Review, Kanban); Hono+Drizzle+Zod homologado como **stack alternativa** (NÃO substitui NestJS+Prisma). ADR completo em `.gbrain/decisions.md`.
 > **v1.11.0:** Portões — Definição de Pronto (`gates.js`) e Aferidor de Confiança — Camada de Dados (`aferidor-log.js`) registrados como componentes `core` obrigatórios. Ver `tools/gates.md` e `specs/metodo-duravel-portoes-dial/spec.md`.
 > **v1.12.0:** Dial de Rigor (Fase 2)

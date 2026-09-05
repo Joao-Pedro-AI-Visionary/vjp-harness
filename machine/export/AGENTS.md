@@ -57,13 +57,15 @@ Sempre que uma tarefa puder ser paralelizada, **prefira paralelismo a execução
 
 ## Portões de qualidade — `test-gate` e `pr-review` (rigor proporcional)
 Duas skills globais em `~/.claude/skills/`, fonte em `~/.local/share/vjp-harness/machine/export/skills/`:
-- **`test-gate`** — gera/roda os testes da mudança (teto de 2 tentativas), respeita o runner do repo e **deixa a prova viva assinada** em `.bsd/prova-viva.json`.
+- **`test-gate`** — gera/roda os testes da mudança (teto de 2 tentativas; Codex/`VJP_TEST_BUDGET=1`: orçamento mecânico em `.bsd/test-budget.json`, default 1/1), respeita o runner do repo e **deixa a prova viva assinada** em `.bsd/prova-viva.json`.
 - **`pr-review`** — revisor cético sobre `git diff` (nunca worktree), lê `.gbrain/lessons.md` antes do diff, teto de 10 achados.
 
 **Quanto rigor é decisão do Dial, não regra fixa** — em projeto com `.harness/`:
 `node .harness/tools/dial.js --class <config|frontend|backend|db|migration|prod> --json` → campo `stages`.
 Classe `config` não roda nenhum · `backend`/`frontend` rodam `test-gate` · `db`/`migration`/`prod` rodam os dois.
 Em projeto sem `.harness/`, use o bom senso: mudança de risco real roda os dois.
+
+**Modo Codex** — env: `VJP_CODEX=1` (liga orçamento + perfil 1 run/1 edit), `VJP_TEST_BUDGET=1` (liga o mesmo sem Codex), `VJP_TASK_ID` (não resetar no stop-continue). CLI: `node .harness/tools/test-budget.js --status|--consume-run|--consume-edit`. ESGOTADO = entregar se prova viva verde, senão blockers — sem churn de spec.
 
 O `gates.js` confere a prova viva contra o `HEAD`: **verde de outro commit conta como vermelho**.
 Ele avisa, não barra — quem barra é o `pre-push` (teste vermelho trava o push).

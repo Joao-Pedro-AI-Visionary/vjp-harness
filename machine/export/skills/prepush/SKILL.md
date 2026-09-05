@@ -36,7 +36,18 @@ Saída: relatório em stderr, `PREPUSH_RESULT=ok|bloqueado` em stdout, JSON opci
 
 ## Camada 6 · testes da mudança → skill `test-gate`
 
-Se `~/.claude/skills/test-gate` existir (harness ≥ 1.19), **invoque a Skill `test-gate`**: ela detecta o runner do repo, escreve só os specs dos símbolos mudados, roda o comando mais estreito, teto de 2 tentativas, e deixa `.bsd/prova-viva.json` com o carimbo do `HEAD`. Se o projeto tem `.harness/`, o Dial decide se roda: `node .harness/tools/dial.js --class <config|frontend|backend|db|migration|prod> --json` → `stages["test-gate"]`. Classe `config` não roda; diga isso em uma linha.
+Consulte o orçamento **antes** de reabrir a fábrica de specs:
+
+```bash
+node .harness/tools/test-budget.js --status --json   # se existir
+```
+
+Se `VJP_CODEX=1` / orçamento ligado **e** (`status` é `ESGOTADO` **ou** `runs >= 1` já consumido),
+**não** re-invoque `test-gate` para gerar/ajustar specs. Só valide o que já existe:
+`node .harness/tools/gates.js --feature <slug> --json` e o `.bsd/prova-viva.json` contra o HEAD.
+Prova viva verde → siga. Vermelha ou ausente → reporte o blocker e pare — sem write-test→fix-test.
+
+Se `~/.claude/skills/test-gate` existir (harness ≥ 1.19) **e** o orçamento ainda cabe, **invoque a Skill `test-gate`**: ela detecta o runner do repo, escreve só os specs dos símbolos mudados, roda o comando mais estreito, teto de 2 tentativas (Codex: 1, ou `byLevel` do Dial), e deixa `.bsd/prova-viva.json` com o carimbo do `HEAD`. Se o projeto tem `.harness/`, o Dial decide se roda: `node .harness/tools/dial.js --class <config|frontend|backend|db|migration|prod> --json` → `stages["test-gate"]`. Classe `config` não roda; diga isso em uma linha.
 
 Sem a skill: para cada arquivo da camada 5 e cada comportamento novo do diff, escreva testes que **executam a interface pública** e afirmam comportamento observável (entrada → saída, estado, efeito, modo de falha). Proibido teste que só faz grep/snapshot do fonte. Rode os novos, depois a camada 4 de novo.
 
@@ -53,6 +64,7 @@ Quem implementou não aprova o próprio código (§8.3). Dois revisores de natur
 3. **CodeRabbit CLI** se instalado (`cr review --base <base> --agent`, grátis 3/h) ou **Greptile CLI** (`greptile review --branch <base> --agent`): segunda opinião de outro fornecedor.
 
 Loop de correção: **blocker** e qualquer coisa de segurança → corrija → camada 4 de novo → rerevise. **Máximo 2 rodadas** (§2); se a terceira ainda tiver blocker, pare e leve ao usuário. Should-fix vai para a resposta; nits idem, não bloqueiam.
+**Não** volte à fábrica do `test-gate` (gerar spec novo) se o orçamento estiver esgotado ou o Codex já tiver consumido um run — a camada 7 só revisa e valida gates/prova-viva.
 
 PR grande ou área sensível: ofereça `/code-review ultra` (nuvem, US$ 5–20) — só com o sim do usuário.
 

@@ -1,0 +1,16 @@
+{
+  "comment": "Stub Codex: PreToolUse recusa runner de teste e apply_patch em spec quando o orçamento mecânico esgotou. Ligar com VJP_CODEX=1 ou VJP_TEST_BUDGET=1. Stop-continue NÃO chama --reset.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|apply_patch|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "machine/hooks/codex-test-budget-pretool.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -68,7 +68,42 @@ A §4.4 exige fluxo real ponta-a-ponta. Isso se lê assim:
 Regras: bata em localhost ou na `DATABASE_URL` do `.env.test`. Um spec por fluxo,
 locators resilientes, nada de `waitForTimeout`. Nenhum runner hospedado/SaaS.
 
-## 5. O loop (teto de 2 — §2 do AGENT_RULES)
+## 4.1 Orçamento mecânico (Codex / `VJP_TEST_BUDGET`)
+
+Quando `VJP_CODEX=1` **ou** `VJP_TEST_BUDGET=1` (ou `dial.testBudget.enabledByDefault`),
+o teto **não é texto** — é o contador em `.bsd/test-budget.json`:
+
+```bash
+node .harness/tools/test-budget.js --status --json
+node .harness/tools/test-budget.js --consume-run --json    # uma suíte
+node .harness/tools/test-budget.js --consume-edit --json   # um arquivo de spec
+```
+
+| Dial | max_runs | max_edits |
+|---|---|---|
+| 0 | 0 | 0 |
+| 1 / Codex default | 1 | 1 |
+| 2 | 2 | 1 |
+| 3 | 2 | 2 |
+
+Nunca uncapped. Dial 3 sobe no máximo a 2. `max_loops` = `max_runs` do orçamento
+(Codex default = **1**). Stop-continue **não** zera o contador (`--reset` só à mão).
+
+**Prefira corrigir código de produção**, não reescrever o spec (`prefer_fix_production`).
+Proibido o churn write-test → fail → fix-test.
+
+Se o CLI sair `3` / `status: ESGOTADO`: **pare de inventar testes**. Se a prova viva
+já está `pass` no HEAD, entregue. Senão reporte blockers (erro + hipótese) e feche.
+**Não desligue a prova viva** e não suba `pipeline.max_retries` para fingir correção.
+
+Inclua o orçamento no recibo e na saída:
+
+```json
+{ "feature":"…", "result":"pass", "loops":1,
+  "test_budget": { "runs":1, "edits":0, "max_runs":1, "max_edits":1, "status":"PARCIAL" } }
+```
+
+## 5. O loop (teto de 2 — §2 do AGENT_RULES; Codex = orçamento)
 
 1. Identifique os símbolos mudados. Com harness ≥ 1.21, **uma** chamada resolve e diz quais
    specs já exercitam cada símbolo (linhas `spec Module`): símbolo mudado sem spec no raio
@@ -84,8 +119,8 @@ locators resilientes, nada de `waitForTimeout`. Nenhum runner hospedado/SaaS.
 4. Se falhar: leia o erro, forme **uma** hipótese de causa-raiz e corrija **ou** o código
    **ou** o teste — não os dois no mesmo tiro, salvo se o teste estiver claramente errado.
 5. Rode o mesmo comando de novo.
-6. **Pare após 2 tentativas falhas.** Reporte o último erro + a hipótese e registre em
-   `.bsd/STATE.md`. Não fique mutando.
+6. **Pare após 2 tentativas falhas** (ou 1 com Codex/orçamento). Reporte o último erro + a hipótese e registre em
+   `.bsd/STATE.md`. Não fique mutando. Se o orçamento estiver ESGOTADO, pare — não abra outro spec.
 
 Não rode a suíte inteira na primeira passada, salvo repo pequeno ou pedido explícito.
 
@@ -107,7 +142,8 @@ const {execSync}=require("child_process");
 const commit=execSync("git rev-parse HEAD").toString().trim();
 require("fs").writeFileSync(".bsd/prova-viva.json", JSON.stringify({
   feature:"<slug>", runner:"jest", command:"<comando exato>", result:"pass",
-  commit, at:new Date().toISOString(), specs:["<path>"], loops:1
+  commit, at:new Date().toISOString(), specs:["<path>"], loops:1,
+  test_budget: { runs:1, edits:0, max_runs:1, max_edits:1, status:"ok" }
 },null,2));'
 ```
 
@@ -132,7 +168,8 @@ mecânico do harness.
 **Runner:** jest | vitest | playwright | mixed
 **Comando:** [comando exato]
 **Resultado:** pass | fail
-**Tentativas:** N/2
+**Tentativas:** N/2 (ou N/max_runs do orçamento)
+**Orçamento:** runs=A/N edits=B/M status=ok|PARCIAL|ESGOTADO|off
 **Prova viva:** .bsd/prova-viva.json @ <commit curto>
 
 ## Specs criados/alterados
