@@ -57,7 +57,7 @@ Sempre que uma tarefa puder ser paralelizada, **prefira paralelismo a execução
 
 ## Portões de qualidade — `test-gate` e `pr-review` (rigor proporcional)
 Duas skills globais em `~/.claude/skills/`, fonte em `~/.local/share/vjp-harness/machine/export/skills/`:
-- **`test-gate`** — gera/roda os testes da mudança (teto de 2 tentativas), respeita o runner do repo e **deixa a prova viva assinada** em `.bsd/prova-viva.json`.
+- **`test-gate`** — gera/roda os testes da mudança (teto de 2 tentativas; Codex/`VJP_TEST_BUDGET=1`: orçamento mecânico default 1/1), respeita o runner do repo e **deixa a prova viva assinada** em `.bsd/prova-viva.json`.
 - **`pr-review`** — revisor cético sobre `git diff` (nunca worktree), lê `.gbrain/lessons.md` antes do diff, teto de 10 achados.
 - **`prepush`** (v1.20) — o portão de **push**: fetch+rebase obrigatório na base, gitleaks/segredos/caminho pessoal, estático, suíte completa; depois encadeia `test-gate` → `pr-review` + `/code-review` → push/PR. O hook global `~/.githooks/pre-push` (instalado por `reinstall.sh`) bloqueia push com branch atrás, segredo ou teste quebrado mesmo fora do Claude. **Nada sobe sem passar por ele.**
 
@@ -66,6 +66,8 @@ Duas skills globais em `~/.claude/skills/`, fonte em `~/.local/share/vjp-harness
 Classe `config` não roda nenhum · `backend`/`frontend` rodam `test-gate` · `db`/`migration`/`prod` rodam os dois.
 - **Grafo de código** (v1.21) — `node .harness/tools/cbm.js impact` antes de abrir vizinho às cegas; `callers` só em símbolo de risco alto. **Até 3 chamadas por revisão/portão, sem `semantic_query`**; binário ausente = segue sem grafo. Zero chamadores no grafo dispara o fallback textual da porta (`textual: N` com `file:line`); só `textual: 0` é candidato a código morto. O MCP fica opcional e em escopo local do projeto, nunca global: cada MCP global paga presença em toda sessão.
 Em projeto sem `.harness/`, use o bom senso: mudança de risco real roda os dois.
+
+**Codex:** `VJP_CODEX=1`, `VJP_TEST_BUDGET=1`, `VJP_TASK_ID` — ver `template/tools/dial.md` (orçamento). O Stop de typecheck no máximo continua 1 vez e **não** zera `.bsd/test-budget.json`.
 
 O `gates.js` confere a prova viva contra o `HEAD`: **verde de outro commit conta como vermelho**.
 Ele avisa, não barra — quem barra é o `pre-push` (teste vermelho trava o push).

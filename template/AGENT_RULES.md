@@ -1,6 +1,6 @@
 # V-JP Harness Agent Rules & Guidelines
 
-> Autoria: **João Pedro (V-JP)** · github.com/Joao-Pedro-AI-Visionary · v1.21.0
+> Autoria: **João Pedro (V-JP)** · github.com/Joao-Pedro-AI-Visionary · v1.21.1
 
 Este documento define as regras de sistema e diretrizes operacionais para todos os agentes de IA que operam sob a orquestração do **V-JP Harness**. Qualquer agente deve ler, respeitar e aplicar estritamente as regras abaixo.
 
@@ -249,7 +249,7 @@ Antes de iniciar qualquer implementação:
 5. **Spawne os agentes especializados** (`.claude/agents/`).
 6. **Execute em paralelo.**
 7. **Faça a integração (fan-in).**
-8. **Execute os Quality Gates** (testes verdes, contrato, E2E, persistência real, OWASP §0.1) na ordem `test-gate` → `pr-review` → merge. **O Dial diz quais rodam** (`dial.js --class <classe> --json`): classe `config` não roda nenhum; `backend`/`frontend` rodam `test-gate`; `db`/`migration`/`prod` rodam os dois. O `test-gate` deixa a prova viva assinada em `.bsd/prova-viva.json`, conferida por `gates.js` — **verde de outro commit conta como vermelho**.
+8. **Execute os Quality Gates** (testes verdes, contrato, E2E, persistência real, OWASP §0.1) na ordem `test-gate` → `pr-review` → merge. **O Dial diz quais rodam** (`dial.js --class <classe> --json`): classe `config` não roda nenhum; `backend`/`frontend` rodam `test-gate`; `db`/`migration`/`prod` rodam os dois. O `test-gate` deixa a prova viva assinada em `.bsd/prova-viva.json`, conferida por `gates.js` — **verde de outro commit conta como vermelho**. Com `VJP_CODEX=1` / `VJP_TEST_BUDGET=1`, o teto de suíte/edit é o contador `.bsd/test-budget.json` (não texto); stop-continue não zera.
 9. **Rode o Grafo de Verificação Adversarial (§8)** e responda no formato obrigatório (§8.5).
 10. **Somente então finalize a entrega.**
 

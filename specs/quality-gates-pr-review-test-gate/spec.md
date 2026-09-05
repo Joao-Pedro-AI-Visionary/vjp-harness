@@ -117,6 +117,14 @@ adiada de propósito, ver §6.
 3. **Skills globais podem divergir do `registry.json`** se editadas à mão em
    `~/.claude/skills/`. O `--doctor` detecta ausência, não drift de conteúdo.
 
+## 6.1 v1.21.1 — orçamento mecânico (anti-loop Codex)
+
+O teto de loops do §4.4 ("2") no Claude permanece. No Codex (`VJP_CODEX=1` /
+`VJP_TEST_BUDGET=1`) o teto é o contador `.bsd/test-budget.json` (`test-budget.js`):
+1 run + 1 edit por default; Dial 3 no máximo 2/2. Stop-continue não reseta.
+`test-gate` prefere corrigir produção; `prepush` camadas 6/7 não reabrem a fábrica
+de specs se o orçamento esgotou. A prova viva **não** é desligada.
+
 ## 7. Prova viva desta própria spec
 
 `(cd template/tools && npm run check)` — os testes novos de `checkProvaViva` verdes +
