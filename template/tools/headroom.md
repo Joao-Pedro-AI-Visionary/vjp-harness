@@ -35,4 +35,4 @@ headroom telemetry      # Upload beacon: OFF
 ```
 
 ## Determinismo
-Pin por versão (`==0.39.1`) + verificação por comando. Origem externa (`headroomlabs-ai`) → atualize o pin em `registry.json` ao trocar de versão. Não é vendorizado: é pacote PyPI, espelhável por `tools/mirror.js`.
+Pin por versão (`==0.39.1`) + verificação por comando. Origem externa (`headroomlabs-ai`) → atualize o pin em `registry.json` ao trocar de versão. Não é vendorizado: é pacote PyPI. O `tools/mirror.js` espelha só o wheel do `headroom-ai` (`--no-deps`), sem as dependências dos extras `proxy`/`code`; se o PyPI despublicar algo, a reinstalação a partir do espelho precisa dessas dependências por fora.

@@ -48,8 +48,10 @@ echo "claude: $(claude --version)"
 step "4/8 Headroom v$HEADROOM_VERSION"
 mkdir -p "$HOME/.local/bin"
 export PATH="$HOME/.local/bin:$PATH"
+export HEADROOM_BEACON=off
 have uv || curl -LsSf https://astral.sh/uv/install.sh | sh
-if ! headroom --version 2>/dev/null | grep -q "$HEADROOM_VERSION"; then
+HEADROOM_ATUAL="$(headroom --version 2>/dev/null || true)"
+if [[ "$HEADROOM_ATUAL" != *"$HEADROOM_VERSION"* ]]; then
   uv tool install --force --python 3.13 "headroom-ai[proxy,code]==${HEADROOM_VERSION}" || {
     echo "⚠️  instalação do headroom falhou — rode manualmente: uv tool install --python 3.13 \"headroom-ai[proxy,code]==${HEADROOM_VERSION}\""; }
 fi
