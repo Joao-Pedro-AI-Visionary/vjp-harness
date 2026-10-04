@@ -2,7 +2,6 @@
 template/tools/node_modules/
 **/node_modules/
 # guarda: clones vendorizados nunca entram no repo do harness
-template/tools/rtk/
 template/tools/gbrain/
 template/tools/superpowers/
 *.log

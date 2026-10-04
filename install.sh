@@ -11,7 +11,7 @@
 #   --target <dir>   Projeto-alvo (default: diretório atual)
 #   --name <nome>    Nome do projeto no harness.yaml (default: basename do alvo)
 #   --no-install     Não roda `npm install` (copia só os arquivos)
-#   --no-vendor      Não clona os componentes git pinados (RTK/GBrain/Superpowers)
+#   --no-vendor      Não clona os componentes git pinados (GBrain/Superpowers)
 #   --force          Sobrescreve um .harness/ já existente
 #   --yes            Modo não-interativo (CI): assume "sim" em tudo
 #   --help           Mostra esta ajuda
@@ -181,7 +181,7 @@ add_ignore() { grep -qxF "$1" "$GITIGNORE" 2>/dev/null || echo "$1" >> "$GITIGNO
 if [ -e "$GITIGNORE" ] || [ -d "$TARGET/.git" ]; then
   info "Atualizando .gitignore ..."
   add_ignore ".harness/tools/node_modules/"
-  add_ignore ".harness/tools/rtk/"
+  add_ignore ".claude/settings.local.json"
   add_ignore ".harness/tools/gbrain/"
   add_ignore ".harness/tools/superpowers/"
   add_ignore ".harness/context/repo-packed.md"
@@ -222,7 +222,7 @@ fi
 # ---- vendorização determinística dos componentes git ----
 if [ "$DO_VENDOR" -eq 1 ]; then
   if command -v git >/dev/null 2>&1; then
-    info "Vendorizando componentes git pinados (RTK/GBrain/Superpowers) ..."
+    info "Vendorizando componentes git pinados (GBrain/Superpowers) ..."
     ( cd "$TARGET" && node .harness/tools/vendor.js ) || warn "Vendorização com pendências (rede?). Rode depois: node .harness/tools/bsd.js --vendor"
   else
     warn "git ausente — vendorização pulada."

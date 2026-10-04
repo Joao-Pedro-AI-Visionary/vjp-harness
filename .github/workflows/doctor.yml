@@ -5,7 +5,7 @@ name: doctor
 # e o verificador de determinismo (verify.js, modo NÃO-strict).
 #
 # Por que NÃO --strict: o doctor --strict exige TODOS os opcionais presentes
-# (rtk global, uvx/Postgres MCP Pro, gbrain/superpowers vendorizados, skills em ~/.claude),
+# (headroom global, uvx/Postgres MCP Pro, gbrain/superpowers vendorizados, skills em ~/.claude),
 # que não existem num runner limpo. O gate de CT é: obrigatórios OK + auto-testes verdes.
 
 # MANUAL por padrão (workflow_dispatch): em repo PRIVADO sem minutos de Actions,

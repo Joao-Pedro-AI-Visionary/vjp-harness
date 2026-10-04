@@ -3,10 +3,10 @@
 **Tier:** core · **Versão pinada:** `1.16.0` · **Origem:** npm `repomix` (repo `yamadashy/repomix`, https://github.com/yamadashy/repomix)
 
 ## Responsabilidade
-Empacota o repositório inteiro num único documento consolidado, criando a visão global do código consumida pelo RTK.
+Empacota o repositório inteiro num único documento consolidado, criando a visão global do código consumida pelo Headroom.
 
 ## Papel no pipeline
-`Repositório → Repomix → RTK`.
+`Repositório → Repomix → Headroom`.
 
 ## Instalação
 Pinado em `.harness/tools/package.json`, instalado via `npm ci` (lockfile).

@@ -6,7 +6,7 @@
 Planejamento e estruturação spec-driven. Transforma intenção em artefatos: `spec.md`, `design.md`, `tasks.md`, `roadmap.md`.
 
 ## Papel no pipeline
-`RTK → GSD Redux → BSD`. O GSD produz o `tasks.md`; o BSD executa cada task.
+`Headroom → GSD Redux → BSD`. O GSD produz o `tasks.md`; o BSD executa cada task.
 
 ## Instalação
 Pinado em `.harness/tools/package.json`, via `npm ci`.

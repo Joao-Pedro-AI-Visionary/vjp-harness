@@ -13,7 +13,7 @@
 
 ```mermaid
 flowchart TD
-    CC["Claude Code 2.1.170 (npm global)"] --> RTK["RTK 0.39.0 — hook PreToolUse<br/>(comprime saída de Bash, 60-90% tokens)"]
+    CC["Claude Code 2.1.170 (npm global)"] --> HR["Headroom 0.39.1 — proxy local por sessão (cch)<br/>(comprime tool outputs, logs, código e histórico)"]
     CC --> SKILLS["50 skills em ~/.claude/skills<br/>(gstack family + 2 próprias)"]
     CC --> MCP["MCPs: chrome-devtools, gbrain"]
     CC --> SL["statusline-context.js (uso de contexto)"]
@@ -33,18 +33,18 @@ flowchart TD
 | Bun | 1.3.14 | curl installer |
 | uv (Python) | presente | curl installer |
 | Claude Code | 2.1.170 | `npm i -g @anthropic-ai/claude-code` |
-| RTK | 0.42.3 | binário musl em `~/.local/bin/rtk` (release `rtk-ai/rtk`, pinado também em `template/registry.json`; 0.39.0 preservado em `rtk-0.39.0.bak`) |
+| Headroom | 0.39.1 | `uv tool install --python 3.13 "headroom-ai[proxy,code]==0.39.1"` → `~/.local/bin/headroom`; atalho `cch` e `HEADROOM_BEACON=off` no `~/.bashrc`; porta 8790. Substitui o RTK (aposentado na v1.22.0) |
 | gbrain | 0.18.2 | `~/.bun/bin/gbrain` (⚠️ registry do harness pina 0.35.1.0 — ver §5) |
 
 ### 2.2 `~/.claude/` — arquivos replicados (em `export/`)
 
 | Arquivo | Papel |
 |---|---|
-| `CLAUDE.md` | `@RTK.md` + `@HARNESS.md` (importa a referência do RTK e as Regras Globais do harness) |
-| `RTK.md` | Referência de uso do RTK (meta-comandos, `rtk gain`, hook transparente) |
+| `CLAUDE.md` | `@HEADROOM.md` + `@HARNESS.md` (importa a referência do Headroom e as Regras Globais do harness) |
+| `HEADROOM.md` | Referência de uso do Headroom (`cch`, `headroom savings`, `doctor`, telemetria desligada) |
 | `HARNESS.md` | **Regras Globais do harness** — fonte canônica das políticas de toda sessão/projeto (idioma, metodologias, papel padrão, engenharia, organização, Harness como 1ª fonte de verdade, orquestração fan-out/fan-in, UI/UX Pro Max obrigatória) |
 | `AGENTS.md` | Espelho fiel do `HARNESS.md` para CLIs que leem `~/AGENTS.md` (codex, opencode, pi genérico). O bootstrap instala em `$HOME/AGENTS.md` |
-| `settings.template.json` | settings completo: modelo `claude-fable-5[1m]`, hook rtk, statusline, plugin vercel, allowedTools, MCPs |
+| `settings.template.json` | settings completo: modelo `claude-fable-5[1m]`, statusline, plugin vercel, allowedTools, MCPs |
 | `statusline-context.js` | Statusline custom: tokens de contexto + percentual (lê transcript) |
 | `skills/` | 50 skills leves vendorizadas (a `gstack` NÃO — 1.5 GB com node_modules; reinstala via gstack, ver bootstrap) |
 
@@ -52,9 +52,9 @@ flowchart TD
 
 | Hook | Matcher | Comando | Efeito |
 |---|---|---|---|
-| PreToolUse | `Bash` | `/home/jp/.local/bin/rtk hook claude` | Reescreve comandos para `rtk <cmd>` (compressão de saída) |
+| PreToolUse | `Write\|Edit` | `bash ~/.local/share/vjp-harness/machine/hooks/harness-guard.sh` | Guard V-JP: confere escrita em `.harness/` |
 
-> 2026-06-12: havia uma **entrada duplicada** desse hook (com e sem path absoluto) — removida; ficou só a com path absoluto.
+> 2026-10-04 (v1.22.0): o hook `Bash` → `rtk hook claude` saiu. A compressão agora é do Headroom, no proxy (`cch`), sem hook.
 
 ### 2.4 Skills (50)
 
@@ -117,7 +117,7 @@ git clone git@github.com:Joao-Pedro-AI-Visionary/vjp-harness.git
 bash vjp-harness/machine/bootstrap.sh
 ```
 
-O script é idempotente e cobre: nvm+Node 24, Bun, Claude Code, RTK (release pinada),
+O script é idempotente e cobre: nvm+Node 24, Bun, Claude Code, Headroom (pin PyPI via uv),
 configs do `export/`, skills, gbrain, e instruções finais (login, gstack, MCP keys).
 Passo a passo manual documentado dentro do próprio script.
 
@@ -174,3 +174,4 @@ As duas skills novas:
 - **2026-08-29 (v1.19.0, correção de path)** — `~/vjp-harness` → `~/.local/share/vjp-harness` em `export/HARNESS.md`, `export/AGENTS.md` e neste arquivo: o diretório antigo **não existe** nesta máquina, então os comandos documentados de `install.sh`, `install-hooks.sh`, `cleanup-stale-mcps.sh` e do reinstall da `ui-ux-pro-max` falhavam. `AGENTS.md` reespelhado com a seção "Portões de qualidade" (tinha ficado defasado). Path Linux `/home/jp/...` na descrição do patch da ui-ux trocado por `$HOME/...` (o script já respeitava `$HOME`).
 - **2026-08-29 (v1.19.0)** — Portões de qualidade `test-gate` e `pr-review` adicionados como skills globais em `machine/export/skills/` (o passo 6 do bootstrap já as instala em `~/.claude/skills/`; registradas no `template/registry.json` com `verify.type: "skill"`, então o `--doctor` acusa ausência). Fia o portão **`prova-viva`** no `gates.js`: recibo em `.bsd/prova-viva.json` conferido contra o `HEAD` — verde de outro commit conta como vermelho. Rigor proporcional pelo Dial (`stageMinLevel: test-gate=1, pr-review=2`), sem lei nova. `machine/export/HARNESS.md` ganhou a seção "Portões de qualidade". Spec: `specs/quality-gates-pr-review-test-gate/spec.md`.
 - **2026-07-23** — Regras globais viram canônicas no repo: `machine/export/HARNESS.md` (fonte da verdade das Regras Globais, incl. 3 seções novas: Harness como 1ª fonte de verdade, Orquestração fan-out/fan-in + fluxo de 9 passos, UI/UX Pro Max obrigatória) e `machine/export/AGENTS.md` (espelho cross-CLI). `export/CLAUDE.md` passa a importar `@HARNESS.md`. Skill `ui-ux-pro-max` adicionada em `skills/ui-ux-pro-max/reinstall.sh` (portável via `$HOME`). `bootstrap.sh` atualizado: copia `HARNESS.md`, instala `~/AGENTS.md` e chama o reinstall da ui-ux-pro-max (passo 6).
+- **2026-10-04 (v1.22.0)** — Compressor de Contexto trocado: RTK → **Headroom 0.39.1**. Sai o hook `PreToolUse` `rtk hook claude` do `settings.template.json` e o `RTK.md`; entra `HEADROOM.md` e o passo 4 do bootstrap instala o Headroom via `uv tool`, grava `HEADROOM_BEACON=off` e o atalho `cch` (`headroom wrap claude --port 8790 --code-memory none`). Proxy por sessão: o `settings.json` global não ganha `ANTHROPIC_BASE_URL`. Spec: `specs/headroom-no-lugar-do-rtk/spec.md`.

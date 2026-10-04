@@ -11,7 +11,7 @@ Objetivo: extrair sempre o melhor do stack sem precisar reexplicar a cada vez.
 - **GStack**: operar como equipe de especialistas; pensar antes de construir; revisar por papéis quando aplicável (produto/CEO, engenharia, design/DX, QA, segurança, release).
 - **GSD-2**: decompor trabalho em `Milestone → Slice → Task`; cada task cabe numa janela de contexto; gates de planejamento, execução, verificação e validação; manter contexto enxuto.
 - **Superpowers (TDD)**: `RED → GREEN → REFACTOR` obrigatório para feature/bugfix/refactor; nunca escrever código de produção sem teste falhando antes, salvo autorização explícita.
-- **RTK**: reduzir ruído de logs/output; preferir comandos compactos quando `rtk` disponível; salvar output completo em arquivo quando precisar auditar.
+- **Headroom**: compressão de contexto pelo proxy local (`cch` = `headroom wrap claude`); salvar output completo em arquivo quando precisar auditar.
 - **GBrain**: usar memória persistente do projeto quando disponível.
 
 ## Papel padrão

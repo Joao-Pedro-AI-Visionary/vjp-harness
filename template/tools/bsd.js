@@ -560,7 +560,7 @@ async function main() {
     console.log(`  node .harness/tools/bsd.js --execute <feature> --dry-run : Pipeline sem LLM (testa a mecânica)`);
     console.log(`  node .harness/tools/bsd.js --check-llm          : Testa conectividade do backend LLM`);
     console.log(`  node .harness/tools/bsd.js --doctor             : Verifica determinismo (registry.json)`);
-    console.log(`  node .harness/tools/bsd.js --vendor             : Clona componentes git pinados (rtk/gbrain/superpowers)`);
+    console.log(`  node .harness/tools/bsd.js --vendor             : Clona componentes git pinados (gbrain/superpowers)`);
     process.exit(0);
   }
 

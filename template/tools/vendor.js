@@ -3,7 +3,7 @@
 /**
  * V-JP Harness: Vendorização determinística de componentes git.
  *
- * Lê registry.json e clona cada componente `vendor: true` (RTK, GBrain, Superpowers)
+ * Lê registry.json e clona cada componente `vendor: true` (GBrain, Superpowers)
  * no seu `dest` dentro de .harness/tools/<id>/, PINADO no ref do registro:
  *   - shallow clone na tag (git clone --depth 1 --branch <tag>)
  *   - se houver commit no registro, ASSERTA que o HEAD bate (determinismo)

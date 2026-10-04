@@ -30,8 +30,14 @@ Isso, de forma determinística:
 
 Instale só o que o projeto usar. Cada um é pinado — ver [`REGISTRY.md`](./REGISTRY.md).
 
-### RTK (Rust Token Killer) — `0.39.0`
-Binário externo (org `rtk-ai`). Verifique: `rtk --version`. Ver [`tools/rtk.md`](./tools/rtk.md).
+### Headroom (Compressor de Contexto) — `0.39.1`
+Pacote PyPI (org `headroomlabs-ai`), substitui o RTK desde a v1.22.0:
+```bash
+uv tool install --python 3.13 "headroom-ai[proxy,code]==0.39.1"
+export HEADROOM_BEACON=off
+headroom wrap claude --port 8790 --code-memory none
+```
+Verifique: `headroom --version`. Ver [`tools/headroom.md`](./tools/headroom.md).
 
 ### GStack — `1.55.1.0` @ `c43c850cae77`
 Plataforma operacional (skills + gbrain). Instale o plugin a partir de `garrytan/gstack` **no commit pinado**. Ver [`tools/gstack.md`](./tools/gstack.md).

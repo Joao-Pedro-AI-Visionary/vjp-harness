@@ -10,7 +10,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXPORT="$HERE/export"
 CLAUDE_DIR="$HOME/.claude"
-RTK_VERSION="0.42.3"
+HEADROOM_VERSION="0.39.1"
 NODE_VERSION="24"
 
 WITH_MEMORY=0
@@ -42,21 +42,33 @@ step "3/8 Claude Code"
 have claude || npm install -g @anthropic-ai/claude-code
 echo "claude: $(claude --version)"
 
-# ---------------------------------------------------------------- rtk
-step "4/8 RTK v$RTK_VERSION"
+# ---------------------------------------------------------------- headroom
+# Compressor de Contexto (substitui o RTK desde a v1.22.0). Proxy local por sessão:
+# `cch` = headroom wrap claude. Sem [ml]/[all]: o torch não faz falta (Kompress em ONNX).
+step "4/8 Headroom v$HEADROOM_VERSION"
 mkdir -p "$HOME/.local/bin"
-if ! "$HOME/.local/bin/rtk" --version 2>/dev/null | grep -q "$RTK_VERSION"; then
-  # Release musl estática (x86_64); para ARM use rtk-aarch64-unknown-linux-gnu.tar.gz.
-  curl -fsSL "https://github.com/rtk-ai/rtk/releases/download/v${RTK_VERSION}/rtk-x86_64-unknown-linux-musl.tar.gz" \
-    | tar xz -C "$HOME/.local/bin" rtk && chmod +x "$HOME/.local/bin/rtk" || {
-    echo "⚠️  download do rtk falhou — instale manualmente (release manual ou cargo install)"; }
+export PATH="$HOME/.local/bin:$PATH"
+have uv || curl -LsSf https://astral.sh/uv/install.sh | sh
+if ! headroom --version 2>/dev/null | grep -q "$HEADROOM_VERSION"; then
+  uv tool install --force --python 3.13 "headroom-ai[proxy,code]==${HEADROOM_VERSION}" || {
+    echo "⚠️  instalação do headroom falhou — rode manualmente: uv tool install --python 3.13 \"headroom-ai[proxy,code]==${HEADROOM_VERSION}\""; }
 fi
-"$HOME/.local/bin/rtk" --version || true
+headroom --version || true
+# Telemetria é opt-out e vem ligada; porta 8790 porque a 8787 colide com serviço do WSL.
+if ! grep -q "# vjp-harness: headroom" "$HOME/.bashrc" 2>/dev/null; then
+  cat >> "$HOME/.bashrc" <<'RC'
+
+# vjp-harness: headroom
+export HEADROOM_BEACON=off
+cch() { headroom wrap claude --port 8790 --code-memory none -- "$@"; }
+RC
+  echo "HEADROOM_BEACON=off e atalho cch adicionados ao ~/.bashrc"
+fi
 
 # ---------------------------------------------------------------- configs ~/.claude
 step "5/8 Configs em ~/.claude"
 mkdir -p "$CLAUDE_DIR"
-for f in CLAUDE.md RTK.md HARNESS.md statusline-context.js; do
+for f in CLAUDE.md HEADROOM.md HARNESS.md statusline-context.js; do
   cp -v "$EXPORT/$f" "$CLAUDE_DIR/$f"
 done
 # Regras globais cross-CLI (codex/opencode/pi genérico leem ~/AGENTS.md).
@@ -71,7 +83,9 @@ NODE_BIN="$(command -v node)"
 sed -e "s|/home/jp|$HOME|g" \
     -e "s|$HOME/.nvm/versions/node/v[0-9.]*/bin/node|$NODE_BIN|g" \
     "$EXPORT/settings.template.json" > "$CLAUDE_DIR/settings.json"
-echo "settings.json instalado (hook rtk, statusline, MCPs chrome-devtools+gbrain)"
+echo "settings.json instalado (statusline, guard V-JP, MCPs chrome-devtools+gbrain+context7)"
+# RTK aposentado na v1.22.0: remove a referência antiga se sobrou de um bootstrap anterior.
+rm -f "$CLAUDE_DIR/RTK.md"
 
 # ---------------------------------------------------------------- skills
 step "6/8 Skills (gstack-family + fullstack-validate + arch-review + test-gate + pr-review + prepush)"

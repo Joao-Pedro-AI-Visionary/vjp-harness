@@ -3,6 +3,7 @@
 > Matriz determinística de instalação. Espelho legível de [`registry.json`](./registry.json) — a **fonte da verdade** machine-readable consumida pelo verificador (`tools/verify.js`).
 >
 > **Regra de ouro:** toda versão é **pinada**. Nada de `@latest`. O `--doctor` falha em drift.
+> **v1.22.0:** Compressor de Contexto trocado: RTK (hook no Bash) → **Headroom** `0.39.1` (proxy local por sessão via `headroom wrap claude`, comprime toda a janela, telemetria `HEADROOM_BEACON=off`). Spec em `specs/headroom-no-lugar-do-rtk/`.
 > **v1.21.1:** Orçamento mecânico de testes (`tools/test-budget.js` + `dial.testBudget`) — anti-loop Codex (`VJP_CODEX=1` / `VJP_TEST_BUDGET=1`). Contador em `.bsd/test-budget.json`; stop-continue não zera. Default Codex 1 run + 1 edit; Dial 3 no máximo 2/2.
 > **v1.10.2:** Constitution 9 artigos + OWASP Security em `AGENT_RULES.md §0/§0.1`; skill `vjp-orchestration` (Context Bundle, Adversarial Review, Kanban); Hono+Drizzle+Zod homologado como **stack alternativa** (NÃO substitui NestJS+Prisma). ADR completo em `.gbrain/decisions.md`.
 > **v1.11.0:** Portões — Definição de Pronto (`gates.js`) e Aferidor de Confiança — Camada de Dados (`aferidor-log.js`) registrados como componentes `core` obrigatórios. Ver `tools/gates.md` e `specs/metodo-duravel-portoes-dial/spec.md`.
@@ -29,7 +30,7 @@ node .harness/tools/bsd.js --doctor --json   # saída para CI
 | # | Papel (o que faz) | Tipo | Procedência (repositório) | Versão pinada | Destino no ecossistema | Obrigatório |
 |--:|---|---|---|---|---|:--:|
 | 1 | **Maestro** | Core Script | BSD — baseado em [`garrytan/gstack`](https://github.com/garrytan/gstack) | `1.6.0` | `.harness/tools/bsd.js` | ✅ |
-| 2 | **Compressor de Contexto** | Engine / CLI | [`rtk-ai/rtk`](https://github.com/rtk-ai/rtk) (RTK) | `0.42.4` | `.harness/tools/rtk/` | ⬜ |
+| 2 | **Compressor de Contexto** | Proxy / CLI (PyPI) | [`headroomlabs-ai/headroom`](https://github.com/headroomlabs-ai/headroom) (Headroom) | `0.39.1` | runtime (`uv tool`; `headroom wrap claude`) | ⬜ |
 | 3 | **Memória Persistente** | Engine / Memória | [`garrytan/gbrain`](https://github.com/garrytan/gbrain) (GBrain) | `0.35.1.0` | `.harness/tools/gbrain/` (persiste em `.gbrain/`) | ⬜ |
 | 4 | **Empacotador de Repositório** | CLI (NPM) | [`yamadashy/repomix`](https://github.com/yamadashy/repomix) (Repomix) | `1.16.0` | `.harness/tools/` | ✅ |
 | 5 | **Planejador Spec-Driven** | CLI (NPM) | [`open-gsd/get-shit-done-redux`](https://github.com/open-gsd/get-shit-done-redux) (GSD) | `1.1.0` | `.harness/tools/` | ✅ |
@@ -70,8 +71,8 @@ node .harness/tools/bsd.js --doctor --json   # saída para CI
 | Tier | Mecanismo de pin | Garantia |
 |---|---|---|
 | npm (Repomix, GSD, MCPs) | `package-lock.json` + `npm ci` | **Total** — árvore idêntica byte-a-byte |
-| git (GBrain, Superpowers, RTK) | tag / commit SHA | **Total** se instalar pelo ref pinado |
-| binário (RTK) | versão + `rtk --version` | **Alta** — verificada, origem externa |
+| git (GBrain, Superpowers) | tag / commit SHA | **Total** se instalar pelo ref pinado |
+| pip (Headroom, Postgres MCP Pro) | `==versão` + `headroom --version` | **Alta** — verificada, origem externa |
 | skill/spec (Frontend Designer) | ref do `anthropics/skills` | spec vendorizada em `tools/` |
 
 | 25 | 🆕 **Porta do Mapa de Código** | Script / Porta | Nativo V-JP Harness (João Pedro) | `1.21.0` | `.harness/tools/cbm.js` — `impact`/`callers`/`find`, ~300 tokens, chamado por `pr-review`, `test-gate`, `prepush` | ⬜ |

@@ -18,7 +18,7 @@ Combina compressão de contexto, memória persistente, planejamento spec-driven,
 ```mermaid
 flowchart TD
     Repo["Repositório"] --> Empac["Empacotador de Repositório (Repomix)"]
-    Empac --> Compr["Compressor de Contexto (RTK)"]
+    Empac --> Compr["Compressor de Contexto (Headroom)"]
     Compr --> Plan["Planejador Spec-Driven (GSD)"]
     Mem["Memória Persistente (GBrain)"] --> Plan
     Plan --> Orq["Maestro (BSD)"]
@@ -46,7 +46,7 @@ A superfície do harness fala por **papel**; o nome técnico é só a origem (cr
 | **Maestro** — conduz o pipeline de 4 agentes | BSD (base `garrytan/gstack`) | 🟢 |
 | **Núcleo** — a camada que amarra tudo | conceito V-JP (antes "GStack") | 🟢 |
 | **Registro de Decisões** — grava ADRs no histórico | `tools/gbrain-decision.js` | 🟢 |
-| **Compressor de Contexto** — mais sinal por janela | RTK | 🔵 |
+| **Compressor de Contexto** — mais sinal por janela | Headroom (proxy local, desde a v1.22.0) | 🔵 |
 | **Empacotador de Repositório** — visão do todo | Repomix | 🔵 |
 | **Memória Persistente** — estado entre sessões | GBrain | 🔵 |
 | **Planejador Spec-Driven** — código nasce de spec | GSD Redux | 🔵 |
@@ -102,7 +102,6 @@ O `install.sh` clona os componentes git **pinados no commit** para dentro de `.h
 
 | Componente | Repo | Ref | Destino |
 |---|---|---|---|
-| RTK | `rtk-ai/rtk` | `v0.42.4` @ `8a7dd7e5570d` | `.harness/tools/rtk/` |
 | GBrain | `garrytan/gbrain` | `eval-run-v0.35.1.0-baseline` @ `3933eb6a7915` | `.harness/tools/gbrain/` |
 | Superpowers | `obra/superpowers` | `v5.1.0` @ `f2cbfbefebbf` | `.harness/tools/superpowers/` |
 
@@ -113,7 +112,7 @@ O `install.sh` clona os componentes git **pinados no commit** para dentro de `.h
 | Papel | Procedência (repositório) | Versão |
 |---|---|---|
 | Maestro | BSD — base `garrytan/gstack` | `1.6.0` |
-| Compressor de Contexto | `rtk-ai/rtk` (RTK) | `0.42.4` |
+| Compressor de Contexto | `headroomlabs-ai/headroom` (Headroom, PyPI) | `0.39.1` |
 | Memória Persistente | `garrytan/gbrain` (GBrain) | `0.35.1.0` |
 | Empacotador de Repositório | `yamadashy/repomix` (Repomix, npm) | `0.2.14` |
 | Planejador Spec-Driven | `open-gsd/get-shit-done-redux` (GSD, npm) | `1.1.0` |
