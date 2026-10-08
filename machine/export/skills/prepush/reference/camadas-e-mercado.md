@@ -2,7 +2,7 @@
 
 ## Por que esta skill existe
 
-Em 2026-09-02 e 2026-09-04 o mesmo padrão custou rodadas inteiras no CoverPay: clone atrás da `homol`, diagnóstico feito em cima de código velho, e um consent do Google gravado sem escopo porque nada validava. Branch protection do GitHub não existe em repo privado sem plano Pro, então o portão tem de ser **local e em camadas**: cada camada pega uma classe de defeito que a anterior não pega.
+Em 2026-09-02 e 2026-09-04 o mesmo padrão custou rodadas inteiras num projeto real: clone atrás da `homol`, diagnóstico feito em cima de código velho, e um consent do Google gravado sem escopo porque nada validava. Branch protection do GitHub não existe em repo privado sem plano Pro, então o portão tem de ser **local e em camadas**: cada camada pega uma classe de defeito que a anterior não pega.
 
 O pedido do JP: uma skill que faça "o que o TestSprite faz e o que o CodeRabbit faz, mais camadas, e sempre pull antes de push". O desenho abaixo cobre isso com o que roda **nesta máquina, sem mandar código para nuvem por padrão**, e deixa os serviços pagos como camadas opcionais.
 
