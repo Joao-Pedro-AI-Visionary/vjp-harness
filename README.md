@@ -1,7 +1,7 @@
 # V-JP Harness
 
-> **Autor:** João Pedro (V-JP) · [github.com/Joao-Pedro-AI-Visionary](https://github.com/Joao-Pedro-AI-Visionary) · dev.jp.991@gmail.com
-> **Versão:** 1.10.1 · Licença MIT · *método de engenharia de software orientado a IA*
+> **Autor:** João Pedro (V-JP) · [github.com/Joao-Pedro-AI-Visionary](https://github.com/Joao-Pedro-AI-Visionary)
+> **Versão:** 2.0.0 (fonte: [`VERSION`](./VERSION); histórico em [`CHANGELOG.md`](./CHANGELOG.md)) · Licença MIT · *método de engenharia de software orientado a IA*
 
 Ecossistema de engenharia de software orientado a IA — empacotado para instalação **determinística** em qualquer projeto.
 
@@ -82,6 +82,30 @@ O instalador é **idempotente** e usa `npm ci` (lockfile) para o núcleo. Detalh
 
 ---
 
+## 🧭 v2 — uma fonte única de regras para Codex, Claude Code, Antigravity e Cursor
+
+Desde a **v2.0.0**, toda regra, guardrail e checklist mora em [`core/`](./core/) — uma regra por tema, com precedência declarada ([`core/00-precedencia.md`](./core/00-precedencia.md)) — e os arquivos que cada ferramenta lê são **gerados** por [`template/tools/sync-rules.js`](./template/tools/sync-rules.js) (Node ≥ 18, sem dependências, determinístico, com `--check` de drift).
+
+| Ferramenta | Projeto (`install.sh`) | Máquina (`machine/bootstrap.sh`) |
+|---|---|---|
+| **Codex** | `AGENTS.md` (bloco gerenciado) · `.agents/skills/` · `.codex/hooks.json` (orçamento de testes) | `~/.codex/AGENTS.md` · `~/.agents/skills/` |
+| **Claude Code** | `CLAUDE.md` com `@.harness/core/…` (imports) · `.claude/skills/` | `~/.claude/HARNESS.md` · `~/.claude/skills/` |
+| **Antigravity** | `AGENTS.md` · `.agents/rules/vjp-projeto-novo.md` (`model_decision`) · `.agents/skills/` | `~/.gemini/GEMINI.md` · `~/.gemini/config/skills/` · `~/.gemini/antigravity-cli/skills/` |
+| **Cursor** | `AGENTS.md` · `.cursor/rules/vjp-projeto-novo.mdc` | — (User Rules só pela interface) |
+
+- **Projeto novo:** skill `projeto-novo` nas três ferramentas (Fase 0 Ambiente → descoberta → arquitetura → **benchmark tecnológico global** → … → entrega verificada), com um único gate de aprovação antes da implementação.
+- **Regras de execução unificadas (R1–R9):** paralelismo, worktree, tentativas, precedência dos portões de conclusão, browser, versões, arquivos de regra, git e limpeza — ver [`core/30-execucao.md`](./core/30-execucao.md).
+- **Decisões:** [`core/decisoes/CONTRADICOES.md`](./core/decisoes/CONTRADICOES.md) (decisão + motivo) e [`core/decisoes/PARA-O-JOAO.md`](./core/decisoes/PARA-O-JOAO.md).
+- **Migração da v1:** [`docs/MIGRACAO-v2.md`](./docs/MIGRACAO-v2.md) (Mac, Windows/WSL, box).
+
+```bash
+node template/tools/sync-rules.js            # regenera os espelhos do repo depois de editar core/
+node template/tools/sync-rules.js --check    # exit 1 se algum gerado divergiu
+node .harness/tools/sync-rules.js --check    # dentro de um projeto instalado
+```
+
+---
+
 ## Determinismo (o núcleo do projeto)
 
 Toda dependência é **pinada** e **verificável**. A fonte da verdade é
@@ -137,16 +161,23 @@ meu-projeto/
 │   ├── harness.yaml              # manifesto: agentes, MCPs, tools pinadas
 │   ├── registry.json             # ← fonte da verdade determinística
 │   ├── REGISTRY.md  INSTALL.md   # matriz de instalação + guia
-│   ├── AGENT_RULES.md            # regras dos 4 agentes
+│   ├── AGENT_RULES.md            # regras dos 4 agentes (bloco R1–R9 gerado de core/)
+│   ├── core/                     # FONTE ÚNICA das regras (v2) — cópia de core/
 │   ├── tools/
 │   │   ├── bsd.js                # orquestrador (--execute/--continue/--status/--reset/--doctor)
 │   │   ├── verify.js             # verificador de determinismo
+│   │   ├── sync-rules.js         # gera AGENTS.md/CLAUDE.md/.agents/.cursor de core/ (--check)
 │   │   ├── package.json + lock   # tools pinadas (npm ci)
 │   │   └── *.md                  # doc de cada componente
 │   ├── config/{repomix,mcp}.json
 │   └── context/                  # contexto compactado (regenerável)
 ├── .gbrain/                  # MEMÓRIA persistente (8 arquivos + PGLite)
-└── .bsd/                     # ESTADO de execução (STATE.md, history.jsonl, worktrees/)
+├── .bsd/                     # ESTADO de execução (STATE.md, history.jsonl, worktrees/)
+├── AGENTS.md · CLAUDE.md     # blocos gerados (conteúdo fora dos marcadores é seu)
+├── .agents/{rules,skills}/   # Antigravity/Codex (gerado)
+├── .claude/skills/           # Claude Code (gerado)
+├── .cursor/rules/            # Cursor (gerado)
+└── .codex/hooks.json         # hook de orçamento de testes do Codex (merge, preserva os seus)
 ```
 
 ---
@@ -247,6 +278,8 @@ Avaliação criteriosa de 3 achados de uma varredura (jun/2026) + 1 manutenção
 - **v1.9.1** — o orquestrador agora se chama **Maestro** (conduz a "orquestra" dos 4 agentes); o nome técnico `BSD` segue como procedência e o comando `bsd.js` inalterado.
 - **v1.10.0** — **especialistas Front/Back/DB + contrato-primeiro + verificação ponta-a-ponta + NFR** (Nível 3): pipeline ganha passos NFR e Contrato e executores por camada; subagentes em `.claude/agents/`; verificador de integração confirma persistência real (Postgres) + UI (Playwright). Mata "back feito mas o front quebra / não persiste / pesado / sem fila". 31 testes verdes.
 - **v1.10.1** — CI vira **manual** (`workflow_dispatch`) — em repo privado sem minutos de Actions o push dava `startup_failure`; o gate de cada commit passa a ser **local e grátis**: `(cd .harness/tools && npm run check)`. E o `install.sh` injeta um **bloco gerenciado no `CLAUDE.md`** do projeto apontando para `.harness/AGENT_RULES.md` (fonte única, sem duplicar regra).
+- **v1.11 → v1.22** — ver [`machine/MACHINE.md`](./machine/MACHINE.md) e o histórico do git.
+- **v2.0.0** — **fonte única portável** (`core/` + `sync-rules.js`) para Codex, Claude Code, Antigravity e Cursor; skill `projeto-novo`; R1–R9. Ver [`CHANGELOG.md`](./CHANGELOG.md).
 
 ---
 

@@ -73,9 +73,9 @@ mkdir -p "$CLAUDE_DIR"
 for f in CLAUDE.md HEADROOM.md HARNESS.md statusline-context.js; do
   cp -v "$EXPORT/$f" "$CLAUDE_DIR/$f"
 done
-# Regras globais cross-CLI (codex/opencode/pi genérico leem ~/AGENTS.md).
-# Espelho fiel do HARNESS.md — fonte canônica é este repo.
-cp -v "$EXPORT/AGENTS.md" "$HOME/AGENTS.md"
+# v2.0.0: HARNESS.md e AGENTS.md são GERADOS de core/ (sync-rules.js). As regras globais de
+# Codex (~/.codex/AGENTS.md — o Codex NÃO lê ~/AGENTS.md), Antigravity (~/.gemini/GEMINI.md)
+# e o fan-out das skills saem do sync-rules --global no passo 6.
 if [ -f "$CLAUDE_DIR/settings.json" ]; then
   cp "$CLAUDE_DIR/settings.json" "$CLAUDE_DIR/settings.json.pre-bootstrap.$(date +%Y%m%d-%H%M%S)"
   echo "backup do settings.json existente criado"
@@ -90,10 +90,17 @@ echo "settings.json instalado (statusline, guard V-JP, MCPs chrome-devtools+gbra
 rm -f "$CLAUDE_DIR/RTK.md"
 
 # ---------------------------------------------------------------- skills
-step "6/8 Skills (gstack-family + fullstack-validate + arch-review + test-gate + pr-review + prepush)"
+step "6/8 Skills (gstack-family + fullstack-validate + arch-review + test-gate + pr-review + prepush + projeto-novo) + regras globais cross-CLI"
 mkdir -p "$CLAUDE_DIR/skills"
 cp -rv "$EXPORT/skills/." "$CLAUDE_DIR/skills/" | tail -1
 echo "skills instaladas: $(ls "$CLAUDE_DIR/skills" | wc -l)"
+# v2.0.0 — fonte única core/ → regras globais de cada CLI + skills reais (não-symlink) em
+# ~/.claude/skills, ~/.agents/skills (Codex), ~/.gemini/config/skills e ~/.gemini/antigravity-cli/skills (AGY).
+# Blocos gerenciados preservam o que já existir em ~/.codex/AGENTS.md e ~/.gemini/GEMINI.md.
+SYNC_RULES="$HERE/../template/tools/sync-rules.js"
+if [ -f "$SYNC_RULES" ]; then
+  node "$SYNC_RULES" --global --quiet || echo "⚠️  sync-rules --global falhou (rode: node $SYNC_RULES --global)"
+fi
 # prepush: hook global de push (core.hooksPath ~/.githooks) — v1.20
 [ -f "$CLAUDE_DIR/skills/prepush/reinstall.sh" ] && bash "$CLAUDE_DIR/skills/prepush/reinstall.sh" | tail -2
 echo "⚠️  a skill 'gstack' (browse daemon, 1.5GB) não é vendorizada:"
@@ -135,4 +142,5 @@ cat <<'EOF'
   4. MCPs com chave      → adicionar só os que usar, com chaves NOVAS (as antigas devem ser rotacionadas):
        claude mcp add brave-search -s user -e BRAVE_API_KEY=<nova> -- npx -y @modelcontextprotocol/server-brave-search
   5. Por projeto         → bash vjp-harness/install.sh --name <projeto>
+  6. Codex               → abrir o projeto e aprovar o hook do orçamento em /hooks (o Codex só roda hook confiável)
 EOF

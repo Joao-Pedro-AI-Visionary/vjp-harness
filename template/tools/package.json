@@ -4,11 +4,11 @@
   "private": true,
   "type": "module",
   "description": "Ferramentas pinadas do V-JP Harness (instalação determinística via npm ci) — por João Pedro (V-JP)",
-  "author": "João Pedro (V-JP) <dev.jp.991@gmail.com>",
+  "author": "João Pedro (V-JP)",
   "license": "MIT",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "check": "node --test tests/*.test.mjs && node verify.js"
+    "check": "node --test tests/*.test.mjs && node verify.js && node sync-rules.js --check --quiet"
   },
   "dependencies": {
     "@opengsd/get-shit-done-redux": "1.1.0",

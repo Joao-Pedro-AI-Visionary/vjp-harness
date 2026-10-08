@@ -10,7 +10,7 @@ name: doctor
 
 # MANUAL por padrão (workflow_dispatch): em repo PRIVADO sem minutos de Actions,
 # todo push dava startup_failure. A checagem de cada commit é LOCAL e grátis:
-#   (cd .harness/tools && npm run check)   # = node:test + verify.js
+#   (cd .harness/tools && npm run check)   # = node:test + verify.js + sync-rules --check
 # Se o repo virar público (Actions grátis/ilimitado) ou o billing for ajustado,
 # descomente os gatilhos push/pull_request abaixo.
 on:
@@ -40,3 +40,7 @@ jobs:
       - name: Verificador de determinismo (obrigatórios)
         working-directory: template/tools
         run: node verify.js --json
+
+      - name: Regras sem drift (core/ → AGENTS.md, HARNESS.md, skill projeto-novo, AGENT_RULES §1.1)
+        working-directory: template/tools
+        run: node sync-rules.js --check

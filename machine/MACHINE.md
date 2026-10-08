@@ -42,11 +42,11 @@ flowchart TD
 |---|---|
 | `CLAUDE.md` | `@HEADROOM.md` + `@HARNESS.md` (importa a referência do Headroom e as Regras Globais do harness) |
 | `HEADROOM.md` | Referência de uso do Headroom (`cch`, `headroom savings`, `doctor`, telemetria desligada) |
-| `HARNESS.md` | **Regras Globais do harness** — fonte canônica das políticas de toda sessão/projeto (idioma, metodologias, papel padrão, engenharia, organização, Harness como 1ª fonte de verdade, orquestração fan-out/fan-in, UI/UX Pro Max obrigatória) |
-| `AGENTS.md` | Espelho fiel do `HARNESS.md` para CLIs que leem `~/AGENTS.md` (codex, opencode, pi genérico). O bootstrap instala em `$HOME/AGENTS.md` |
+| `HARNESS.md` | **Regras Globais do harness** — desde a v2.0.0 é **gerado** de `core/` por `template/tools/sync-rules.js` (não edite à mão). O passo 6 do bootstrap roda `sync-rules.js --global`, que regrava `~/.claude/HARNESS.md` |
+| `AGENTS.md` | Mesmo bundle (gerado, idêntico ao `HARNESS.md`). Desde a v2.0.0 o global do Codex vai para **`~/.codex/AGENTS.md`** e o do Antigravity para **`~/.gemini/GEMINI.md`** (blocos gerenciados). `~/AGENTS.md` (v1) só é atualizado se já existir e for nosso — ver `docs/MIGRACAO-v2.md` |
 | `settings.template.json` | settings completo: modelo `claude-fable-5[1m]`, statusline, plugin vercel, allowedTools, MCPs |
 | `statusline-context.js` | Statusline custom: tokens de contexto + percentual (lê transcript) |
-| `skills/` | 50 skills leves vendorizadas (a `gstack` NÃO — 1.5 GB com node_modules; reinstala via gstack, ver bootstrap) |
+| `skills/` | skills leves vendorizadas (a `gstack` NÃO — 1.5 GB com node_modules; reinstala via gstack, ver bootstrap). `skills/projeto-novo/` é **gerada** de `core/protocolo/`. O `sync-rules.js --global` replica as skills reais (não-symlink) também em `~/.agents/skills`, `~/.gemini/config/skills` e `~/.gemini/antigravity-cli/skills` |
 
 ### 2.3 Hooks (em `settings.json`)
 
@@ -85,7 +85,7 @@ O instalador é idempotente e faz merge no `.claude/settings.json` do projeto se
 
 | Servidor | Comando | Uso |
 |---|---|---|
-| `chrome-devtools` | `npx -y chrome-devtools-mcp@latest` | Validação visual real: screenshot, console, network |
+| `chrome-devtools` | `npx -y chrome-devtools-mcp@1.10.1` (fixado — R6; atualize com `npm view chrome-devtools-mcp version`) | Validação visual real: screenshot, console, network |
 | `gbrain` | `~/.bun/bin/gbrain serve` | Memória/grafo de conhecimento |
 | `context7` | `npx -y @upstash/context7-mcp@3.2.0` | Docs atualizadas de libs (menos API alucinada) |
 
@@ -118,7 +118,9 @@ bash vjp-harness/machine/bootstrap.sh
 ```
 
 O script é idempotente e cobre: nvm+Node 24, Bun, Claude Code, Headroom (pin PyPI via uv),
-configs do `export/`, skills, gbrain, e instruções finais (login, gstack, MCP keys).
+configs do `export/`, skills, regras globais geradas de `core/` para Claude Code, Codex e
+Antigravity (`sync-rules.js --global`), gbrain, e instruções finais (login, gstack, MCP keys,
+confiança dos hooks do Codex via `/hooks`).
 Passo a passo manual documentado dentro do próprio script.
 
 ---
@@ -175,3 +177,4 @@ As duas skills novas:
 - **2026-08-29 (v1.19.0)** — Portões de qualidade `test-gate` e `pr-review` adicionados como skills globais em `machine/export/skills/` (o passo 6 do bootstrap já as instala em `~/.claude/skills/`; registradas no `template/registry.json` com `verify.type: "skill"`, então o `--doctor` acusa ausência). Fia o portão **`prova-viva`** no `gates.js`: recibo em `.bsd/prova-viva.json` conferido contra o `HEAD` — verde de outro commit conta como vermelho. Rigor proporcional pelo Dial (`stageMinLevel: test-gate=1, pr-review=2`), sem lei nova. `machine/export/HARNESS.md` ganhou a seção "Portões de qualidade". Spec: `specs/quality-gates-pr-review-test-gate/spec.md`.
 - **2026-07-23** — Regras globais viram canônicas no repo: `machine/export/HARNESS.md` (fonte da verdade das Regras Globais, incl. 3 seções novas: Harness como 1ª fonte de verdade, Orquestração fan-out/fan-in + fluxo de 9 passos, UI/UX Pro Max obrigatória) e `machine/export/AGENTS.md` (espelho cross-CLI). `export/CLAUDE.md` passa a importar `@HARNESS.md`. Skill `ui-ux-pro-max` adicionada em `skills/ui-ux-pro-max/reinstall.sh` (portável via `$HOME`). `bootstrap.sh` atualizado: copia `HARNESS.md`, instala `~/AGENTS.md` e chama o reinstall da ui-ux-pro-max (passo 6).
 - **2026-10-04 (v1.22.0)** — Compressor de Contexto trocado: RTK → **Headroom 0.39.1**. Sai o hook `PreToolUse` `rtk hook claude` do `settings.template.json` e o `RTK.md`; entra `HEADROOM.md` e o passo 4 do bootstrap instala o Headroom via `uv tool`, grava `HEADROOM_BEACON=off` e o atalho `cch` (`headroom wrap claude --port 8790 --code-memory none`). Proxy por sessão: o `settings.json` global não ganha `ANTHROPIC_BASE_URL`. Spec: `specs/headroom-no-lugar-do-rtk/spec.md`.
+- **2026-10-08 (v2.0.0)** — **Fonte única portável.** Regras, guardrails e checklists passam a morar em `core/` (raiz do repo) e são renderizados por `template/tools/sync-rules.js` para Codex (`~/.codex/AGENTS.md`), Claude Code (`~/.claude/HARNESS.md`), Antigravity (`~/.gemini/GEMINI.md`) e para os projetos (`AGENTS.md`, `CLAUDE.md` com `@imports`, `.agents/rules`, `.cursor/rules`). `export/AGENTS.md` e `export/HARNESS.md` viram gerados e idênticos (o espelho manual tinha derrapado). O bootstrap deixa de copiar para `~/AGENTS.md` e roda `sync-rules.js --global` no passo 6. `chrome-devtools-mcp` fixado em 1.10.1 (fim do `@latest`). Skill `projeto-novo` gerada de `core/protocolo/`. Decisões em `core/decisoes/`; migração em `docs/MIGRACAO-v2.md`.

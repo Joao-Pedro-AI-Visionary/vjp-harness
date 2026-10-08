@@ -1,5 +1,5 @@
 {
-  "comment": "Stub Codex: PreToolUse recusa runner de teste e apply_patch em spec quando o orçamento mecânico esgotou. Ligar com VJP_CODEX=1 ou VJP_TEST_BUDGET=1. Stop-continue NÃO chama --reset.",
+  "comment": "Stub Codex: PreToolUse recusa runner de teste e apply_patch em spec quando o orçamento mecânico esgotou. Ligar com VJP_CODEX=1 ou VJP_TEST_BUDGET=1. Stop-continue NÃO chama --reset. v2.0.0: caminho absoluto via git rev-parse (o Codex roda o hook no cwd da sessão; o caminho relativo falhava fora da raiz).",
   "hooks": {
     "PreToolUse": [
       {
@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "machine/hooks/codex-test-budget-pretool.sh"
+            "command": "f=\"$(git rev-parse --show-toplevel 2>/dev/null)/machine/hooks/codex-test-budget-pretool.sh\"; [ -f \"$f\" ] || exit 0; exec bash \"$f\""
           }
         ]
       }
