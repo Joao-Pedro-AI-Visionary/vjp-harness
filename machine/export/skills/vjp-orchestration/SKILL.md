@@ -159,12 +159,12 @@ Output final: tabela de findings + código corrigido + diff vs. A.
 
 **Problema:** tarefas sequenciais desperdiçam wall time.
 
-**Solução:** despachar 2–3 subagentes em paralelo quando o `tasks.md` marca `[P]` (paralelo).
+**Solução:** despachar subagentes em paralelo quando o `tasks.md` marca `[P]` (paralelo), dentro do teto da regra **R1** (`core/30-execucao.md`).
 
 ### Regras
 
-- Máximo 3 subagentes em paralelo (limite `delegation.max_concurrent_children`)
-- Cada subagente roda em worktree isolado (`bsd.js` já faz isso)
+- Paralelismo segue **R1** (fonte única: `core/30-execucao.md`): padrão 1 executor + 1 revisor; teto 2 em paralelo (3 se forem só leitura), só sobe com medição da Fase 0. O limite técnico `delegation.max_concurrent_children` continua 3 — é teto do runtime, não meta.
+- Worktree segue **R2**: obrigatório quando 2+ agentes escrevem ao mesmo tempo (`bsd.js` sempre usa um)
 - Commit em branch próprio: `feat/<story>-<task-id>`
 - Master (você) faz merge incremental após cada um
 - Use a skill `kanban-orchestrator` ou `process-dashboard` para visualizar progresso
@@ -190,7 +190,7 @@ Output final: tabela de findings + código corrigido + diff vs. A.
 |--------------|--------------|---------|
 | Despachar sem context bundle | Subagente inventa 30% do que fez | Sempre usar Padrão 1 |
 | Só rodar REVIEWER padrão | Falhas de segurança/Constitution passam | Em features críticas, Padrão 2 |
-| Despachar 5+ em paralelo | Conflitos de merge, context window saturado | Máx 3, agrupa em worktrees |
+| Despachar acima do teto R1 | Conflitos de merge, context window saturado, máquina travada | Respeite R1 (padrão 1+1, teto 2/3) e R2 (worktree por escritor) |
 | Subagente roda sem `npm test` local | Quebra build no PR | Sempre rodar testCommand antes de commitar |
 | "Confiar na alegação" do subagente | Subagente diz "testes passam" sem rodar | Maestro (BSD) executa testCommand objetivo; nunca confiar só na alegação |
 

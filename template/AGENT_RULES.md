@@ -1,6 +1,6 @@
 # V-JP Harness Agent Rules & Guidelines
 
-> Autoria: **João Pedro (V-JP)** · github.com/Joao-Pedro-AI-Visionary · v1.22.0
+> Autoria: **João Pedro (V-JP)** · github.com/Joao-Pedro-AI-Visionary · v2.0.0
 
 Este documento define as regras de sistema e diretrizes operacionais para todos os agentes de IA que operam sob a orquestração do **V-JP Harness**. Qualquer agente deve ler, respeitar e aplicar estritamente as regras abaixo.
 
@@ -98,16 +98,42 @@ OWASP LLM Top 10 + OWASP Top 10 web na checklist de **toda** feature. Razão: de
 
 ## 1. Princípios Gerais de Operação
 
-1. **Determinismo e Isolamento**: Qualquer modificação deve ser executada isoladamente dentro de um ambiente de Git Worktree dedicado. Nunca modifique a branch principal diretamente sem validação completa.
+1. **Determinismo e Isolamento**: Nunca modifique a branch principal diretamente sem validação completa. O EXECUTOR do Maestro (`bsd.js`) sempre trabalha em Git Worktree isolada; na camada interativa, quando usar worktree é a regra R2 (§1.1).
 2. **Orientação a Especificação (Spec-driven)**: O código só deve ser gerado a partir de especificações claras e previamente mapeadas (`spec.md` e `tasks.md`). **Aplicado de fato pelo `bsd.js` desde v1.10.3**: `--execute <feature>` procura `.planning/phases/<feature>/` ou `specs/<feature>/`; se achar `tasks.md`, executa task por task e marca `[x]` no arquivo real conforme aprovação. Sem esses arquivos, cai no modo autônomo (LLM decide o plano sozinho) — recomendado só para exploração rápida, não para features de verdade.
 3. **Persistência de Aprendizado (GBrain)**: Sempre consulte `.gbrain/` antes de propor qualquer design técnico para evitar repetição de erros passados ou violações arquiteturais.
 4. **Crash-Safe e Auditoria**: Toda transação de agente deve registrar logs imediatos no `.bsd/history.jsonl` e atualizar o dashboard `.bsd/STATE.md`.
 5. **Documentação Diátaxis**: Nenhuma feature está completa sem documentação no quadrante apropriado (Tutorial, How-to, Reference, ou Explanation). Consulte `.harness/tools/diataxis-docs.md` para o framework completo.
-6. **Orçamento de memória (teto de 2 agentes simultâneos)**: a máquina de trabalho tem **8 GB de RAM** e o modo de falha dela é OOM, não CPU. O `bsd.js` já é uma fila estrita — o risco mora na camada interativa (subagentes do Claude Code), onde cada sessão ociosa custa 400–600 MB. Regras:
-   - **No máximo 2 subagentes simultâneos** (3 só quando os três forem de leitura). Seis frentes viram três ondas de dois, nunca um disparo de seis. Vale também para `parallel()`/`pipeline()` dentro de Workflow.
-   - **Um servidor de dev por vez.** Reaproveite o que já estiver na porta e derrube o que você subir.
-   - **Revisão trabalha sobre `git diff`**, não sobre uma worktree nova: o revisor não precisa de Language Server nem de `node_modules` para ler uma mudança.
-   - **Worktree só quando houver escrita concorrente de verdade.** Worktree acumula `node_modules` e já custou 26 GB de disco neste monorepo; para leitura/review ela é puro desperdício.
+6. **Orçamento de memória**: teto de subagentes simultâneos, um servidor de dev por vez, revisão sobre `git diff` e quando usar worktree são as regras R1/R2 (§1.1). Motivo medido: a máquina de trabalho tem **8 GB de RAM** e falha por OOM, não por CPU; cada sessão ociosa de subagente custa 400–600 MB; worktrees já custaram 26 GB de disco num monorepo. O `bsd.js` já é uma fila estrita — o risco mora na camada interativa.
+
+<!-- vjp-core:execucao:start -->
+> Gerado de `core/30-execucao.md` por sync-rules.js (fonte única). Não edite aqui.
+
+## 1.1 Execução unificada (R1–R9) — paralelismo, worktree, tentativas, portões, browser, versões
+
+**R1 Paralelismo.** O padrão é **1 executor + 1 revisor independente**. Paralelize só quando houver frentes de fato independentes com contrato definido antes, e nunca para tarefa pequena. O número de agentes é o menor entre: frentes independentes, teto de hardware e orçamento de tokens. **Teto de hardware padrão: 2 subagentes simultâneos** (3 se todos só lerem), porque a máquina de referência tem 8 GB e cada sessão ociosa custa 400–600 MB. O teto só sobe com medição da Fase 0. Um servidor de dev por vez. Recurso compartilhado (um browser CDP, um banco, um arquivo) obriga a ir sequencial. Fan-in só depois dos portões de cada frente.
+
+**R2 Worktree.** O Maestro (`bsd.js`, headless) sempre isola o EXECUTOR em worktree; isso é mecânico e não muda. Na camada interativa, worktree serve só para **escrita concorrente** (≥2 frentes editando o mesmo repo), com uma branch por frente e arquivos de responsabilidade delimitados. Frente única usa branch local, sem worktree. Revisão roda sobre `git diff`, nunca em worktree nova. Worktree só é removida com os commits preservados e nada pendente.
+
+**R3 Tentativas.** Teto absoluto de **2 tentativas de correção** por task ou portão: Maestro `maxRetries 2`, `test-gate`, rodadas de `pr-review` e `/prepush`. Com orçamento mecânico ligado (`VJP_CODEX=1` ou `VJP_TEST_BUDGET=1`), quem manda é o contador `.bsd/test-budget.json`: Codex 1/1, ou por nível 0:0/0 · 1:1/1 · 2:2/1 · 3:2/2. O stop-continue não zera o contador. Esgotou: entregue se a prova viva estiver verde; senão, reporte **[Falhou]** com os blockers. Nunca "repita até passar".
+
+**R4 Portões de conclusão (precedência).** Os quatro portões, do mais forte ao mais fraco:
+1. **Sinal mecânico**: suíte, `test-gate`/prova viva no `HEAD`, `pre-push`. Vermelho bloqueia sempre e nada o sobrepõe.
+2. **Ponta a ponta**: `integration-verifier` (subagente) ou `fullstack-validate` (skill), que são o mesmo portão. Confere contrato, fluxo real na UI, linha persistida, caminhos ruins e performance. Obrigatório quando a mudança cruza front→API→DB.
+3. **Revisão independente**: `pr-review` e, quando couber, a revisão adversarial. Pode barrar, mas não aprova por cima de vermelho.
+4. **Entrega verificada**: checklist "antes de concluir" + formato de resposta. Sem evidência, não está concluído.
+
+O Dial decide quais rodam (`40`). `gates.js` consolida a definição de pronto do pipeline: `spec-presente`, `adr-presente`, `saida-aberta` e `determinismo` bloqueiam; `prova-viva` avisa, e quem barra o push é o `pre-push`.
+
+**R5 Browser.** Teste E2E que vale como sinal roda pelo runner (`playwright test`). O **Playwright MCP** é pinado e **local do projeto** (`.harness/tools`, `config/mcp.json`), nunca global. O **chrome-devtools MCP** (CDP) é a ferramenta global de inspeção visual (screenshot, console, network). Automação de sessão própria (gerar imagem no GPT/Gemini, por exemplo) só com autorização explícita. Nunca automatize login nem contorne OAuth, limite ou pagamento, e nunca grave token ou cookie em artefato.
+
+**R6 Versões.** Proibido `@latest` em config, MCP e instalação: tudo é pinado e verificável (`registry.json`, `--doctor`). Pesquisar a versão mais nova (Fase 3) é permitido e recomendado; o que se escolhe entra **pinado**.
+
+**R7 Arquivos de regra.** Todos são gerados de `core/` por `sync-rules.js`: `AGENTS.md` (Codex, AGY, Cursor), `~/.codex/AGENTS.md`, `CLAUDE.md` (`@imports`), `~/.claude/HARNESS.md`, `~/.gemini/GEMINI.md`, `.agents/rules/`, `.cursor/rules/` e skills. Ninguém espelha regra à mão; o `--check` acusa drift.
+
+**R8 Git e remoto.** Push, branch remota, PR, merge, issue e comentário **só com autorização explícita**. Antes de qualquer push, rode o `/prepush` (fetch+rebase na base, segredos, suíte), valide de novo depois de integrar o remoto e não deixe nenhum check pendente. Sem force push, `reset --hard` ou limpeza de branch compartilhada sem autorização. Commits rastreáveis, com mensagem `[jp] feat|fix|refactor|docs|test: …`.
+
+**R9 Limpeza.** Ao terminar, encerre só o que **esta** execução iniciou: processos Node/Python, containers temporários, portas, browsers automatizados (sem tocar em sessão pessoal), workers e modelos locais ociosos. **Nunca** apague banco, volume, `.env`, migração ou dado persistente para liberar memória. Registre o que foi encerrado e o que ficou ativo.
+<!-- vjp-core:execucao:end -->
 
 ---
 
@@ -218,13 +244,13 @@ Uma feature só é concluída quando o **`integration-verifier`** confirma, com 
 
 ## 5. Orquestração Multi-Agente (Fan-out / Fan-in)
 
-> Adicionado 2026-07-22 (JP). Sempre que uma tarefa puder ser paralelizada, **faça fan-out** — não execute sequencialmente por hábito.
+> Adicionado 2026-07-22 (JP); harmonizado na v2.0.0 com a R1/R2 (§1.1). Faça fan-out quando houver frentes **independentes** — nem sequencial por hábito, nem paralelo por hábito.
 
-- **Fan-out automático**: divida a tarefa em frentes independentes e spawne **múltiplos agentes especializados**, cada um com **responsabilidade única**.
-- **Isolamento por Git Worktree**: cada frente que **muta arquivos** roda em worktree dedicada (evita conflito de merge). Frentes que tocam repos/dirs diferentes não precisam de worktree.
+- **Fan-out quando couber (R1)**: divida em frentes independentes, com contrato definido antes, e spawne agentes especializados de **responsabilidade única**. Padrão: 1 executor + 1 revisor independente; tarefa pequena = um executor.
+- **Worktree (R2)**: só para frentes que **escrevem em paralelo** no mesmo repo (uma branch por frente, arquivos delimitados). Frente única ou repos/dirs diferentes não precisam de worktree.
 - **Fan-in só após Quality Gates**: integre (merge) **somente** depois que TODOS os agentes concluírem e passarem seus gates (testes verdes, lint, contrato, E2E). Aprovação do LLM não substitui sinal concreto (ver §2 REVISOR).
 - **Divisão preferida por especialidade**: Backend · Frontend · Banco de Dados · Arquitetura · Refatoração · Testes · Segurança · Performance · Observabilidade · Documentação.
-- **Máximo de agentes SEM gerar contenção.** Prefira paralelismo a sequencial — **exceto** quando as frentes disputam **um recurso compartilhado** (um único browser CDP, um único banco de prod, um único arquivo): aí é contenção real → sequencial. **Julgamento obrigatório antes de paralelizar.**
+- **Quantos agentes (R1)**: o menor entre frentes independentes, teto de hardware (padrão 2 simultâneos; 3 se todos só leitura) e orçamento de tokens. Recurso compartilhado (um browser CDP, um banco de prod, um arquivo) = contenção real → sequencial. **Julgamento obrigatório antes de paralelizar.**
 
 ## 6. Frontend — UI/UX obrigatório (Skill-first)
 
@@ -244,8 +270,8 @@ Sempre que a tarefa envolver **React, Next.js, Vite, Tailwind, shadcn/ui, Design
 Antes de iniciar qualquer implementação:
 1. **Consulte o Harness** (`.harness/AGENT_RULES.md`, `.gbrain/`, ferramentas em `.harness/tools/`).
 2. **Identifique ferramentas e automações existentes** (não reinvente).
-3. **Planeje o fan-out** (§5) — quais frentes, com julgamento de contenção.
-4. **Crie Worktrees** para as frentes que mutam código.
+3. **Planeje o fan-out** (§5, R1) — quais frentes, com julgamento de contenção (pode ser um executor só).
+4. **Crie Worktrees** só para as frentes que escrevem em paralelo (R2).
 5. **Spawne os agentes especializados** (`.claude/agents/`).
 6. **Execute em paralelo.**
 7. **Faça a integração (fan-in).**
@@ -295,7 +321,7 @@ Passo 1 verde com passo 2 vermelho = **a feature está quebrada**, ainda que "pa
 **Protocolo em caso de falha:**
 1. Trate o erro **no nó atual**, sem contaminar o resto da aplicação.
 2. Deduplique erros já conhecidos e aplique a correção.
-3. **Repita a verificação** até obter confirmação 100% funcional. Máximo de 2 tentativas por task (§2) — se exceder, aborte e notifique via `.bsd/STATE.md`.
+3. **Repita a verificação** dentro do teto da R3 (§1.1): máximo de 2 tentativas por task; com orçamento mecânico ligado, o contador manda. Esgotou: reporte **[Falhou]** com os blockers e notifique via `.bsd/STATE.md` — nunca "repetir até passar".
 
 ### 8.5 Formato obrigatório da resposta
 Toda entrega ao usuário contém explicitamente:
