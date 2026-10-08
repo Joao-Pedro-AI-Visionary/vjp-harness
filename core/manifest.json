@@ -1,0 +1,42 @@
+{
+  "comment": "Fonte única do V-JP Harness v2. Edite os .md de core/ e rode sync-rules.js (no repo: node template/tools/sync-rules.js; no projeto: node .harness/tools/sync-rules.js). Ordem = ordem de renderização.",
+  "version": "2.0.0",
+  "sentinel": "Sentinela V-JP v2: teste verde manda sobre LLM, e cada regra mora em um lugar só.",
+  "title": "V-JP Harness — Regras Globais (geradas de core/)",
+  "alwaysOn": [
+    "00-precedencia.md",
+    "10-principios.md",
+    "11-comportamento-e-tom.md",
+    "12-verificacao.md",
+    "13-anti-falso-consenso.md",
+    "20-operacao.md",
+    "30-execucao.md",
+    "40-dial.md",
+    "checklists/50-inicio.md",
+    "checklists/51-antes-de-codar.md",
+    "checklists/52-antes-de-concluir.md",
+    "checklists/53-antes-do-push.md",
+    "checklists/54-projeto-novo.md"
+  ],
+  "skills": [
+    {
+      "name": "projeto-novo",
+      "description": "Protocolo V-JP para começar um projeto do zero: Fase 0 (ambiente) → perguntas → arquitetura → benchmark tecnológico global com gate de aprovação → escala → orçamento de IA → orquestração → implementação → assets/browser → revisão independente e adversarial → git/PR → limpeza → entrega verificada, com o FORMATO OBRIGATÓRIO. Use quando o usuário disser projeto novo, começar do zero, novo app, novo sistema ou novo MVP.",
+      "body": "protocolo/00-projeto-novo.md",
+      "referencesDir": "protocolo/fases"
+    }
+  ],
+  "conditionalRules": [
+    {
+      "id": "vjp-projeto-novo",
+      "description": "Use ao iniciar um projeto do zero (projeto novo, novo app, novo sistema, novo MVP) — siga a skill projeto-novo.",
+      "body": "Ao começar um **projeto novo**, siga a skill `projeto-novo` (`.agents/skills/projeto-novo/SKILL.md`; no Claude Code, `.claude/skills/projeto-novo/SKILL.md`). Comece pela **Fase 0 — Ambiente** e não inicie a implementação principal antes do **gate de aprovação** do João (FORMATO OBRIGATÓRIO de 10 itens). O checklist resumido está nas regras globais (\"Checklist — projeto novo\")."
+    }
+  ],
+  "executionRulesForAgentRules": "30-execucao.md",
+  "limits": {
+    "bundleMaxBytes": 24000,
+    "agyRuleMaxBytes": 24000,
+    "codexProjectDocMaxBytes": 32768
+  }
+}
