@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
 # V-JP Harness — instalador / bootstrap
-# Copia o motor do harness para .harness/ no projeto-alvo, instala as
+# Copia o motor do harness para .harness/ no projeto-alvo, renderiza as regras da
+# fonte única core/ para Codex/Claude Code/Antigravity/Cursor (sync-rules.js), instala as
 # ferramentas pinadas e faz o scaffold de .gbrain/ e .bsd/.
 #
 # Uso:
@@ -121,33 +122,21 @@ if [ -d "$TEMPLATE_DIR/agents" ]; then
   ok "Subagentes instalados em .claude/agents/ (backend/frontend/db/integration-verifier/nfr-performance-planner)"
 fi
 
-# ---- aponta o CLAUDE.md do projeto p/ a lei do harness (bloco gerenciado, idempotente) ----
-if command -v python3 >/dev/null 2>&1; then
-  python3 - "$TARGET/CLAUDE.md" <<'PY'
-import sys, os, re
-path = sys.argv[1]
-START, END = "<!-- vjp-harness:start -->", "<!-- vjp-harness:end -->"
-block = f"""{START}
-## 🧬 V-JP Harness (lei operacional)
-Este projeto usa o **V-JP Harness**. Antes de codar, leia e siga **`.harness/AGENT_RULES.md`** — o método: contrato-primeiro, especialistas back/db/front, **verificação ponta-a-ponta front→API→DB** (nada é "pronto" sem o fluxo real testado), NFR/fila no início, spec-driven, worktree isolada, prova viva.
-Subagentes especialistas em **`.claude/agents/`**: backend-specialist, frontend-specialist, db-migration-specialist, integration-verifier, nfr-performance-planner.
-Determinismo: `node .harness/tools/bsd.js --doctor`. Checagem do motor (grátis, local): `(cd .harness/tools && npm run check)`.
-{END}"""
-old = ""
-if os.path.exists(path):
-    with open(path, encoding="utf-8") as f:
-        old = f.read()
-if START in old and END in old:
-    new = re.sub(re.escape(START) + r".*?" + re.escape(END), block, old, flags=re.S)
-else:
-    new = (old.rstrip() + "\n\n" + block + "\n") if old.strip() else (block + "\n")
-with open(path, "w", encoding="utf-8") as f:
-    f.write(new)
-print("ok")
-PY
-  ok "CLAUDE.md do projeto aponta para .harness/AGENT_RULES.md (bloco gerenciado)"
+# ---- regras da fonte única core/ → cada ferramenta (v2.0.0, idempotente) ----
+# AGENTS.md (Codex/AGY/Cursor) e CLAUDE.md (@imports) recebem um BLOCO GERENCIADO
+# (<!-- vjp-harness:start/end -->): o resto do arquivo do projeto é preservado, e o bloco v1
+# (que apontava para .harness/AGENT_RULES.md) é migrado no lugar. Também grava .harness/core/,
+# .agents/rules/ (AGY, trigger), .cursor/rules/*.mdc, skill projeto-novo (.agents/ e .claude/)
+# e o hook Codex do orçamento de teste em .codex/hooks.json (caminho via git rev-parse).
+SYNC_RULES="$TEMPLATE_DIR/tools/sync-rules.js"
+if [ -f "$SYNC_RULES" ] && [ -f "$REPO_DIR/core/manifest.json" ]; then
+  if node "$SYNC_RULES" --target "$TARGET" --quiet; then
+    ok "Regras de core/ renderizadas: AGENTS.md · CLAUDE.md (@imports) · .agents/rules · .cursor/rules · skill projeto-novo · .codex/hooks.json"
+  else
+    warn "sync-rules falhou (mensagem acima) — o resto da instalação segue. Corrija e rode: node .harness/tools/sync-rules.js"
+  fi
 else
-  warn "python3 ausente — pulei a injeção no CLAUDE.md (faça manualmente: aponte para .harness/AGENT_RULES.md)."
+  warn "core/ ou sync-rules.js ausente neste checkout — regras cross-tool não renderizadas."
 fi
 
 # ---- scaffold do .gbrain (preserva existente) ----
@@ -245,4 +234,6 @@ printf "\n${C_BOLD}${C_GREEN}✔ Harness instalado em %s${C_RESET}\n" "$TARGET"
 printf "${C_DIM}Próximos passos:${C_RESET}\n"
 printf "  1. Edite ${C_BOLD}.gbrain/project.md${C_RESET} e ${C_BOLD}.gbrain/architecture.md${C_RESET} com o contexto do projeto\n"
 printf "  2. Rode ${C_BOLD}node .harness/tools/bsd.js --status${C_RESET} para ver o painel\n"
-printf "  3. Execute uma feature: ${C_BOLD}node .harness/tools/bsd.js --execute minha-feature${C_RESET}\n\n"
+printf "  3. Execute uma feature: ${C_BOLD}node .harness/tools/bsd.js --execute minha-feature${C_RESET}\n"
+printf "  4. Projeto do zero: skill ${C_BOLD}projeto-novo${C_RESET} (Claude /projeto-novo · Codex \$projeto-novo · AGY /projeto-novo)\n"
+printf "  5. Regras vêm de ${C_BOLD}core/${C_RESET} do vjp-harness (não edite os gerados); drift: ${C_BOLD}node .harness/tools/sync-rules.js --check${C_RESET}\n\n"

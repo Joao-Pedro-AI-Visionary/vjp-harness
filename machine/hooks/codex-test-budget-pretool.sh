@@ -2,7 +2,9 @@
 # Stub PreToolUse (Codex): deny runner de teste / patch em spec quando o orçamento esgotou.
 # Não reseta .bsd/test-budget.json. stdin = JSON do hook.
 set -uo pipefail
-cd "${CLAUDE_PROJECT_DIR:-${CODEX_PROJECT_DIR:-.}}" 2>/dev/null || exit 0
+# Raiz do projeto: env do Claude/Codex, senão a raiz git (o Codex roda o hook no cwd da sessão, que pode ser subdiretório).
+ROOT="${CLAUDE_PROJECT_DIR:-${CODEX_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || echo .)}}"
+cd "$ROOT" 2>/dev/null || exit 0
 
 CLI=""
 if [ -f .harness/tools/test-budget.js ]; then CLI=".harness/tools/test-budget.js"
