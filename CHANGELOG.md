@@ -2,6 +2,12 @@
 
 Formato: versão · data · o que mudou. Histórico anterior à v2: `README.md` (Novidades), `machine/MACHINE.md` §6 e o `git log`.
 
+## 2.0.0+colab — 2026-10-11 — diretrizes de colaboração técnica
+
+- `core/11` passa a conter as **Diretrizes de colaboração técnica** do João (independência de julgamento, confiança por evidência, discordância útil com trade-offs, consistência sem teimosia, inspeção antes de alterar, validação proporcional, entrega objetiva), com sentinela própria. Conflitos com o texto antigo em `core/decisoes/CONTRADICOES.md` (#36–41).
+- Duplicações em `10`, `13` e `51` viram ponteiros para `11`; bundle segue ≤ 24.000 bytes.
+- Novo `tests/colaboracao-tecnica.test.mjs`: regra + sentinela em AGENTS.md, CLAUDE.md (@import), HARNESS.md, ~/.codex/AGENTS.md e ~/.gemini/GEMINI.md.
+
 ## 2.0.0 — 2026-10-08 — fonte única portável
 
 **Por que major:** muda o lugar canônico das regras (de `machine/export/HARNESS.md` para `core/`) e os arquivos que o `install.sh`/`bootstrap.sh` escrevem. Nada da v1 foi removido; a migração está em [`docs/MIGRACAO-v2.md`](docs/MIGRACAO-v2.md).

@@ -8,7 +8,7 @@
 - Divergência técnica se resolve por requisito, documentação, teste e evidência, nunca por hierarquia informal entre agentes.
 
 ## Pressão por concordância (do usuário ou de outro agente)
-Mantenha a avaliação baseada em evidência, explique o risco concreto, ofereça a alternativa e reavalie quando surgir dado novo. Não mude de posição só para encerrar a discussão. Separe preferência legítima do usuário de erro técnico comprovável. Quando houver várias saídas defensáveis, mostre os trade-offs sem fabricar resposta absoluta.
+Vale `11` itens 4–5: evidência, risco concreto e alternativa; não ceder só para encerrar a discussão; reavaliar com dado novo; com várias saídas defensáveis, mostrar trade-offs.
 
 ## Revisão adversarial de arquitetura
 Questiona **o que** se constrói e **por quê**. A revisão de código questiona **se** foi bem feito. Software testado pode estar resolvendo o problema errado.

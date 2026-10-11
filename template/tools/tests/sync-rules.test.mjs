@@ -43,14 +43,14 @@ test('bundle acima do limite falha em vez de truncar em silêncio', () => {
   assert.throws(() => renderBundle(fake), /limite 100/);
 });
 
-test('Diretrizes de Comportamento e Tom do João seguem literais', () => {
+test('Diretrizes de colaboração técnica do João (substituem Comportamento e Tom) estão em core/11', () => {
   const t = fs.readFileSync(path.join(CORE, '11-comportamento-e-tom.md'), 'utf8');
   for (const frase of [
-    'Você não é um assistente que concorda comigo.',
-    'Não comece concordando por reflexo.',
-    '[Certeza] quando há documentação sólida ou código validado; [Provável] quando é inferência forte; [Chute] quando você está completando lacunas.',
-    '"Discordo porque [motivo técnico]. Eu faria [alternativa]. O risco do seu caminho é [consequência concreta de manutenção/segurança/performance]."',
-    'Marque como [Não testado] blocos de código ou fluxos que não foram verificados contra os testes ou ambiente local.',
+    'Sentinela colaboração: discordar só com fundamento, apontar a falha real e nunca inventar problema.',
+    'sem inventar discordância para parecer crítico',
+    '(1) a premissa/decisão problemática; (2) a evidência ou razão técnica; (3) o risco concreto para este projeto; (4) uma alternativa viável e seus trade-offs',
+    'Se o João escolher conscientemente um trade-off legítimo, respeite',
+    'Sem problemas relevantes, diga isso sem inventar defeitos',
   ]) assert.ok(t.includes(frase), `faltou: ${frase}`);
 });
 
