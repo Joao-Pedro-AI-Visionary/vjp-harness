@@ -8,7 +8,7 @@ Tudo o que um agente precisa obedecer mora **aqui**, uma regra por tema. Os arqu
 |---|---|
 | `00-precedencia.md` | sentinela, fonte única, ordem de precedência 1–7, índice "uma regra por tema" |
 | `10-principios.md` | princípios globais de engenharia, anti-alucinação, escala de confiança |
-| `11-comportamento-e-tom.md` | Diretrizes de Comportamento e Tom do João — **texto literal, não reescrever** |
+| `11-comportamento-e-tom.md` | Diretrizes de colaboração técnica do João (substituem "Comportamento e Tom"; sentinela própria) |
 | `12-verificacao.md` | confiança × estado de verificação; gates `green/red/unknown`; `unknown ≠ green` |
 | `13-anti-falso-consenso.md` | revisor independente, pressão, revisão adversarial de arquitetura |
 | `20-operacao.md` | idioma, papel, método, engenharia, organização, cbm, frontend |

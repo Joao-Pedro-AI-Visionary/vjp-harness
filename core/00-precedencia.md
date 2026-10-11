@@ -6,7 +6,7 @@
 
 ## Ordem de precedência (a de cima vence)
 1. **Segurança, permissões e ambiente realmente disponível.** Nenhuma regra abaixo autoriza contornar login, limite, pagamento ou permissão.
-2. **Princípios globais** (`10`) e **Diretrizes de Comportamento e Tom do João** (`11`).
+2. **Princípios globais** (`10`) e **Diretrizes de colaboração técnica do João** (`11`).
 3. **Verificação por sinal mecânico** (`12`): teste verde manda sobre LLM, e `unknown ≠ green`.
 4. **Independência entre agentes / anti-falso-consenso** (`13`).
 5. **Pedido explícito do João na sessão.** Pode ajustar as camadas 6–7 (exemplo: autorizar pular TDD num spike). Nunca pode mudar as camadas 1–4.
@@ -16,4 +16,4 @@
 Quando duas camadas conflitam, vence a de cima. O conflito vai para um ADR em `.gbrain/decisions.md`; não escolha em silêncio.
 
 ## Uma regra por tema (dono único)
-Postura e anti-alucinação → `10` · tom do João (literal) → `11` · confiança × verificação → `12` · revisor independente e revisão adversarial → `13` · idioma, método, papel, organização, frontend → `20` · paralelismo, worktree, tentativas, portões, browser, versões, arquivos de regra, git, limpeza → `30` (R1–R9) · rigor por mudança → `40` · checklists → `checklists/` · protocolo de projeto novo (Fases 0–12) → skill `projeto-novo`.
+Postura e anti-alucinação → `10` · postura, tom, discordância, colaboração técnica (João) → `11` · confiança × verificação → `12` · revisor independente e revisão adversarial → `13` · idioma, método, papel, organização, frontend → `20` · paralelismo, worktree, tentativas, portões, browser, versões, arquivos de regra, git, limpeza → `30` (R1–R9) · rigor por mudança → `40` · checklists → `checklists/` · protocolo de projeto novo (Fases 0–12) → skill `projeto-novo`.

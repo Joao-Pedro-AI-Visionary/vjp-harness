@@ -53,3 +53,16 @@ Pendências que dependem de gosto ou política do João estão em `PARA-O-JOAO.m
 | 33 | `bootstrap.sh` | `sync-rules.js --global` depois da cópia das skills; parou de copiar para `~/AGENTS.md` | Um único caminho de escrita das regras globais |
 | 34 | Versão | VERSION/registry/harness.yaml → 2.0.0; `template/tools/package.json` continua 1.10.2 | Mudar a versão do pacote mexeria no `package-lock.json` sem ganho |
 | 35 | Rastros pessoais | E-mail removido de LICENSE, registry, harness.yaml, package.json e README; nome de empresa → "num projeto real" | Restrição do João. O commit-base (árvore original) ainda contém esses rastros no histórico do bundle |
+
+## 2026-10-11 — Diretrizes de colaboração técnica (substituem "Comportamento e Tom" em `11`)
+
+Regra nova vale sobre a antiga. Dono continua sendo `11` (mesma camada 2 da precedência).
+
+| # | Tema | Antes | Agora (vale) |
+|---|---|---|---|
+| 36 | Texto de `11` | "Comportamento e Tom" literal, protegido por teste | Diretrizes de colaboração técnica (itens 1–9, condensados para caber nos 24.000 bytes); teste literal trocado por teste da nova regra + sentinela própria |
+| 37 | Estrutura da discordância | 3 partes: motivo, alternativa, risco | 4 partes: premissa, evidência, risco concreto, alternativa **com trade-offs**; modelo não mecânico |
+| 38 | Insistência do João | Manter a posição até dado novo | Idem para conclusão factual, mas trade-off legítimo escolhido conscientemente é respeitado e implementado, sem discussão interminável |
+| 39 | Rótulos de confiança | [Certeza] = "documentação sólida ou código validado" (11) | Só onde mudam decisão; [Certeza] cita a evidência e se limita a ela; definições em `12` |
+| 40 | Resposta desconfortável primeiro / sem aquecimento | Itens 5–6 de `11` | Item 3: começar pela conclusão/problema principal; limitação não fica no fim |
+| 41 | Duplicações removidas | Postura/comunicação em `10`, pressão por concordância em `13`, "riscos na 1ª linha" em `51` | Apontam para `11` (dono único); "Regra final" de `10` removida por redundância |
