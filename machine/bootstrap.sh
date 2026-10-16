@@ -98,7 +98,15 @@ rm -f "$CLAUDE_DIR/RTK.md"
 # ---------------------------------------------------------------- skills
 step "6/8 Skills (gstack-family + fullstack-validate + arch-review + test-gate + pr-review + prepush + projeto-novo) + regras globais cross-CLI"
 mkdir -p "$CLAUDE_DIR/skills"
-cp -rv "$EXPORT/skills/." "$CLAUDE_DIR/skills/" | tail -1
+# Tolerante a links quebrados (ex.: symlink absoluto de outra máquina): pula com aviso.
+(cd "$EXPORT/skills" && find . \( -type f -o -type l \) -print) | while IFS= read -r rel; do
+  src="$EXPORT/skills/$rel"
+  if [ -L "$src" ] && [ ! -e "$src" ]; then
+    echo "⚠️  skill ignorada (link quebrado): $rel"; continue
+  fi
+  mkdir -p "$CLAUDE_DIR/skills/$(dirname "$rel")"
+  cp -L "$src" "$CLAUDE_DIR/skills/$rel" || echo "⚠️  falha ao copiar skill: $rel"
+done
 echo "skills instaladas: $(ls "$CLAUDE_DIR/skills" | wc -l)"
 # v2.0.0 — fonte única core/ → regras globais de cada CLI + skills reais (não-symlink) em
 # ~/.claude/skills, ~/.agents/skills (Codex), ~/.gemini/config/skills e ~/.gemini/antigravity-cli/skills (AGY).
