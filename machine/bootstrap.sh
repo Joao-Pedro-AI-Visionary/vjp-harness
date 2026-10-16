@@ -132,6 +132,11 @@ else
   echo "pulada (use --with-memory após copiar ~/.claude/projects/*/memory para export/memory/)"
 fi
 
+CHECKLIST="$HERE/../template/tools/checklist.js"
+if [ -f "$CHECKLIST" ]; then
+  node "$CHECKLIST" || echo "⚠️  checklist reportou FALTA (não bloqueia o bootstrap; o comando de correção está acima)"
+fi
+
 cat <<'EOF'
 
 ✅ Bootstrap concluído. Passos manuais finais:
