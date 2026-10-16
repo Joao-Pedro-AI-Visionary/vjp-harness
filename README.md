@@ -60,25 +60,54 @@ A superfície do harness fala por **papel**; o nome técnico é só a origem (cr
 
 ---
 
-## Instalação determinística
+## Instalação rápida
+
+Para um colega instalar do zero, em macOS, Linux ou Windows (Git Bash / WSL — o `install.sh` é bash; no PowerShell nativo o checklist roda com `node`, o instalador não):
 
 ```bash
 git clone https://github.com/Joao-Pedro-AI-Visionary/vjp-harness.git
 cd meu-projeto
-bash /caminho/para/vjp-harness/install.sh --name meu-projeto
+bash /caminho/para/vjp-harness/install.sh --name meu-projeto --yes
 ```
 
-O instalador é **idempotente** e usa `npm ci` (lockfile) para o núcleo. Detalhes completos em [`template/INSTALL.md`](./template/INSTALL.md).
+No fim, o instalador roda o doctor sozinho (`verify.js`: pinagem do `registry.json` + checklist de ambiente). Não é preciso pedir o checklist numa conversa com Claude Code, Codex, AGY ou Cursor: o mesmo relatório volta em `node .harness/tools/bsd.js --doctor` (alias `--check`). As regras geradas de `core/` já mandam o agente usar esse comando.
+
+Máquina nova (CLIs, Headroom, skills globais): `bash machine/bootstrap.sh` também imprime o checklist no final. Detalhe em [`template/INSTALL.md`](./template/INSTALL.md).
 
 | Flag | Efeito |
 |---|---|
 | `--target <dir>` | Projeto-alvo (default: diretório atual) |
 | `--name <nome>` | Nome do projeto em `harness.yaml` |
-| `--no-install` | Copia sem rodar `npm ci` |
+| `--no-install` | Copia sem `npm ci` e ainda imprime o checklist |
 | `--force` | Sobrescreve `.harness/` existente |
 | `--yes` / `-y` | Não-interativo (CI) |
 
-**Pré-requisitos:** Node ≥ 18; `git` opcional (habilita worktrees isoladas).
+**Obrigatório para instalar:** Node ≥ 18. **git** é opcional (sem ele, o Maestro não abre worktree). Python, os quatro CLIs, Headroom, GBrain, Playwright MCP e Postgres MCP Pro são opcionais e aparecem como AVISO quando faltam.
+
+## Checklist
+
+```bash
+node .harness/tools/bsd.js --doctor          # determinismo + checklist
+node .harness/tools/bsd.js --check           # alias (não é o drift de regras)
+node .harness/tools/checklist.js             # só o checklist
+node .harness/tools/bsd.js --doctor --strict # AVISO também falha o processo
+node .harness/tools/bsd.js --doctor --json   # sem cor; valores de env não saem
+```
+
+Cada linha é **OK**, **FALTA** (sai com código 1: Node &lt; 18 ou ausente, Repomix fora do pin) ou **AVISO** (não bloqueia), com o comando de correção da plataforma (`win32` / `darwin` / `linux`). O relatório cobre Node, Python, git, Claude Code (`claude --version`), Codex (`codex --version`), Antigravity (`agy --version`), Cursor CLI (`agent --version`), skills/plugins nos diretórios que o harness grava, `config/mcp.json`, Headroom, GBrain, Repomix, Playwright MCP, Postgres MCP Pro (opcional; o pacote não tem `--version`) e as variáveis `VJP_LLM_API_KEY`, `HEADROOM_BEACON`, `DATABASE_URI` — só "ausente" ou "definida", nunca o valor.
+
+Não há versão mínima pinada no registry para os quatro CLIs. O checklist confere presença e o `--version` documentado. `claude doctor` existe na documentação do Claude Code e checa a instalação deles; não substitui este relatório. Não há flag não-interativa verificada para listar plugins do Codex, do AGY ou do Cursor: o checklist olha os diretórios de skill.
+
+Eval de regras (opt-in, não roda na instalação nem no doctor): o mesmo prompt com e sem cada módulo de `core/`. Sem `--llm` só compara o texto. Com `--llm` chama o provider já configurado e gasta API.
+
+```bash
+node template/tools/sync-rules.js --eval
+node template/tools/sync-rules.js --eval --llm --only 10-principios.md
+```
+
+## Instalação determinística
+
+O instalador é **idempotente** e usa `npm ci` (lockfile) para o núcleo. As flags estão na seção Instalação rápida. O `npm ci` (não `npm install`) é o que garante a árvore pinada.
 
 ---
 
@@ -138,7 +167,7 @@ O `install.sh` clona os componentes git **pinados no commit** para dentro de `.h
 | Maestro | BSD — base `garrytan/gstack` | `1.6.0` |
 | Compressor de Contexto | `headroomlabs-ai/headroom` (Headroom, PyPI) | `0.39.1` |
 | Memória Persistente | `garrytan/gbrain` (GBrain) | `0.35.1.0` |
-| Empacotador de Repositório | `yamadashy/repomix` (Repomix, npm) | `0.2.14` |
+| Empacotador de Repositório | `yamadashy/repomix` (Repomix, npm) | `1.16.0` |
 | Planejador Spec-Driven | `open-gsd/get-shit-done-redux` (GSD, npm) | `1.1.0` |
 | Padrões Reutilizáveis / Skills | `obra/superpowers` (Superpowers) | `v5.1.0` |
 | ~~Validador de Banco (legado)~~ | ~~`modelcontextprotocol/servers`~~ | ❌ removido v1.7.0 |
