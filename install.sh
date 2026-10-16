@@ -150,6 +150,13 @@ else
   warn "core/ ou sync-rules.js ausente neste checkout — regras cross-tool não renderizadas."
 fi
 
+# Plugins oficiais do Claude Code (escopo user). Não bloqueia: sem claude, versão
+# abaixo de 2.1.296 ou falha de rede só avisam. Roda depois do sync-rules.
+PLUGIN_INSTALL="$REPO_DIR/machine/hooks/install-claude-plugins.sh"
+if [ -f "$PLUGIN_INSTALL" ]; then
+  bash "$PLUGIN_INSTALL" || warn "instalador de plugins oficiais terminou com erro (o harness segue)."
+fi
+
 # ---- scaffold do .gbrain (preserva existente) ----
 GBRAIN_DIR="$TARGET/.gbrain"
 if [ -d "$GBRAIN_DIR" ]; then
