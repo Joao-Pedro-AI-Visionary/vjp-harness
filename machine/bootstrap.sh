@@ -121,7 +121,8 @@ if [ -f "$SYNC_RULES" ]; then
   node "$SYNC_RULES" --global --quiet || echo "⚠️  sync-rules --global falhou (rode: node $SYNC_RULES --global)"
 fi
 # prepush: hook global de push (core.hooksPath ~/.githooks) — v1.20
-[ -f "$CLAUDE_DIR/skills/prepush/reinstall.sh" ] && bash "$CLAUDE_DIR/skills/prepush/reinstall.sh" | tail -2
+# Roda a partir do export (fonte): rodar a cópia instalada fazia SRC == DEST e o rm -rf apagava a skill.
+[ -f "$EXPORT/skills/prepush/reinstall.sh" ] && bash "$EXPORT/skills/prepush/reinstall.sh" | tail -2
 echo "⚠️  a skill 'gstack' (browse daemon, 1.5GB) não é vendorizada:"
 echo "    instale o gstack pelo instalador oficial e rode /gstack-upgrade na primeira sessão."
 
