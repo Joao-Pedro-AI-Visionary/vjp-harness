@@ -18,7 +18,7 @@ function probes(overrides = {}) {
   return {
     platform: overrides.platform || 'linux',
     harnessDir: overrides.harnessDir || '/harness',
-    home: overrides.home || '/home/dev',
+    home: overrides.home || '/home/user',
     env: overrides.env || {},
     command(bin, args) {
       const key = `${bin} ${args.join(' ')}`;
@@ -81,20 +81,20 @@ test('Repomix no pin é OK; versão errada é FALTA', () => {
 });
 
 test('não vaza valor de chave, URI nem beacon', () => {
-  const secret = 'sk-SUPERSECRET-nao-imprimir';
-  const uri = 'postgresql://user:s3cret@localhost/db';
+  const marcador = 'valor-de-teste-que-nao-pode-vazar';
+  const uri = 'postgresql://example:example@localhost/db';
   const r = evaluateChecklist(probes({
     commands: { ...okNode, ...okPy, ...okGit },
-    env: { VJP_LLM_API_KEY: secret, DATABASE_URI: uri, HEADROOM_BEACON: 'ligado-secreto' },
+    env: { VJP_LLM_API_KEY: marcador, DATABASE_URI: uri, HEADROOM_BEACON: 'ligado-nao-imprimir' },
     readJson: (p) => (p.endsWith('mcp.json')
       ? { mcpServers: { postgres: { env: { DATABASE_URI: uri } } } }
       : p.endsWith('package.json') ? { version: '1.16.0' } : null),
   }), { pins });
   const blob = JSON.stringify(r) + formatChecklist(r);
-  assert.equal(blob.includes(secret), false);
+  assert.equal(blob.includes(marcador), false);
   assert.equal(blob.includes(uri), false);
-  assert.equal(blob.includes('s3cret'), false);
-  assert.equal(blob.includes('ligado-secreto'), false);
+  assert.equal(blob.includes('example:example'), false);
+  assert.equal(blob.includes('ligado-nao-imprimir'), false);
   assert.match(blob, /definida/);
 });
 
