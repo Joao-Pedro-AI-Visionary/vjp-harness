@@ -9,7 +9,11 @@ SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEST="${PREPUSH_DEST:-$HOME/.claude/skills/prepush}"
 
 echo "→ skill: $SRC → $DEST"
-mkdir -p "$(dirname "$DEST")"; rm -rf "$DEST"; cp -r "$SRC" "$DEST"
+if [ "$(cd "$DEST" 2>/dev/null && pwd -P)" = "$(cd "$SRC" && pwd -P)" ]; then
+  echo "→ origem == destino; mantendo a skill instalada"
+else
+  mkdir -p "$(dirname "$DEST")"; rm -rf "$DEST"; cp -r "$SRC" "$DEST"
+fi
 find "$DEST" -type f \( -name '*.sh' -o -name '*.md' \) -exec sed -i 's/\r$//' {} + 2>/dev/null || true
 chmod +x "$DEST"/scripts/*.sh "$DEST"/reinstall.sh
 bash -n "$DEST/scripts/gate.sh"
