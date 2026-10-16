@@ -44,8 +44,8 @@ flowchart TD
 | `HEADROOM.md` | Referência de uso do Headroom (`cch`, `headroom savings`, `doctor`, telemetria desligada) |
 | `HARNESS.md` | **Regras Globais do harness** — desde a v2.0.0 é **gerado** de `core/` por `template/tools/sync-rules.js` (não edite à mão). O passo 6 do bootstrap roda `sync-rules.js --global`, que regrava `~/.claude/HARNESS.md` |
 | `AGENTS.md` | Mesmo bundle (gerado, idêntico ao `HARNESS.md`). Desde a v2.0.0 o global do Codex vai para **`~/.codex/AGENTS.md`** e o do Antigravity para **`~/.gemini/GEMINI.md`** (blocos gerenciados). `~/AGENTS.md` (v1) só é atualizado se já existir e for nosso — ver `docs/MIGRACAO-v2.md` |
-| `settings.template.json` | settings completo: modelo `claude-fable-5[1m]`, statusline, plugin vercel, allowedTools, MCPs |
-| `statusline-context.js` | Statusline custom: tokens de contexto + percentual (lê transcript) |
+| `settings.template.json` | settings completo: modelo `opus` (alias oficial do Claude Code), statusline, plugin vercel, allowedTools, MCPs |
+| `statusline-context.js` | Statusline custom: tokens de contexto + percentual (lê transcript) e contagem regressiva do prompt cache da conversa principal (`prompt_cache.expires_at`, Claude Code ≥ 2.1.251) |
 | `skills/` | skills leves vendorizadas (a `gstack` NÃO — 1.5 GB com node_modules; reinstala via gstack, ver bootstrap). `skills/projeto-novo/` é **gerada** de `core/protocolo/`. O `sync-rules.js --global` replica as skills reais (não-symlink) também em `~/.agents/skills`, `~/.gemini/config/skills` e `~/.gemini/antigravity-cli/skills` |
 
 ### 2.3 Hooks (em `settings.json`)

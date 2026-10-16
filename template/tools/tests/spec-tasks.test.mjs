@@ -94,7 +94,7 @@ test('INTEGRAÇÃO (subprocess, dry-run, git temporário): --execute lê tasks.m
   // Instala uma cópia mínima do harness dentro do repo temporário (só o necessário pro bsd.js rodar).
   const harnessTools = path.join(projectRoot, '.harness', 'tools');
   fs.mkdirSync(harnessTools, { recursive: true });
-  for (const f of ['bsd.js', 'agents.js', 'llm.js', 'aferidor-log.js', 'gates.js', 'verify.js', 'dial.js', 'aferidor-analise.js', 'sombra.js', 'sombra-llm.js']) {
+  for (const f of ['bsd.js', 'agents.js', 'llm.js', 'model-router.js', 'aferidor-log.js', 'gates.js', 'verify.js', 'checklist.js', 'dial.js', 'aferidor-analise.js', 'sombra.js', 'sombra-llm.js']) {
     fs.copyFileSync(path.join(TOOLS_DIR, f), path.join(harnessTools, f));
   }
   fs.writeFileSync(path.join(path.dirname(harnessTools), 'AGENT_RULES.md'), '# regras de teste');
@@ -136,7 +136,7 @@ test('INTEGRAÇÃO: sem .planning/phases/<feature>/tasks.md, cai no modo autôno
 
   const harnessTools = path.join(projectRoot, '.harness', 'tools');
   fs.mkdirSync(harnessTools, { recursive: true });
-  for (const f of ['bsd.js', 'agents.js', 'llm.js', 'aferidor-log.js', 'gates.js', 'verify.js', 'dial.js', 'aferidor-analise.js', 'sombra.js', 'sombra-llm.js']) {
+  for (const f of ['bsd.js', 'agents.js', 'llm.js', 'model-router.js', 'aferidor-log.js', 'gates.js', 'verify.js', 'checklist.js', 'dial.js', 'aferidor-analise.js', 'sombra.js', 'sombra-llm.js']) {
     fs.copyFileSync(path.join(TOOLS_DIR, f), path.join(harnessTools, f));
   }
   fs.writeFileSync(path.join(path.dirname(harnessTools), 'AGENT_RULES.md'), '# regras de teste');

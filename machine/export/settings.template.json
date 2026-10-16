@@ -5,7 +5,7 @@
     "OPENAI_API_KEY": "gqwen",
     "OPENAI_MODEL": "coder-model"
   },
-  "model": "claude-fable-5[1m]",
+  "model": "opus",
   "fallbackModel": [
     "claude-opus-4-8",
     "claude-sonnet-4-6"

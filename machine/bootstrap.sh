@@ -86,6 +86,12 @@ sed -e "s|/home/jp|$HOME|g" \
     -e "s|$HOME/.nvm/versions/node/v[0-9.]*/bin/node|$NODE_BIN|g" \
     "$EXPORT/settings.template.json" > "$CLAUDE_DIR/settings.json"
 echo "settings.json instalado (statusline, guard V-JP, MCPs chrome-devtools+gbrain+context7)"
+# Roteador de fase nos subagentes de usuário (Claude, Cursor, Codex). Idempotente.
+# Não grava modelo na AGY: settings.json não tem essa chave; Gemini já é o padrão.
+MODEL_ROUTER="$HERE/../template/tools/model-router.js"
+if [ -f "$MODEL_ROUTER" ]; then
+  node "$MODEL_ROUTER" --apply-user "$HOME" || echo "⚠️  model-router --apply-user falhou"
+fi
 # RTK aposentado na v1.22.0: remove a referência antiga se sobrou de um bootstrap anterior.
 rm -f "$CLAUDE_DIR/RTK.md"
 
@@ -97,6 +103,11 @@ echo "skills instaladas: $(ls "$CLAUDE_DIR/skills" | wc -l)"
 # v2.0.0 — fonte única core/ → regras globais de cada CLI + skills reais (não-symlink) em
 # ~/.claude/skills, ~/.agents/skills (Codex), ~/.gemini/config/skills e ~/.gemini/antigravity-cli/skills (AGY).
 # Blocos gerenciados preservam o que já existir em ~/.codex/AGENTS.md e ~/.gemini/GEMINI.md.
+# Plugins oficiais antes do sync-rules: o merge do settings.json preserva enabledPlugins.
+PLUGIN_INSTALL="$HERE/hooks/install-claude-plugins.sh"
+if [ -f "$PLUGIN_INSTALL" ]; then
+  bash "$PLUGIN_INSTALL" || echo "⚠️  plugins oficiais (claude-code-setup, receipts) não instalados"
+fi
 SYNC_RULES="$HERE/../template/tools/sync-rules.js"
 if [ -f "$SYNC_RULES" ]; then
   node "$SYNC_RULES" --global --quiet || echo "⚠️  sync-rules --global falhou (rode: node $SYNC_RULES --global)"
@@ -130,6 +141,11 @@ if [ "$WITH_MEMORY" = 1 ] && [ -d "$EXPORT/memory" ]; then
   mkdir -p "$MEM_DIR" && cp -rv "$EXPORT/memory/." "$MEM_DIR/"
 else
   echo "pulada (use --with-memory após copiar ~/.claude/projects/*/memory para export/memory/)"
+fi
+
+CHECKLIST="$HERE/../template/tools/checklist.js"
+if [ -f "$CHECKLIST" ]; then
+  node "$CHECKLIST" || echo "⚠️  checklist reportou FALTA (não bloqueia o bootstrap; o comando de correção está acima)"
 fi
 
 cat <<'EOF'

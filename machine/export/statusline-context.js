@@ -57,14 +57,24 @@ function lastContextTokens(transcriptPath) {
   return 0;
 }
 
-function main() {
-  let data = {};
-  try {
-    data = JSON.parse(readStdin() || '{}');
-  } catch {
-    data = {};
-  }
+// prompt_cache vem no stdin desde o Claude Code 2.1.251.
+// expires_at é Unix segundos e cobre só a conversa principal (subagente fica de fora).
+// https://code.claude.com/docs/en/prompt-caching
+function cacheLabel(promptCache, nowSec) {
+  if (!promptCache || typeof promptCache !== 'object') return '';
+  const ttl = promptCache.ttl === '1h' || promptCache.ttl === '5m' ? promptCache.ttl : '';
+  if (promptCache.expires_at == null || promptCache.expires_at === '') return '';
+  const exp = Number(promptCache.expires_at);
+  if (!Number.isFinite(exp)) return '';
+  const left = Math.max(0, Math.round(exp - nowSec));
+  const prefix = ttl ? `cache ${ttl}` : 'cache';
+  if (promptCache.warm === false || left === 0) return `${prefix} frio`;
+  const mm = Math.floor(left / 60);
+  const ss = String(left % 60).padStart(2, '0');
+  return `${prefix} ${mm}:${ss}`;
+}
 
+function formatStatus(data, nowSec) {
   const modelId = data.model && data.model.id;
   const modelName = (data.model && data.model.display_name) || modelId || 'Claude';
   const limit = contextLimit(modelId, data.exceeds_200k_tokens);
@@ -72,24 +82,35 @@ function main() {
   const pct = limit ? Math.min(100, Math.round((used / limit) * 100)) : 0;
 
   const dir = (data.workspace && data.workspace.current_dir) || data.cwd || '';
-  const project = dir ? dir.split('/').filter(Boolean).pop() : '';
+  const project = dir ? dir.split(/[/\\]/).filter(Boolean).pop() : '';
 
-  // Barra de 10 blocos.
   const filled = Math.round(pct / 10);
   const bar = '█'.repeat(filled) + '░'.repeat(10 - filled);
 
-  // Cor ANSI conforme pressao de contexto.
-  let color = '\x1b[32m'; // verde
-  if (pct >= 85) color = '\x1b[31m'; // vermelho
-  else if (pct >= 60) color = '\x1b[33m'; // amarelo
+  let color = '\x1b[32m';
+  if (pct >= 85) color = '\x1b[31m';
+  else if (pct >= 60) color = '\x1b[33m';
   const reset = '\x1b[0m';
   const dim = '\x1b[2m';
 
   const ctx = `${color}${bar} ${fmt(used)}/${fmt(limit)} (${pct}%)${reset}`;
   const parts = [ctx, `${dim}${modelName}${reset}`];
-  if (project) parts.push(`${dim} ${project}${reset}`);
-
-  process.stdout.write(parts.join(`  ${dim}|${reset}  `));
+  if (project) parts.push(`${dim}\uF115 ${project}${reset}`);
+  const cache = cacheLabel(data.prompt_cache, nowSec);
+  if (cache) parts.push(`${dim}${cache}${reset}`);
+  return parts.join(`  ${dim}|${reset}  `);
 }
 
-main();
+function main() {
+  let data = {};
+  try {
+    data = JSON.parse(readStdin() || '{}');
+  } catch {
+    data = {};
+  }
+  process.stdout.write(formatStatus(data, Date.now() / 1000));
+}
+
+if (require.main === module) main();
+
+module.exports = { formatStatus, cacheLabel, contextLimit };

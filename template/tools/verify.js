@@ -16,6 +16,7 @@ import path from 'path';
 import os from 'os';
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
+import { evaluateChecklist, formatChecklist, liveProbes } from './checklist.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const HARNESS_DIR = path.resolve(__dirname, '..');
@@ -101,9 +102,14 @@ function main() {
   }
   const reg = JSON.parse(fs.readFileSync(REGISTRY, 'utf8'));
   const { rows, fail } = evaluateRegistry(reg, { strict });
+  const checklist = evaluateChecklist(liveProbes(HARNESS_DIR), { strict });
 
   if (asJson) {
-    console.log(JSON.stringify({ harnessVersion: reg.harnessVersion, results: rows }, null, 2));
+    console.log(JSON.stringify({
+      harnessVersion: reg.harnessVersion,
+      results: rows,
+      checklist: checklist.rows,
+    }, null, 2));
   } else {
     const icon = { ok: `${C.green}✔${C.reset}`, drift: `${C.yellow}≠${C.reset}`, missing: `${C.red}✗${C.reset}`, unknown: `${C.dim}?${C.reset}` };
     console.log(`\n${C.bold}${C.cyan}=== V-JP Harness Doctor — Determinismo v${reg.harnessVersion} ===${C.reset}\n`);
@@ -121,8 +127,9 @@ function main() {
     } else {
       console.log(`${C.red}${C.bold}✗ ${fail.length} componente(s) ${strict ? '' : 'obrigatório(s) '}com problema${C.reset} — montagem não-determinística.\n`);
     }
+    console.log(formatChecklist(checklist, { color: process.stdout.isTTY }));
   }
-  process.exit(fail.length === 0 ? 0 : 1);
+  process.exit(fail.length === 0 && checklist.fail.length === 0 ? 0 : 1);
 }
 
 // Só roda a CLI quando invocado diretamente (não ao ser importado por tests/).

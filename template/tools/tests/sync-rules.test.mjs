@@ -102,6 +102,10 @@ test('mergeCodexHooks: preserva hook alheio, migra o caminho relativo antigo e �
   assert.equal(mergeCodexHooks(once, cmd), once);
   assert.throws(() => mergeCodexHooks('{quebrado', cmd), /não sobrescrevo/);
   assert.equal(JSON.parse(mergeCodexHooks('', cmd)).hooks.PreToolUse.length, 1);
+  const withSession = JSON.parse(mergeCodexHooks('', cmd, 'exec bash cli-session-start.sh codex'));
+  assert.equal(withSession.hooks.SessionStart[0].matcher, 'startup|resume|clear|compact|fork');
+  assert.equal(withSession.hooks.PreToolUse.length, 1);
+  assert.equal(mergeCodexHooks(JSON.stringify(withSession), cmd, 'exec bash cli-session-start.sh codex'), JSON.stringify(withSession, null, 2) + '\n');
 });
 
 test('modo projeto: aplica, segunda rodada não muda nada e --check fica verde', onlyRepo, () => {
@@ -117,11 +121,29 @@ test('modo projeto: aplica, segunda rodada não muda nada e --check fica verde',
   assert.ok(agents.includes(core.manifest.sentinel));
   const claude = fs.readFileSync(path.join(d, 'CLAUDE.md'), 'utf8');
   for (const m of claude.matchAll(/^@(\S+)$/gm)) assert.ok(fs.existsSync(path.join(d, m[1])), `import quebrado: ${m[1]}`);
-  for (const p of ['.agents/rules/vjp-projeto-novo.md', '.cursor/rules/vjp-projeto-novo.mdc', '.agents/skills/projeto-novo/SKILL.md',
-    '.claude/skills/projeto-novo/SKILL.md', `.harness/tools/hooks/${HOOK_SCRIPT}`, '.codex/hooks.json']) {
+  for (const p of ['.agents/rules/vjp-projeto-novo.md', '.agents/rules/vjp-cli.md', '.cursor/rules/vjp-projeto-novo.mdc', '.cursor/rules/vjp-cli.mdc', '.agents/skills/projeto-novo/SKILL.md',
+    '.claude/skills/projeto-novo/SKILL.md', `.harness/tools/hooks/${HOOK_SCRIPT}`, '.harness/tools/hooks/cli-session-start.sh', '.codex/hooks.json', '.codex/vjp-cli.json', '.claude/settings.json']) {
     assert.ok(fs.existsSync(path.join(d, p)), p);
   }
-  assert.ok(fs.statSync(path.join(d, `.harness/tools/hooks/${HOOK_SCRIPT}`)).mode & 0o100, 'hook executável');
+  assert.equal(fs.existsSync(path.join(d, '.codex/config.toml')), false, 'config.toml não é criado sem chave oficial para gravar');
+  if (process.platform !== 'win32') assert.ok(fs.statSync(path.join(d, `.harness/tools/hooks/${HOOK_SCRIPT}`)).mode & 0o100, 'hook executável');
+  const codexHooks = JSON.parse(fs.readFileSync(path.join(d, '.codex/hooks.json'), 'utf8'));
+  assert.equal(codexHooks.hooks.SessionStart[0].matcher, 'startup|resume|clear|compact|fork');
+  assert.match(codexHooks.hooks.SessionStart[0].hooks[0].command, /cli-session-start\.sh/);
+  assert.match(codexHooks.hooks.SessionStart[0].hooks[0].command, / codex$/);
+  assert.match(codexHooks.hooks.SessionStart[0].hooks[0].commandWindows, /cli-session-start\.mjs/);
+  assert.match(codexHooks.hooks.SessionStart[0].hooks[0].commandWindows, /^node /);
+  const legacyToml = '# vjp-harness:codex:start\n[features]\nworktrees = true\n# vjp-harness:codex:end\n';
+  fs.writeFileSync(path.join(d, '.codex/config.toml'), legacyToml);
+  applyOps(planProject(core, d, { repoRoot: REPO }));
+  assert.doesNotMatch(fs.readFileSync(path.join(d, '.codex/config.toml'), 'utf8'), /worktrees\s*=/);
+  const map = JSON.parse(fs.readFileSync(path.join(d, '.codex/vjp-cli.json'), 'utf8'));
+  assert.equal(map.managedRoot, '$CODEX_HOME/worktrees');
+  assert.equal(map.maestroRoot, '.bsd/worktrees/<feature>');
+  assert.match(fs.readFileSync(path.join(d, '.agents/rules/vjp-cli.md'), 'utf8'), /^---\ntrigger: always_on\n/);
+  assert.match(fs.readFileSync(path.join(d, '.cursor/rules/vjp-cli.mdc'), 'utf8'), /alwaysApply: true\n/);
+  const claudeSettings = JSON.parse(fs.readFileSync(path.join(d, '.claude/settings.json'), 'utf8'));
+  assert.match(claudeSettings.hooks.SessionStart[0].hooks[0].command, / claude$/);
   assert.ok(!fs.existsSync(path.join(d, '.harness/core/decisoes')), 'decisoes/ do harness não vai para o projeto');
   // drift: editar arquivo gerado à mão é acusado pelo --check
   fs.appendFileSync(path.join(d, '.agents/rules/vjp-projeto-novo.md'), 'edição manual\n');
@@ -137,6 +159,13 @@ test('modo global (HOME temporário): ~/.codex/AGENTS.md, GEMINI.md, HARNESS.md 
   assert.ok(r1.changed.length > 0);
   assert.equal(applyOps(planGlobal(core, REPO, home), { check: true }).changed.length, 0);
   assert.ok(fs.readFileSync(path.join(home, '.codex/AGENTS.md'), 'utf8').includes(core.manifest.sentinel));
+  const userHooks = JSON.parse(fs.readFileSync(path.join(home, '.codex/hooks.json'), 'utf8'));
+  assert.equal(userHooks.hooks.PreToolUse, undefined);
+  assert.match(userHooks.hooks.SessionStart[0].hooks[0].command, /cli-session-start\.sh/);
+  assert.match(userHooks.hooks.SessionStart[0].hooks[0].commandWindows, /cli-session-start\.mjs/);
+  assert.match(userHooks.hooks.SessionStart[0].hooks[0].command, / codex$/);
+  const userClaude = JSON.parse(fs.readFileSync(path.join(home, '.claude/settings.json'), 'utf8'));
+  assert.match(userClaude.hooks.SessionStart[0].hooks[0].command, / claude$/);
   const gem = fs.readFileSync(path.join(home, '.gemini/GEMINI.md'), 'utf8');
   assert.ok(gem.startsWith('minhas regras gemini\n') && gem.includes(START));
   const legacy = fs.readFileSync(path.join(home, 'AGENTS.md'), 'utf8');
@@ -146,7 +175,7 @@ test('modo global (HOME temporário): ~/.codex/AGENTS.md, GEMINI.md, HARNESS.md 
   for (const t of ['.claude/skills', '.agents/skills', '.gemini/config/skills', '.gemini/antigravity-cli/skills']) {
     for (const s of real) assert.ok(fs.existsSync(path.join(home, t, s, 'SKILL.md')), `${t}/${s}`);
   }
-  assert.ok(fs.statSync(path.join(home, '.agents/skills/prepush/scripts/gate.sh')).mode & 0o100, 'script de skill segue executável');
+  if (process.platform !== 'win32') assert.ok(fs.statSync(path.join(home, '.agents/skills/prepush/scripts/gate.sh')).mode & 0o100, 'script de skill segue executável');
 });
 
 test('modo global não toca ~/AGENTS.md que não é do harness', onlyRepo, () => {

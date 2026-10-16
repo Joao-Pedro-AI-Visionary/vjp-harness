@@ -1,7 +1,7 @@
 # V-JP Harness
 
 > **Autor:** João Pedro (V-JP) · [github.com/Joao-Pedro-AI-Visionary](https://github.com/Joao-Pedro-AI-Visionary)
-> **Versão:** 2.0.0 (fonte: [`VERSION`](./VERSION); histórico em [`CHANGELOG.md`](./CHANGELOG.md)) · Licença MIT · *método de engenharia de software orientado a IA*
+> **Versão:** 2.1.0 (fonte: [`VERSION`](./VERSION); histórico em [`CHANGELOG.md`](./CHANGELOG.md)) · Licença MIT · *método de engenharia de software orientado a IA*
 
 Ecossistema de engenharia de software orientado a IA — empacotado para instalação **determinística** em qualquer projeto.
 
@@ -60,25 +60,60 @@ A superfície do harness fala por **papel**; o nome técnico é só a origem (cr
 
 ---
 
-## Instalação determinística
+## Instalação rápida
+
+Para um colega instalar do zero, em macOS, Linux ou Windows (Git Bash / WSL — o `install.sh` é bash; no PowerShell nativo o checklist roda com `node`, o instalador não):
 
 ```bash
 git clone https://github.com/Joao-Pedro-AI-Visionary/vjp-harness.git
 cd meu-projeto
-bash /caminho/para/vjp-harness/install.sh --name meu-projeto
+bash /caminho/para/vjp-harness/install.sh --name meu-projeto --yes
 ```
 
-O instalador é **idempotente** e usa `npm ci` (lockfile) para o núcleo. Detalhes completos em [`template/INSTALL.md`](./template/INSTALL.md).
+No fim, o instalador roda o doctor sozinho (`verify.js`: pinagem do `registry.json` + checklist de ambiente). Não é preciso pedir o checklist numa conversa: o mesmo relatório volta em `node .harness/tools/bsd.js --doctor` (alias `--check`). As regras geradas de `core/` já mandam o agente usar esse comando.
+
+O mesmo `install.sh` aciona, sem pedido na conversa:
+
+- `model-router.js --apply` grava o modelo da fase nos subagentes (`.claude/agents`, `.cursor/agents`, `.codex/agents`).
+- `sync-rules.js --target` grava regras, o hook SessionStart e `.codex/vjp-cli.json`. Não grava `features.worktrees` no `config.toml`.
+- se `claude` estiver no PATH e a versão for ≥ 2.1.296, instala os plugins oficiais `claude-code-setup` e `receipts`.
+
+Máquina nova (CLIs, Headroom, skills globais, os mesmos três passos no escopo do usuário): `bash machine/bootstrap.sh` também imprime o checklist no final. Detalhe em [`template/INSTALL.md`](./template/INSTALL.md).
 
 | Flag | Efeito |
 |---|---|
 | `--target <dir>` | Projeto-alvo (default: diretório atual) |
 | `--name <nome>` | Nome do projeto em `harness.yaml` |
-| `--no-install` | Copia sem rodar `npm ci` |
+| `--no-install` | Copia sem `npm ci` e ainda imprime o checklist |
 | `--force` | Sobrescreve `.harness/` existente |
 | `--yes` / `-y` | Não-interativo (CI) |
 
-**Pré-requisitos:** Node ≥ 18; `git` opcional (habilita worktrees isoladas).
+**Obrigatório para instalar:** Node ≥ 18. **git** é opcional (sem ele, o Maestro não abre worktree). Python, os quatro CLIs, Headroom, GBrain, Playwright MCP e Postgres MCP Pro são opcionais e aparecem como AVISO quando faltam.
+
+## Checklist
+
+```bash
+node .harness/tools/bsd.js --doctor          # determinismo + checklist
+node .harness/tools/bsd.js --check           # alias (não é o drift de regras)
+node .harness/tools/checklist.js             # só o checklist
+node .harness/tools/bsd.js --doctor --strict # AVISO também falha o processo
+node .harness/tools/bsd.js --doctor --json   # sem cor; valores de env não saem
+```
+
+Cada linha é **OK**, **FALTA** (sai com código 1: Node &lt; 18 ou ausente, Repomix fora do pin) ou **AVISO** (não bloqueia), com o comando de correção da plataforma (`win32` / `darwin` / `linux`). O relatório cobre Node, Python, git, Claude Code (`claude --version`), Codex (`codex --version`), Antigravity (`agy --version`), Cursor CLI (`agent --version`), skills/plugins nos diretórios que o harness grava, `config/mcp.json`, Headroom, GBrain, Repomix, Playwright MCP, Postgres MCP Pro (opcional; o pacote não tem `--version`) e as variáveis `VJP_LLM_API_KEY`, `HEADROOM_BEACON`, `DATABASE_URI` — só "ausente" ou "definida", nunca o valor.
+
+Não há versão mínima pinada no registry para os quatro CLIs. O checklist confere presença e o `--version` documentado. `claude doctor` existe na documentação do Claude Code e checa a instalação deles; não substitui este relatório. Não há flag não-interativa verificada para listar plugins do Codex, do AGY ou do Cursor: o checklist olha os diretórios de skill.
+
+Eval de regras (opt-in, não roda na instalação nem no doctor): o mesmo prompt com e sem cada módulo de `core/`. Sem `--llm` só compara o texto. Com `--llm` chama o provider já configurado e gasta API.
+
+```bash
+node template/tools/sync-rules.js --eval
+node template/tools/sync-rules.js --eval --llm --only 10-principios.md
+```
+
+## Instalação determinística
+
+O instalador é **idempotente** e usa `npm ci` (lockfile) para o núcleo. As flags estão na seção Instalação rápida. O `npm ci` (não `npm install`) é o que garante a árvore pinada.
 
 ---
 
@@ -88,10 +123,10 @@ Desde a **v2.0.0**, toda regra, guardrail e checklist mora em [`core/`](./core/)
 
 | Ferramenta | Projeto (`install.sh`) | Máquina (`machine/bootstrap.sh`) |
 |---|---|---|
-| **Codex** | `AGENTS.md` (bloco gerenciado) · `.agents/skills/` · `.codex/hooks.json` (orçamento de testes) | `~/.codex/AGENTS.md` · `~/.agents/skills/` |
-| **Claude Code** | `CLAUDE.md` com `@.harness/core/…` (imports) · `.claude/skills/` | `~/.claude/HARNESS.md` · `~/.claude/skills/` |
-| **Antigravity** | `AGENTS.md` · `.agents/rules/vjp-projeto-novo.md` (`model_decision`) · `.agents/skills/` | `~/.gemini/GEMINI.md` · `~/.gemini/config/skills/` · `~/.gemini/antigravity-cli/skills/` |
-| **Cursor** | `AGENTS.md` · `.cursor/rules/vjp-projeto-novo.mdc` | — (User Rules só pela interface) |
+| **Codex** | `AGENTS.md` · `.agents/skills/` · `.codex/agents/` · `.codex/hooks.json` (orçamento + SessionStart) · `.codex/vjp-cli.json` | `~/.codex/AGENTS.md` · `~/.codex/agents/` · `~/.codex/hooks.json` · `~/.agents/skills/` |
+| **Claude Code** | `CLAUDE.md` com `@.harness/core/…` · `.claude/agents/` · `.claude/skills/` · SessionStart em `.claude/settings.json` | `~/.claude/HARNESS.md` · `~/.claude/agents/` · `~/.claude/skills/` · SessionStart em `~/.claude/settings.json` |
+| **Antigravity** | `AGENTS.md` · `.agents/rules/vjp-projeto-novo.md` e `vjp-cli.md` (`always_on`) · `.agents/skills/` | `~/.gemini/GEMINI.md` · `~/.gemini/config/skills/` · `~/.gemini/antigravity-cli/skills/` |
+| **Cursor** | `AGENTS.md` · `.cursor/agents/` · `.cursor/rules/vjp-projeto-novo.mdc` e `vjp-cli.mdc` (`alwaysApply`) | `~/.cursor/agents/` (o `bootstrap.sh` grava; User Rules da IDE continuam pela interface) |
 
 - **Projeto novo:** skill `projeto-novo` nas três ferramentas (Fase 0 Ambiente → descoberta → arquitetura → **benchmark tecnológico global** → … → entrega verificada), com um único gate de aprovação antes da implementação.
 - **Regras de execução unificadas (R1–R9):** paralelismo, worktree, tentativas, precedência dos portões de conclusão, browser, versões, arquivos de regra, git e limpeza — ver [`core/30-execucao.md`](./core/30-execucao.md).
@@ -138,7 +173,7 @@ O `install.sh` clona os componentes git **pinados no commit** para dentro de `.h
 | Maestro | BSD — base `garrytan/gstack` | `1.6.0` |
 | Compressor de Contexto | `headroomlabs-ai/headroom` (Headroom, PyPI) | `0.39.1` |
 | Memória Persistente | `garrytan/gbrain` (GBrain) | `0.35.1.0` |
-| Empacotador de Repositório | `yamadashy/repomix` (Repomix, npm) | `0.2.14` |
+| Empacotador de Repositório | `yamadashy/repomix` (Repomix, npm) | `1.16.0` |
 | Planejador Spec-Driven | `open-gsd/get-shit-done-redux` (GSD, npm) | `1.1.0` |
 | Padrões Reutilizáveis / Skills | `obra/superpowers` (Superpowers) | `v5.1.0` |
 | ~~Validador de Banco (legado)~~ | ~~`modelcontextprotocol/servers`~~ | ❌ removido v1.7.0 |
@@ -177,7 +212,9 @@ meu-projeto/
 ├── .agents/{rules,skills}/   # Antigravity/Codex (gerado)
 ├── .claude/skills/           # Claude Code (gerado)
 ├── .cursor/rules/            # Cursor (gerado)
-└── .codex/hooks.json         # hook de orçamento de testes do Codex (merge, preserva os seus)
+├── .claude/agents/           # subagentes com modelo da fase (install.sh)
+├── .cursor/agents/           # o mesmo papel, com id de modelo do Cursor
+└── .codex/                   # agents/, hooks.json (orçamento + SessionStart), vjp-cli.json
 ```
 
 ---

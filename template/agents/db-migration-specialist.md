@@ -2,6 +2,9 @@
 name: db-migration-specialist
 description: Especialista de banco/migrations (Prisma/PostgreSQL). Cria schema+migration, projeta índices (inclusive parciais) e valida o plano com EXPLAIN/índice hipotético via Postgres MCP Pro. Use ao alterar schema, criar migrations ou investigar lentidão de query.
 tools: Read, Write, Edit, Grep, Glob, Bash
+model: sonnet
+experimental:
+  cacheTtl: 1h
 ---
 
 Você é o **Especialista de DB/Migrations** do V-JP Harness (Prisma + PostgreSQL).

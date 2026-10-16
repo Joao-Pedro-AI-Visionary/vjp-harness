@@ -122,6 +122,17 @@ if [ -d "$TEMPLATE_DIR/agents" ]; then
   ok "Subagentes instalados em .claude/agents/ (backend/frontend/db/integration-verifier/nfr-performance-planner)"
 fi
 
+# Roteamento por fase: regrava .claude/agents e gera .cursor/agents + .codex/agents.
+# A AGY não recebe chave de modelo (não existe na doc; o padrão já é Gemini).
+MODEL_ROUTER="$TEMPLATE_DIR/tools/model-router.js"
+if [ -f "$MODEL_ROUTER" ]; then
+  if node "$MODEL_ROUTER" --apply "$TARGET"; then
+    ok "Roteador de modelos aplicado (.claude opus/sonnet, .cursor, .codex)"
+  else
+    warn "model-router falhou — rode: node .harness/tools/model-router.js --apply \"$TARGET\""
+  fi
+fi
+
 # ---- regras da fonte única core/ → cada ferramenta (v2.0.0, idempotente) ----
 # AGENTS.md (Codex/AGY/Cursor) e CLAUDE.md (@imports) recebem um BLOCO GERENCIADO
 # (<!-- vjp-harness:start/end -->): o resto do arquivo do projeto é preservado, e o bloco v1
@@ -137,6 +148,13 @@ if [ -f "$SYNC_RULES" ] && [ -f "$REPO_DIR/core/manifest.json" ]; then
   fi
 else
   warn "core/ ou sync-rules.js ausente neste checkout — regras cross-tool não renderizadas."
+fi
+
+# Plugins oficiais do Claude Code (escopo user). Não bloqueia: sem claude, versão
+# abaixo de 2.1.296 ou falha de rede só avisam. Roda depois do sync-rules.
+PLUGIN_INSTALL="$REPO_DIR/machine/hooks/install-claude-plugins.sh"
+if [ -f "$PLUGIN_INSTALL" ]; then
+  bash "$PLUGIN_INSTALL" || warn "instalador de plugins oficiais terminou com erro (o harness segue)."
 fi
 
 # ---- scaffold do .gbrain (preserva existente) ----
@@ -220,14 +238,18 @@ else
   warn "Vendorização pulada (--no-vendor). Rode depois: node .harness/tools/bsd.js --vendor"
 fi
 
-# ---- verificação de determinismo (doctor) ----
+# ---- doctor: determinismo + checklist de requisitos (OK/FALTA/AVISO) ----
+# Roda sozinho no fim da instalação. AVISO não falha; FALTA (Node, Repomix) falha.
 if [ "$DO_INSTALL" -eq 1 ]; then
-  info "Verificando determinismo (registry.json) ..."
+  info "Doctor: determinismo (registry.json) e checklist de requisitos ..."
   if ( cd "$TARGET" && node .harness/tools/verify.js ); then
     :
   else
-    warn "Doctor reportou pendências (opcionais ausentes não bloqueiam). Veja acima e REGISTRY.md."
+    warn "Doctor reportou FALTA ou drift obrigatório. O comando de correção está acima. AVISO não bloqueia."
   fi
+else
+  info "Checklist de requisitos (npm ci pulado; o doctor completo inclui o registry) ..."
+  ( cd "$TARGET" && node .harness/tools/checklist.js ) || warn "Checklist reportou FALTA. Use o comando de correção acima."
 fi
 
 printf "\n${C_BOLD}${C_GREEN}✔ Harness instalado em %s${C_RESET}\n" "$TARGET"
@@ -236,4 +258,5 @@ printf "  1. Edite ${C_BOLD}.gbrain/project.md${C_RESET} e ${C_BOLD}.gbrain/arch
 printf "  2. Rode ${C_BOLD}node .harness/tools/bsd.js --status${C_RESET} para ver o painel\n"
 printf "  3. Execute uma feature: ${C_BOLD}node .harness/tools/bsd.js --execute minha-feature${C_RESET}\n"
 printf "  4. Projeto do zero: skill ${C_BOLD}projeto-novo${C_RESET} (Claude /projeto-novo · Codex \$projeto-novo · AGY /projeto-novo)\n"
-printf "  5. Regras vêm de ${C_BOLD}core/${C_RESET} do vjp-harness (não edite os gerados); drift: ${C_BOLD}node .harness/tools/sync-rules.js --check${C_RESET}\n\n"
+printf "  5. Regras vêm de ${C_BOLD}core/${C_RESET} do vjp-harness (não edite os gerados); drift: ${C_BOLD}node .harness/tools/sync-rules.js --check${C_RESET}\n"
+printf "  6. Checklist de novo: ${C_BOLD}node .harness/tools/bsd.js --doctor${C_RESET}  (ou ${C_BOLD}--check${C_RESET})\n\n"

@@ -559,7 +559,7 @@ async function main() {
     console.log(`  node .harness/tools/bsd.js --reset              : Limpa worktrees e histórico`);
     console.log(`  node .harness/tools/bsd.js --execute <feature> --dry-run : Pipeline sem LLM (testa a mecânica)`);
     console.log(`  node .harness/tools/bsd.js --check-llm          : Testa conectividade do backend LLM`);
-    console.log(`  node .harness/tools/bsd.js --doctor             : Verifica determinismo (registry.json)`);
+    console.log(`  node .harness/tools/bsd.js --doctor|--check     : Determinismo (registry) + checklist OK/FALTA/AVISO`);
     console.log(`  node .harness/tools/bsd.js --vendor             : Clona componentes git pinados (gbrain/superpowers)`);
     process.exit(0);
   }
@@ -598,7 +598,8 @@ async function main() {
       break;
 
     case '--doctor':
-      // Delega ao verificador de determinismo (registry.json)
+    case '--check':
+      // Determinismo (registry.json) + checklist de requisitos. --check aqui não é o drift do sync-rules.
       execSync(`node "${path.join(__dirname, 'verify.js')}" ${args.slice(1).join(' ')}`, { stdio: 'inherit' });
       break;
 

@@ -10,11 +10,19 @@ import { fileURLToPath } from 'node:url';
 
 const GUARD = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../machine/hooks/harness-guard.sh');
 
+// No Windows o `bash` do PATH pode ser o do WSL, que come a barra do caminho
+// (`C:Users...`). O Claude Code usa o Git Bash. O teste segue o mesmo binário.
+function bashBin() {
+  if (process.platform !== 'win32') return 'bash';
+  const gitBash = 'C:\\Program Files\\Git\\bin\\bash.exe';
+  return fs.existsSync(gitBash) ? gitBash : 'bash';
+}
+
 // Roda o guard como o Claude Code roda: JSON no stdin. Devolve { code, stdout }.
 function runGuard({ file, session = 's1', stateDir }) {
   const input = JSON.stringify({ session_id: session, tool_input: { file_path: file } });
   try {
-    const stdout = execFileSync('bash', [GUARD], {
+    const stdout = execFileSync(bashBin(), [GUARD.replace(/\\/g, '/')], {
       input,
       encoding: 'utf8',
       env: { ...process.env, VJP_GUARD_STATE_DIR: stateDir },
@@ -97,7 +105,7 @@ test('vários tipos de código-fonte disparam (ts, py, go, rb, sql...)', () => {
 test('RUIM: stdin inválido -> silencioso e exit 0 (nunca trava o trabalho)', () => {
   const r = (() => {
     try {
-      const stdout = execFileSync('bash', [GUARD], { input: 'não é json{{{', encoding: 'utf8', env: { ...process.env, VJP_GUARD_STATE_DIR: stateDir() } });
+      const stdout = execFileSync(bashBin(), [GUARD.replace(/\\/g, '/')], { input: 'não é json{{{', encoding: 'utf8', env: { ...process.env, VJP_GUARD_STATE_DIR: stateDir() } });
       return { code: 0, stdout };
     } catch (e) { return { code: e.status ?? 1, stdout: String(e.stdout || '') }; }
   })();

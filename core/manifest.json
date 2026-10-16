@@ -1,6 +1,6 @@
 {
   "comment": "Fonte única do V-JP Harness v2. Edite os .md de core/ e rode sync-rules.js (no repo: node template/tools/sync-rules.js; no projeto: node .harness/tools/sync-rules.js). Ordem = ordem de renderização.",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "sentinel": "Sentinela V-JP v2: teste verde manda sobre LLM, e cada regra mora em um lugar só.",
   "title": "V-JP Harness — Regras Globais (geradas de core/)",
   "alwaysOn": [

@@ -2,6 +2,29 @@
 
 Formato: versão · data · o que mudou. Histórico anterior à v2: `README.md` (Novidades), `machine/MACHINE.md` §6 e o `git log`.
 
+## 2.1.0 — 2026-10-16 — modelos por fase, superfícies de CLI e checklist
+
+Três frentes entraram juntas. Nenhuma depende de o usuário pedir o recurso numa conversa: `install.sh` e `machine/bootstrap.sh` disparam.
+
+### Modelos por fase
+- `template/tools/model-router.js` grava, no install e no bootstrap, o modelo de cada subagente. Claude Code: alias `opus` (planner, reviewer, nfr, integration-verifier) e `sonnet` (researcher, executor e especialistas), com `experimental.cacheTtl: 1h` só em quem espera teste. Cursor: `claude-opus-5-5` / `claude-sonnet-5-5`. Codex: `gpt-6.1-sol` + `medium` e `gpt-6-luna` + `high`, campos do exemplo oficial de subagentes. AGY não recebe chave de modelo: a doc de `settings.json` não tem essa chave.
+- A status line do Claude Code mostra a contagem do `prompt_cache` da conversa principal quando o CLI envia o objeto (v2.1.251+).
+- O adapter do Maestro não manda o alias `opus`/`sonnet` para a API. `llm.phaseModels` continua o gancho opcional de id real.
+
+### Superfícies de CLI
+- `sync-rules.js` passa a gravar SessionStart (Codex e Claude Code), `.codex/vjp-cli.json`, a regra AGY `vjp-cli.md` (`always_on`) e a regra Cursor `vjp-cli.mdc` (`alwaysApply`). No Windows o hook do Codex ganha `commandWindows` com `node`, campo oficial, porque o comando bash não roda no cmd.
+- O mapa separa a worktree gerenciada do Codex (`$CODEX_HOME/worktrees`, detached HEAD, escolha Worktree no app) da worktree do Maestro (`.bsd/worktrees/<feature>`, branch própria).
+- Plugins oficiais `claude-code-setup` e `receipts` entram no install e no bootstrap quando `claude --version` é ≥ 2.1.296. Abaixo disso, sem binário ou sem rede, o install segue. No Windows o instalador também aceita `claude.cmd`.
+
+### Checklist
+- `checklist.js` imprime OK / FALTA / AVISO com o comando de correção de `win32`, `darwin` ou `linux`. FALTA (Node, Repomix) sai com código 1. AVISO não bloqueia, salvo `--strict`. Valor de variável de ambiente não é impresso.
+- `bsd.js --doctor` e `--check` (alias neste comando, não o drift do `sync-rules`) e o fim do `install.sh` / `bootstrap.sh` mostram o relatório sozinhos.
+- `sync-rules.js --eval` compara o mesmo prompt com e sem cada regra de `core/`. Não roda na instalação. `--llm` gasta API e continua opt-in.
+
+### Correções da integração
+- `features.worktrees` saiu do que o instalador grava. A config reference oficial do Codex não lista essa chave, e `--strict-config` recusa campo desconhecido. Um bloco antigo entre os marcadores `vjp-harness:codex` é removido na próxima aplicação. O mesmo vale para comandos de daemon e de worktree que não aparecem no manual oficial: o hook não os cita.
+- O `settings.template.json` que o bootstrap copia para `~/.claude/settings.json` deixa de nomear o modelo proibido. O modelo da sessão passa a ser o alias oficial `opus`.
+
 ## 2.0.0+colab — 2026-10-11 — diretrizes de colaboração técnica
 
 - `core/11` passa a conter as **Diretrizes de colaboração técnica** do João (independência de julgamento, confiança por evidência, discordância útil com trade-offs, consistência sem teimosia, inspeção antes de alterar, validação proporcional, entrega objetiva), com sentinela própria. Conflitos com o texto antigo em `core/decisoes/CONTRADICOES.md` (#36–41).
