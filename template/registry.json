@@ -551,7 +551,7 @@
       },
       "dest": ".harness/tools/sync-rules.js",
       "version": "2.0.0",
-      "install": "Incluído no harness (template/tools/sync-rules.js). Renderiza core/ (fonte única) para AGENTS.md (Codex/AGY/Cursor), CLAUDE.md (@imports), .agents/rules (AGY, trigger), .cursor/rules (.mdc), skills e .codex/hooks.json. --check acusa drift; rodar 2x não gera diff. Chamado por install.sh (projeto) e machine/bootstrap.sh (--global).",
+      "install": "Incluído no harness (template/tools/sync-rules.js). Renderiza core/ (fonte única) para AGENTS.md (Codex/AGY/Cursor), CLAUDE.md (@imports), .agents/rules (AGY, trigger always_on da superfície CLI), .cursor/rules (.mdc alwaysApply), skills, .codex/hooks.json, .codex/config.toml (features.worktrees) e .codex/vjp-cli.json. --check acusa drift; rodar 2x não gera diff. Chamado por install.sh (projeto) e machine/bootstrap.sh (--global).",
       "verify": {
         "type": "file",
         "path": "tools/sync-rules.js"

@@ -9,7 +9,9 @@
  *                          bloco gerado em template/AGENT_RULES.md
  *   --target <dir>         (padrão dentro de .harness/tools) projeto: AGENTS.md e CLAUDE.md (bloco
  *                          gerenciado), .agents/rules/, .cursor/rules/, .agents/skills/ e .claude/skills/
- *                          (projeto-novo), .codex/hooks.json (merge), .harness/core/
+ *                          (projeto-novo), .codex/hooks.json (merge), .codex/config.toml,
+ *                          .codex/vjp-cli.json, regras AGY/Cursor de CLI, hook SessionStart,
+ *                          .harness/core/
  *   --global [--home <d>]  máquina: ~/.codex/AGENTS.md, ~/.claude/HARNESS.md, ~/.gemini/GEMINI.md
  *                          (+ ~/AGENTS.md legado se já for nosso) e fan-out das skills para
  *                          ~/.claude/skills, ~/.agents/skills, ~/.gemini/config/skills,
@@ -26,6 +28,11 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { fileURLToPath } from 'url';
+import {
+  SESSION_HOOK_SCRIPT, SESSION_HOOK_MODULE, renderCodexWorktreeMap, mergeCodexConfig,
+  mergeCodexSessionHook, mergeCodexSessionFile, mergeClaudeSessionHook, sessionHookCommand, absoluteSessionCommand,
+  renderAgyCliRule, renderCursorCliRule,
+} from './cli-surfaces.js';
 
 export const START = '<!-- vjp-harness:start -->';
 export const END = '<!-- vjp-harness:end -->';
@@ -34,6 +41,7 @@ export const AR_END = '<!-- vjp-core:execucao:end -->';
 export const AGY_TRIGGERS = ['always_on', 'model_decision', 'glob', 'manual'];
 export const HOOK_SCRIPT = 'codex-test-budget-pretool.sh';
 export const HOOK_MATCHER = 'Bash|apply_patch|Edit|Write';
+export { SESSION_HOOK_SCRIPT };
 
 const GEN = (src) => `<!-- GERADO por sync-rules.js a partir de ${src} — não edite aqui: edite core/ e rode sync-rules. -->`;
 
@@ -151,13 +159,16 @@ export function codexHookCommand(scriptRel) {
   return `f="$(git rev-parse --show-toplevel 2>/dev/null)/${scriptRel}"; [ -f "$f" ] || exit 0; exec bash "$f"`;
 }
 
-// Merge idempotente do hook PreToolUse do orçamento de teste (Codex). Preserva hooks alheios.
-export function mergeCodexHooks(currentText, command) {
+// Merge idempotente dos hooks do Codex. Preserva hooks alheios.
+// sessionCommand (opcional) acrescenta SessionStart do mapa de worktrees / alerta do daemon.
+export function mergeCodexHooks(currentText, command, sessionCommand = null) {
   let obj = {};
   if (currentText && currentText.trim()) {
     try { obj = JSON.parse(currentText); } catch (e) { throw new Error(`.codex/hooks.json inválido (não sobrescrevo): ${e.message}`); }
   } else {
-    obj.comment = 'V-JP: PreToolUse recusa runner de teste e patch em spec quando o orçamento mecânico esgotou. Só age com VJP_CODEX=1 ou VJP_TEST_BUDGET=1. Stop-continue NÃO zera o contador.';
+    obj.comment = sessionCommand
+      ? 'V-JP: PreToolUse do orçamento de teste (só com VJP_CODEX=1 ou VJP_TEST_BUDGET=1) e SessionStart com o mapa de worktrees do Codex 0.162 e o alerta do daemon 0.157+ (não bloqueia).'
+      : 'V-JP: PreToolUse recusa runner de teste e patch em spec quando o orçamento mecânico esgotou. Só age com VJP_CODEX=1 ou VJP_TEST_BUDGET=1. Stop-continue NÃO zera o contador.';
   }
   obj.hooks = obj.hooks || {};
   obj.hooks.PreToolUse = obj.hooks.PreToolUse || [];
@@ -171,6 +182,7 @@ export function mergeCodexHooks(currentText, command) {
     }
   }
   if (!found) obj.hooks.PreToolUse.push({ matcher: HOOK_MATCHER, hooks: [{ type: 'command', command }] });
+  if (sessionCommand) mergeCodexSessionHook(obj, sessionCommand);
   return JSON.stringify(obj, null, 2) + '\n';
 }
 
@@ -244,7 +256,28 @@ export function planProject(core, target, { repoRoot = null } = {}) {
   const hookRel = `.harness/tools/hooks/${HOOK_SCRIPT}`;
   const hookSrc = repoRoot ? path.join(repoRoot, 'machine/hooks', HOOK_SCRIPT) : null;
   if (hookSrc && fs.existsSync(hookSrc)) ops.push({ path: path.join(target, hookRel), kind: 'copy', src: hookSrc, mode: 0o755 });
-  ops.push({ path: path.join(target, '.codex/hooks.json'), kind: 'hooks', command: codexHookCommand(hookRel) });
+  const sessionRel = `.harness/tools/hooks/${SESSION_HOOK_SCRIPT}`;
+  if (repoRoot) {
+    for (const [name, mode] of [[SESSION_HOOK_SCRIPT, 0o755], [SESSION_HOOK_MODULE, 0o644]]) {
+      const src = path.join(repoRoot, 'machine/hooks', name);
+      if (fs.existsSync(src)) ops.push({ path: path.join(target, '.harness/tools/hooks', name), kind: 'copy', src, mode });
+    }
+  }
+  ops.push({
+    path: path.join(target, '.codex/hooks.json'),
+    kind: 'hooks',
+    command: codexHookCommand(hookRel),
+    sessionCommand: sessionHookCommand(sessionRel, 'codex'),
+  });
+  ops.push({ path: path.join(target, '.codex/config.toml'), kind: 'codex-config' });
+  ops.push({ path: path.join(target, '.codex/vjp-cli.json'), kind: 'file', content: renderCodexWorktreeMap() });
+  ops.push({ path: path.join(target, '.agents/rules/vjp-cli.md'), kind: 'file', content: renderAgyCliRule() });
+  ops.push({ path: path.join(target, '.cursor/rules/vjp-cli.mdc'), kind: 'file', content: renderCursorCliRule() });
+  ops.push({
+    path: path.join(target, '.claude/settings.json'),
+    kind: 'claude-settings',
+    command: sessionHookCommand(sessionRel, 'claude'),
+  });
   return ops;
 }
 
@@ -274,6 +307,14 @@ export function planGlobal(core, repoRoot, home) {
   for (const [name, files] of generated) {
     for (const t of targets) for (const [rel, content] of Object.entries(files)) ops.push({ path: path.join(home, t, name, rel), kind: 'file', content });
   }
+  const globalHookDir = path.join(home, '.vjp-harness/hooks');
+  for (const [name, mode] of [[SESSION_HOOK_SCRIPT, 0o755], [SESSION_HOOK_MODULE, 0o644]]) {
+    const src = path.join(repoRoot, 'machine/hooks', name);
+    if (fs.existsSync(src)) ops.push({ path: path.join(globalHookDir, name), kind: 'copy', src, mode });
+  }
+  const globalScript = path.join(globalHookDir, SESSION_HOOK_SCRIPT);
+  ops.push({ path: path.join(home, '.codex/hooks.json'), kind: 'codex-session', sessionCommand: absoluteSessionCommand(globalScript, 'codex') });
+  ops.push({ path: path.join(home, '.claude/settings.json'), kind: 'claude-settings', command: absoluteSessionCommand(globalScript, 'claude') });
   return ops;
 }
 
@@ -288,10 +329,17 @@ function desiredOf(op) {
     if (op.mustExist && !exists) throw new Error(`arquivo esperado não existe: ${op.path}`);
     if (op.mustExist && !cur.toString('utf8').includes(op.start)) throw new Error(`marcador ${op.start} ausente em ${op.path}`);
     want = Buffer.from(upsertBlock(cur ? cur.toString('utf8') : null, op.inner, op.start || START, op.end || END), 'utf8');
-  } else if (op.kind === 'hooks') want = Buffer.from(mergeCodexHooks(cur ? cur.toString('utf8') : '', op.command), 'utf8');
+  } else if (op.kind === 'hooks') want = Buffer.from(mergeCodexHooks(cur ? cur.toString('utf8') : '', op.command, op.sessionCommand || null), 'utf8');
+  else if (op.kind === 'codex-session') want = Buffer.from(mergeCodexSessionFile(cur ? cur.toString('utf8') : '', op.sessionCommand), 'utf8');
+  else if (op.kind === 'codex-config') want = Buffer.from(mergeCodexConfig(cur ? cur.toString('utf8') : ''), 'utf8');
+  else if (op.kind === 'claude-settings') want = Buffer.from(mergeClaudeSessionHook(cur ? cur.toString('utf8') : '', op.command), 'utf8');
   else throw new Error(`op desconhecida: ${op.kind}`);
   let modeDrift = false;
-  if (exists && op.mode != null) modeDrift = ((fs.statSync(op.path).mode & 0o777) & 0o111) !== (op.mode & 0o111);
+  // No Windows o chmod não liga o bit de execução (o stat fica 666). Comparar
+  // o bit aqui faria --check acusar drift eterno nos hooks .sh.
+  if (exists && op.mode != null && process.platform !== 'win32') {
+    modeDrift = ((fs.statSync(op.path).mode & 0o777) & 0o111) !== (op.mode & 0o111);
+  }
   const same = cur != null && cur.equals(want) && !modeDrift;
   return { want, same, exists };
 }

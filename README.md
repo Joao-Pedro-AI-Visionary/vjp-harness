@@ -177,7 +177,7 @@ meu-projeto/
 ├── .agents/{rules,skills}/   # Antigravity/Codex (gerado)
 ├── .claude/skills/           # Claude Code (gerado)
 ├── .cursor/rules/            # Cursor (gerado)
-└── .codex/hooks.json         # hook de orçamento de testes do Codex (merge, preserva os seus)
+└── .codex/                 # Codex: hooks.json (orçamento + SessionStart), config.toml (features.worktrees), vjp-cli.json
 ```
 
 ---
