@@ -14,6 +14,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { phaseOfAgent } from './model-router.js';
 
 // Resolve a config efetiva do LLM combinando, em ordem de precedência:
 //   1) overrides por ENV (VJP_LLM_*)  — para "rodar em qualquer lugar" sem editar arquivo
@@ -44,9 +45,16 @@ export function loadLlmConfig(harnessDir) {
   return { ...cfg, llm };
 }
 
-function resolveModel(cfg, agentId) {
+// Modelo efetivo do Maestro. Precedência: agents.<id>.model > llm.phaseModels[fase] > llm.model.
+// phaseModels é opt-in (ids de API). O alias opus/sonnet NÃO entra aqui: a API rejeita.
+// O roteamento automático opus/sonnet mora no frontmatter das CLIs (model-router.js).
+export function resolveModel(cfg, agentId) {
   const per = cfg.agents && cfg.agents[agentId];
-  return (per && per.model) || cfg.llm.model;
+  if (per && per.model) return per.model;
+  const phase = phaseOfAgent(agentId);
+  const table = cfg.llm && cfg.llm.phaseModels;
+  if (phase && table && table[phase]) return table[phase];
+  return cfg.llm.model;
 }
 
 function apiKey(cfg) {

@@ -49,7 +49,9 @@ export VJP_LLM_PRESET=ollama    VJP_LLM_MODEL=qwen3:8b   # local, sem key
 "llm": { "preset": "deepseek", "model": "deepseek-chat", "apiKeyEnv": "VJP_LLM_API_KEY" }
 ```
 
-Precedência: **ENV > preset > bloco `llm`**. Override de modelo por agente em `agents.<id>.model`.
+Precedência: **ENV > preset > bloco `llm`**. Override de modelo por agente em `agents.<id>.model`. Se `llm.phaseModels` tiver um id de API para a fase (`planner`/`reviewer` fortes, `researcher`/`executor` rápidos), ele entra quando o agente não tem `model` próprio.
+
+O alias `opus`/`sonnet` **não** vai para este adapter: a API não aceita alias de CLI. Quem aplica Opus no planejador/revisor e Sonnet no executor/pesquisador é o `tools/model-router.js`, no frontmatter que o `install.sh` e o `bootstrap.sh` gravam (`.claude/agents`, `.cursor/agents`, `.codex/agents`). AGY permanece no Gemini padrão: a doc não tem chave de modelo em `settings.json`.
 
 - **Modelo é livre** — fixar é OPCIONAL e só serve pra reproduzir um projeto. Não há provider "default obrigatório".
 - **API key sempre por ENV** (nome em `apiKeyEnv`). Nunca commitada.

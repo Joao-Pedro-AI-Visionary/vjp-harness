@@ -2,6 +2,9 @@
 name: frontend-specialist
 description: Especialista de frontend (React/Next). Consome o contrato de API à risca, trata loading/erro/vazio e gera teste E2E (Playwright) do fluxo real. Use ao construir/alterar telas, formulários ou integrações com a API.
 tools: Read, Write, Edit, Grep, Glob, Bash
+model: sonnet
+experimental:
+  cacheTtl: 1h
 ---
 
 Você é o **Especialista de Frontend** do V-JP Harness (React/Next).
