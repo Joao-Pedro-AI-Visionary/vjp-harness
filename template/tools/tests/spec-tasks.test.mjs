@@ -1,7 +1,5 @@
-// Fecha o gap: bsd.js --execute não lia spec.md/tasks.md do disco (violava o princípio #2 do
-// AGENT_RULES.md — "código só a partir de spec.md/tasks.md" — e contradizia o próprio mermaid do
-// STATE.md gerado, que já dizia "Task lida do tasks.md"). Estes testes cobrem os 3 helpers puros/
-// semi-puros novos, mais uma integração real (subprocess, dry-run, git temporário) do fluxo completo.
+// Helpers puros de spec/tasks do bsd.js (parseTasks, findFeatureSpec, markTaskDone).
+// O pipeline headless (--execute) e seus testes de integração saíram na v2.2.0.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -78,74 +76,4 @@ test('markTaskDone: vira [x] só na task certa, preserva o resto do arquivo', as
   const out = fs.readFileSync(tasksPath, 'utf8');
   assert.match(out, /- \[ \] \*\*T1\.\*\* primeira/);
   assert.match(out, /- \[x\] \*\*T2\.\*\* segunda/);
-});
-
-test('INTEGRAÇÃO (subprocess, dry-run, git temporário): --execute lê tasks.md e marca [x] em cada task aprovada', () => {
-  // Repo git isolado e descartável — NUNCA toca no monoRepo real. autoMerge fica em true de propósito
-  // (default real do harness) pra provar que o merge no dry-run não quebra nem escapa do repo temporário.
-  const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'bsd-e2e-'));
-  execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: projectRoot });
-  execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: projectRoot });
-  execFileSync('git', ['config', 'user.name', 'Test'], { cwd: projectRoot });
-  fs.writeFileSync(path.join(projectRoot, 'README.md'), '# projeto de teste');
-  execFileSync('git', ['add', '-A'], { cwd: projectRoot });
-  execFileSync('git', ['commit', '-q', '-m', 'inicial'], { cwd: projectRoot });
-
-  // Instala uma cópia mínima do harness dentro do repo temporário (só o necessário pro bsd.js rodar).
-  const harnessTools = path.join(projectRoot, '.harness', 'tools');
-  fs.mkdirSync(harnessTools, { recursive: true });
-  for (const f of ['bsd.js', 'agents.js', 'llm.js', 'model-router.js', 'aferidor-log.js', 'gates.js', 'verify.js', 'checklist.js', 'dial.js', 'aferidor-analise.js', 'sombra.js', 'sombra-llm.js']) {
-    fs.copyFileSync(path.join(TOOLS_DIR, f), path.join(harnessTools, f));
-  }
-  fs.writeFileSync(path.join(path.dirname(harnessTools), 'AGENT_RULES.md'), '# regras de teste');
-  // package.json com "type": "module" — bsd.js usa import/export ESM.
-  fs.writeFileSync(path.join(harnessTools, 'package.json'), JSON.stringify({ type: 'module' }));
-
-  const feature = 'feature-de-teste';
-  const specDir = path.join(projectRoot, '.planning', 'phases', feature);
-  fs.mkdirSync(specDir, { recursive: true });
-  fs.writeFileSync(path.join(specDir, 'spec.md'), '# Spec de teste\nObjetivo: provar a integração.');
-  fs.writeFileSync(path.join(specDir, 'tasks.md'), [
-    '# Tasks',
-    '- [ ] **T1.** primeira tarefa',
-    '- [ ] **T2.** segunda tarefa',
-  ].join('\n'));
-
-  const out = execFileSync(
-    'node', [path.join(harnessTools, 'bsd.js'), '--execute', feature, '--dry-run'],
-    { cwd: projectRoot, encoding: 'utf8' },
-  );
-
-  assert.match(out, /tasks\.md/i, 'deveria mencionar que achou tasks.md');
-  assert.match(out, /T1/);
-  assert.match(out, /T2/);
-
-  const tasksAfter = fs.readFileSync(path.join(specDir, 'tasks.md'), 'utf8');
-  assert.match(tasksAfter, /- \[x\] \*\*T1\.\*\* primeira tarefa/, 'T1 deveria estar marcada como concluída');
-  assert.match(tasksAfter, /- \[x\] \*\*T2\.\*\* segunda tarefa/, 'T2 deveria estar marcada como concluída');
-});
-
-test('INTEGRAÇÃO: sem .planning/phases/<feature>/tasks.md, cai no modo autônomo de sempre (retrocompatível)', () => {
-  const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'bsd-e2e-autonomo-'));
-  execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: projectRoot });
-  execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: projectRoot });
-  execFileSync('git', ['config', 'user.name', 'Test'], { cwd: projectRoot });
-  fs.writeFileSync(path.join(projectRoot, 'README.md'), '# projeto de teste');
-  execFileSync('git', ['add', '-A'], { cwd: projectRoot });
-  execFileSync('git', ['commit', '-q', '-m', 'inicial'], { cwd: projectRoot });
-
-  const harnessTools = path.join(projectRoot, '.harness', 'tools');
-  fs.mkdirSync(harnessTools, { recursive: true });
-  for (const f of ['bsd.js', 'agents.js', 'llm.js', 'model-router.js', 'aferidor-log.js', 'gates.js', 'verify.js', 'checklist.js', 'dial.js', 'aferidor-analise.js', 'sombra.js', 'sombra-llm.js']) {
-    fs.copyFileSync(path.join(TOOLS_DIR, f), path.join(harnessTools, f));
-  }
-  fs.writeFileSync(path.join(path.dirname(harnessTools), 'AGENT_RULES.md'), '# regras de teste');
-  fs.writeFileSync(path.join(harnessTools, 'package.json'), JSON.stringify({ type: 'module' }));
-
-  const out = execFileSync(
-    'node', [path.join(harnessTools, 'bsd.js'), '--execute', 'feature-sem-spec', '--dry-run'],
-    { cwd: projectRoot, encoding: 'utf8' },
-  );
-  assert.match(out, /modo aut[oô]nomo/i);
-  assert.match(out, /concluída e aprovada/i);
 });

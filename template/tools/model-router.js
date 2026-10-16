@@ -20,9 +20,7 @@
  *   `modelProvider: gemini` troca o login para API key e a CLI não sobe sem
  *   GEMINI_API_KEY. O padrão da sessão já é Gemini (`/model`). Não gravamos chave.
  *
- * O adapter HTTP do Maestro (llm.js) NÃO recebe o alias opus/sonnet: a API rejeita.
- * `llm.phaseModels` é o mapa opcional de ids reais, por fase, quando o provider não
- * é a CLI.
+ * (A camada LLM própria do Maestro — llm.js/phaseModels — saiu na v2.2.0.)
  */
 
 import fs from 'fs';

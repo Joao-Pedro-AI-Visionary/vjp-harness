@@ -3,7 +3,7 @@
 **Tier:** core · **Versão pinada:** `1.2.0` · **Origem:** bundled — baseado em `garrytan/gstack` (https://github.com/garrytan/gstack) · **Destino:** `.harness/tools/bsd.js`
 
 ## Responsabilidade
-Executa automaticamente as tasks geradas pelo GSD. Elimina execução manual após o `tasks.md`. Pipeline transacional por task, isolado em Git Worktree, crash-safe.
+Painel de estado (`.bsd/`), reset, doctor/checklist e vendorização. Desde a v2.2.0 não executa tasks sozinho: a execução fica com as CLIs.
 
 ## Pipeline por task
 ```
@@ -14,10 +14,6 @@ PLANNER → RESEARCHER → EXECUTOR → REVIEWER → APPROVED?
 
 ## Comandos
 ```bash
-node .harness/tools/bsd.js --execute <feature>            # pipeline real (4 agentes)
-node .harness/tools/bsd.js --execute <feature> --dry-run  # mecânica sem LLM
-node .harness/tools/bsd.js --check-llm                    # testa o backend LLM
-node .harness/tools/bsd.js --continue                     # retoma
 node .harness/tools/bsd.js --status                       # painel STATE.md
 node .harness/tools/bsd.js --reset                        # limpa worktrees/histórico
 node .harness/tools/bsd.js --doctor [--strict|--json]     # determinismo + checklist OK/FALTA/AVISO
@@ -35,13 +31,5 @@ node .harness/tools/bsd.js --vendor [--only <id>]         # clona componentes gi
 test -f .harness/tools/bsd.js && echo OK
 ```
 
-## Agentes (integração real)
-Os 4 agentes rodam de verdade via `tools/agents.js` + `tools/llm.js` (provider-agnostic). Cada um monta o system prompt a partir de `AGENT_RULES.md` + memória `.gbrain/` e devolve JSON estruturado:
-- **PLANNER** → `{risk, strategy, needsResearch, acceptanceCriteria}`
-- **RESEARCHER** → `{impactedFiles, approach, dependencies}`
-- **EXECUTOR** → `{files:[{path,content}], commitMessage}` — o orquestrador escreve os arquivos na worktree (com proteção contra path traversal) e commita.
-- **REVIEWER** → `{approved, reason, requiredChanges}` — gate objetivo = resultado dos testes (`pipeline.testCommand`).
-
-Loop: até `pipeline.maxRetries` tentativas Executor→testes→Reviewer; se aprovado e `autoMerge`, faz `git merge --no-ff` na branch principal e limpa a worktree. Caso contrário, aborta e registra em `STATE.md`.
-
-Configuração em [`../config/agents.json`](../config/agents.json). Ver [`agents.md`](./agents.md).
+## v2.2.0
+O pipeline headless (`--execute`, `--continue`, `--check-llm`, `--dry-run`) e a camada LLM própria (`llm.js`, `agents.js`, `config/agents.json`) foram removidos. A execução por task roda nas CLIs (Claude Code, Codex, AGY, Cursor) com os subagentes por fase.

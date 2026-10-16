@@ -19,7 +19,7 @@
  * Opções:
  *   --check                não escreve nada; sai 1 se houver drift (idempotência verificável)
  *   --eval                 opt-in: delega a rules-eval.js (mesmo prompt com e sem cada regra).
- *                          Não roda na instalação nem no --check. --llm compara respostas (gasta API).
+ *                          Não roda na instalação nem no --check. Não chama modelo.
  *   --list                 só lista o plano (caminhos)
  *   --core <dir>           fonte alternativa (default: auto-detecta core/ ou .harness/core/)
  *   --repo-root <dir>      raiz do vjp-harness (default: auto-detecta)

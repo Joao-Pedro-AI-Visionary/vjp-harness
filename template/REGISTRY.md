@@ -52,9 +52,7 @@ node .harness/tools/bsd.js --doctor --json   # saída para CI
 | 21 | 🆕 **Probe Sombra + Conjunto-Canário** | Script / Probe | Nativo V-JP Harness (João Pedro) | `1.14.0` | `.harness/tools/sombra.js` | ✅ |
 | 22 | 🆕 **Portas — Adaptadores por Papel** | Script / Porta | Nativo V-JP Harness (João Pedro) | `1.15.0` | `.harness/tools/ports.js` | ✅ |
 | 23 | 🆕 **Mirror de Upstreams** | Script / Mirror | Nativo V-JP Harness (João Pedro) | `1.15.0` | `.harness/tools/mirror.js` | ✅ |
-| 24 | 🆕 **Sombra de Verdade — Runner LLM** | Script / Probe | Nativo V-JP Harness (João Pedro) | `1.16.0` | `.harness/tools/sombra-llm.js` | ✅ |
 
-**Obrigatórios (núcleo determinístico):** Maestro, Empacotador de Repositório, Planejador Spec-Driven, Portões, Aferidor de Confiança, Dial de Rigor, Aferidor de Confiança — Analisador, Probe Sombra + Conjunto-Canário, Portas — Adaptadores por Papel, Mirror de Upstreams, Sombra de Verdade — Runner LLM — pinados via `package-lock.json` (`npm ci`) ou nativos do harness (`gates.js`/`aferidor-log.js`/`dial.js`/`aferidor-analise.js`/`sombra.js`/`ports.js`/`mirror.js`/`sombra-llm.js`).
 **Opcionais:** instalados sob demanda; o `--doctor` os reporta como `[opt]` sem bloquear (a menos que `--strict`).
 **Novidades v1.21.0:** #25 `cbm.js` liga o #11 aos portões (`pr-review` §2, `test-gate` §5, `prepush` camada 5) com orçamento fixo de contexto; pin do #11 0.8.1 → 0.10.8. Spec em `specs/codebase-memory-portoes/`.
 **Novidades v1.7.0:** #11 codebase-memory-mcp (npm, pinado), #12 Postgres MCP Pro (substitui o #7 vulnerável; roda via `uvx`/Docker). Detalhes e justificativa em [`../.gbrain/decisions.md`](../.gbrain/decisions.md) e `upgrades/v1.7.0/`.

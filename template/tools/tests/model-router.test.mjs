@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { resolveModel } from '../llm.js';
 import {
   applyModels,
   checkAgentSources,
@@ -83,13 +82,3 @@ test('apply grava as três CLIs e o Claude conserva o cache de 1h', () => {
   assert.equal(fs.existsSync(path.join(root, '.gemini')), false);
 });
 
-test('Maestro: model explícito ganha de phaseModels; sem mapa, alias não vaza', () => {
-  const base = { llm: { model: 'livre', phaseModels: { planner: 'api-forte', executor: 'api-rapido' } }, agents: { planner: { model: null }, executor: { model: 'pinado' } } };
-  assert.equal(resolveModel(base, 'planner'), 'api-forte');
-  assert.equal(resolveModel(base, 'nfr-planner'), 'api-forte');
-  assert.equal(resolveModel(base, 'executor:frontend'), 'api-rapido');
-  assert.equal(resolveModel(base, 'executor'), 'pinado');
-  const livre = { llm: { model: 'livre' }, agents: { reviewer: { model: null } } };
-  assert.equal(resolveModel(livre, 'reviewer'), 'livre');
-  assert.equal(String(resolveModel(livre, 'reviewer')).includes('opus'), false);
-});
