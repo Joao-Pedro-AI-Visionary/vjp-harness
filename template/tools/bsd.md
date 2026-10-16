@@ -20,7 +20,8 @@ node .harness/tools/bsd.js --check-llm                    # testa o backend LLM
 node .harness/tools/bsd.js --continue                     # retoma
 node .harness/tools/bsd.js --status                       # painel STATE.md
 node .harness/tools/bsd.js --reset                        # limpa worktrees/histórico
-node .harness/tools/bsd.js --doctor [--strict|--json]     # verifica determinismo
+node .harness/tools/bsd.js --doctor [--strict|--json]     # determinismo + checklist OK/FALTA/AVISO
+node .harness/tools/bsd.js --check [--strict|--json]      # alias de --doctor (não é o drift do sync-rules)
 node .harness/tools/bsd.js --vendor [--only <id>]         # clona componentes git pinados
 ```
 

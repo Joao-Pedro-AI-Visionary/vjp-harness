@@ -4,10 +4,14 @@ Montagem reprodutível em qualquer máquina. Cada passo é pinado e verificável
 
 ## 0. Pré-requisitos
 
+O checklist (`node .harness/tools/checklist.js`, também no fim do `install.sh` e em `bsd.js --doctor` / `--check`) imprime **OK / FALTA / AVISO** e o comando de correção do seu sistema. FALTA bloqueia (Node, Repomix). AVISO não bloqueia.
+
 | Requisito | Mínimo | Verificar |
 |---|---|---|
 | Node.js | ≥ 18 | `node --version` |
-| git | qualquer | `git --version` (opcional, habilita worktrees) |
+| Python | ≥ 3.12 (opcional; Headroom pina 3.13 via uv) | `python3 --version` ou, no Windows, `py -3 --version` |
+| git | qualquer (opcional, habilita worktrees) | `git --version` |
+| Claude Code / Codex / AGY / Cursor CLI | presença; mínimo não pinado | `claude --version`, `codex --version`, `agy --version`, `agent --version` |
 
 ## 1. Núcleo determinístico (obrigatório)
 
@@ -22,9 +26,9 @@ Isso, de forma determinística:
 1. Copia o motor para `.harness/` (BSD + configs + registry).
 1b. (v2.0.0) Renderiza as regras da fonte única `core/` com `tools/sync-rules.js`: `AGENTS.md` e `CLAUDE.md` (blocos gerenciados), `.harness/core/`, `.agents/rules/`, `.cursor/rules/`, skill `projeto-novo`, `.codex/hooks.json` (orçamento + SessionStart), `.codex/config.toml` (`features.worktrees`) e `.codex/vjp-cli.json`. Drift: `node .harness/tools/sync-rules.js --check`.
 1c. Se `claude` estiver no PATH e a versão for >= 2.1.296, instala os plugins oficiais `claude-code-setup` e `receipts` (`claude plugin install …@claude-plugins-official --scope user -y`). Abaixo disso, ou sem rede, o install segue e só avisa.
-2. Roda **`npm ci`** em `.harness/tools` (instala Repomix `0.2.14`, GSD Redux `1.1.0`, Postgres MCP `0.6.2`, Playwright MCP `0.0.75` a partir do `package-lock.json` — árvore idêntica byte-a-byte).
+2. Roda **`npm ci`** em `.harness/tools` (instala Repomix `1.16.0`, GSD Redux `1.1.0`, Playwright MCP `0.0.75`, codebase-memory-mcp `0.10.8` a partir do `package-lock.json` — árvore idêntica byte-a-byte). Postgres MCP Pro não entra no npm: é `uvx`/`Docker`, opcional.
 3. Faz o scaffold de `.gbrain/` (memória) e `.bsd/` (estado).
-4. Roda o **doctor** (`verify.js`) e reporta o determinismo.
+4. Roda o **doctor** (`verify.js`): determinismo do registry **e** o checklist de requisitos.
 
 > `npm ci` (não `npm install`) é o que garante reprodutibilidade: ele exige o lockfile e falha se houver divergência.
 
@@ -61,10 +65,11 @@ Já instalados em `.harness/tools` pelo `npm ci`. Para ativar, mescle [`config/m
 
 ```bash
 node .harness/tools/bsd.js --doctor
+node .harness/tools/bsd.js --check    # alias; não confunde com sync-rules.js --check (drift de core/)
 ```
 
-- `[req]` em vermelho → montagem **não-determinística**, corrija antes de operar.
-- `[opt]` ausente → ok, instale quando precisar.
+- `[req]` em vermelho, ou **FALTA** no checklist → corrija com o comando impresso antes de operar.
+- `[opt]` / **AVISO** → ok, instale quando precisar. O valor de chave de API não é impresso.
 
 Para CI:
 ```bash
