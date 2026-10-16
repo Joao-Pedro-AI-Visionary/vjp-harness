@@ -86,6 +86,12 @@ sed -e "s|/home/jp|$HOME|g" \
     -e "s|$HOME/.nvm/versions/node/v[0-9.]*/bin/node|$NODE_BIN|g" \
     "$EXPORT/settings.template.json" > "$CLAUDE_DIR/settings.json"
 echo "settings.json instalado (statusline, guard V-JP, MCPs chrome-devtools+gbrain+context7)"
+# Roteador de fase nos subagentes de usuário (Claude, Cursor, Codex). Idempotente.
+# Não grava modelo na AGY: settings.json não tem essa chave; Gemini já é o padrão.
+MODEL_ROUTER="$HERE/../template/tools/model-router.js"
+if [ -f "$MODEL_ROUTER" ]; then
+  node "$MODEL_ROUTER" --apply-user "$HOME" || echo "⚠️  model-router --apply-user falhou"
+fi
 # RTK aposentado na v1.22.0: remove a referência antiga se sobrou de um bootstrap anterior.
 rm -f "$CLAUDE_DIR/RTK.md"
 

@@ -122,6 +122,17 @@ if [ -d "$TEMPLATE_DIR/agents" ]; then
   ok "Subagentes instalados em .claude/agents/ (backend/frontend/db/integration-verifier/nfr-performance-planner)"
 fi
 
+# Roteamento por fase: regrava .claude/agents e gera .cursor/agents + .codex/agents.
+# A AGY não recebe chave de modelo (não existe na doc; o padrão já é Gemini).
+MODEL_ROUTER="$TEMPLATE_DIR/tools/model-router.js"
+if [ -f "$MODEL_ROUTER" ]; then
+  if node "$MODEL_ROUTER" --apply "$TARGET"; then
+    ok "Roteador de modelos aplicado (.claude opus/sonnet, .cursor, .codex)"
+  else
+    warn "model-router falhou — rode: node .harness/tools/model-router.js --apply \"$TARGET\""
+  fi
+fi
+
 # ---- regras da fonte única core/ → cada ferramenta (v2.0.0, idempotente) ----
 # AGENTS.md (Codex/AGY/Cursor) e CLAUDE.md (@imports) recebem um BLOCO GERENCIADO
 # (<!-- vjp-harness:start/end -->): o resto do arquivo do projeto é preservado, e o bloco v1
