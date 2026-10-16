@@ -31,7 +31,8 @@ $(printf '%s' "$INPUT" | node -e '
   process.stdin.on("data", d => s += d).on("end", () => {
     try {
       const j = JSON.parse(s);
-      const f = (j.tool_input && (j.tool_input.file_path || j.tool_input.path)) || "";
+      const raw = (j.tool_input && (j.tool_input.file_path || j.tool_input.path)) || "";
+      const f = raw.replace(/\\/g, "/");
       const sid = j.session_id || "nosession";
       if (!f || /\s/.test(f)) { console.log(" " + sid); return; }  // path vazio/com espaço: ignora
       console.log(f + " " + sid);
@@ -64,7 +65,13 @@ ROOT="$(git -C "$DIR" rev-parse --show-toplevel 2>/dev/null || true)"
 # --- 4) já avisou neste projeto nesta sessão? (1x por projeto/sessão) ---
 STATE_DIR="${VJP_GUARD_STATE_DIR:-${TMPDIR:-/tmp}/vjp-harness-guard}"
 mkdir -p "$STATE_DIR" 2>/dev/null || exit 0
-KEY="$(printf '%s|%s' "${SESSION:-nosession}" "$ROOT" | shasum -a 256 2>/dev/null | cut -c1-32)"
+# node, não shasum: no Windows o perl do shasum sai vazio quando o PATH é o do processo pai.
+KEY="$(printf '%s|%s' "${SESSION:-nosession}" "$ROOT" | node -e '
+  let s = "";
+  process.stdin.on("data", d => s += d).on("end", () => {
+    process.stdout.write(require("crypto").createHash("sha256").update(s).digest("hex").slice(0, 32));
+  });
+' 2>/dev/null || true)"
 [ -z "$KEY" ] && exit 0
 MARK="$STATE_DIR/$KEY"
 [ -e "$MARK" ] && exit 0             # já avisou: silêncio

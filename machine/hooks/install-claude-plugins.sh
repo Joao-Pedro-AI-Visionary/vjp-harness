@@ -15,9 +15,18 @@ say() { printf '%s\n' "$*"; }
 claude_run() {
   if [ -n "${VJP_CLAUDE_BIN:-}" ]; then
     bash "$VJP_CLAUDE_BIN" "$@"
-  else
-    command claude "$@"
+    return $?
   fi
+  if command -v claude >/dev/null 2>&1; then
+    command claude "$@"
+    return $?
+  fi
+  # npm no Windows publica claude.cmd. O Git Bash nem sempre acha o nome sem extensão.
+  if command -v claude.cmd >/dev/null 2>&1; then
+    cmd.exe //c claude.cmd "$@"
+    return $?
+  fi
+  return 127
 }
 
 if [ -n "${VJP_CLAUDE_BIN:-}" ]; then
@@ -25,7 +34,7 @@ if [ -n "${VJP_CLAUDE_BIN:-}" ]; then
     say "claude ausente — plugins oficiais não instalados (claude-code-setup, receipts)."
     exit 0
   fi
-elif ! command -v claude >/dev/null 2>&1; then
+elif ! command -v claude >/dev/null 2>&1 && ! command -v claude.cmd >/dev/null 2>&1; then
   say "claude ausente — plugins oficiais não instalados (claude-code-setup, receipts)."
   exit 0
 fi

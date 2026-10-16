@@ -21,16 +21,19 @@ test('versão do Claude Code: 2.1.296 entra, 2.1.295 fica de fora', () => {
   assert.equal(versionAtLeast('1.9.9', CLAUDE_MIN_VERSION), false);
 });
 
-test('config.toml do Codex não sobrescreve opt-out e não inventa chave do daemon', () => {
-  const created = mergeCodexConfig('');
-  assert.match(created, /worktrees = true/);
-  assert.doesNotMatch(created, /daemon_auto_start/);
-  assert.equal(mergeCodexConfig(created), created);
+test('config.toml do Codex não ganha chave ausente da referência e perde o bloco antigo', () => {
+  assert.equal(mergeCodexConfig(''), '');
+  assert.equal(mergeCodexConfig(null), '');
+  const legacy = '# vjp-harness:codex:start\n[features]\nworktrees = true\n# vjp-harness:codex:end\n';
+  assert.equal(mergeCodexConfig(legacy), '');
+  const user = 'model = "gpt-5.4"\n\n# vjp-harness:codex:start\n[features]\nworktrees = true\n# vjp-harness:codex:end\n';
+  const cleaned = mergeCodexConfig(user);
+  assert.match(cleaned, /model = "gpt-5.4"/);
+  assert.doesNotMatch(cleaned, /worktrees/);
+  assert.doesNotMatch(cleaned, /daemon_auto_start/);
+  assert.equal(mergeCodexConfig(cleaned), cleaned);
   const opted = '# meu\n[features]\nworktrees = false\n';
   assert.equal(mergeCodexConfig(opted), opted);
-  const kept = mergeCodexConfig('model = "gpt-5.4"\n');
-  assert.match(kept, /model = "gpt-5.4"/);
-  assert.match(kept, /worktrees = true/);
 });
 
 test('regra AGY cita agy e não fixa Gemini 4 Argon como default', () => {
@@ -40,8 +43,11 @@ test('regra AGY cita agy e não fixa Gemini 4 Argon como default', () => {
   assert.match(rule, /não o define como modelo padrão/);
   assert.match(rule, /agy --model="Gemini 4 Argon"/);
   const map = JSON.parse(renderCodexWorktreeMap());
-  assert.equal(map.feature, 'worktrees');
-  assert.equal(map.daemon.defaultEnabled, true);
+  assert.equal(map.managedRoot, '$CODEX_HOME/worktrees');
+  assert.equal(map.maestroRoot, '.bsd/worktrees/<feature>');
+  assert.equal(map.feature, undefined);
+  assert.equal(map.daemon, undefined);
+  assert.equal(map.invoke, undefined);
 });
 
 function runSession(surface, raw, cache) {
@@ -52,15 +58,15 @@ function runSession(surface, raw, cache) {
   });
 }
 
-test('SessionStart Codex avisa o daemon uma vez e não bloqueia; a segunda na mesma sessão sai vazia', () => {
+test('SessionStart Codex descreve as duas worktrees e não cita flag ausente da doc', () => {
   const cache = fs.mkdtempSync(path.join(os.tmpdir(), 'vjp-cli-cache-'));
   const raw = JSON.stringify({ session_id: 'thr_1', hook_event_name: 'SessionStart' });
   const first = JSON.parse(runSession('codex', raw, cache));
   assert.equal(first.continue, true);
-  assert.match(first.systemMessage, /daemon_auto_start/);
-  assert.match(first.systemMessage, /não foi bloqueada/);
+  assert.equal(first.systemMessage, undefined);
   assert.match(first.hookSpecificOutput.additionalContext, /\$CODEX_HOME\/worktrees/);
   assert.match(first.hookSpecificOutput.additionalContext, /\.bsd\/worktrees/);
+  assert.doesNotMatch(JSON.stringify(first), /daemon_auto_start|create_worktree|--worktree|\/worktree(?!s)|fable/i);
   assert.equal(runSession('codex', raw, cache).trim(), '{}');
   const again = JSON.parse(runSession('codex', JSON.stringify({ session_id: 'thr_2' }), cache));
   assert.equal(again.systemMessage, undefined);

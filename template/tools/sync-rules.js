@@ -34,7 +34,7 @@ import { fileURLToPath } from 'url';
 import {
   SESSION_HOOK_SCRIPT, SESSION_HOOK_MODULE, renderCodexWorktreeMap, mergeCodexConfig,
   mergeCodexSessionHook, mergeCodexSessionFile, mergeClaudeSessionHook, sessionHookCommand, absoluteSessionCommand,
-  renderAgyCliRule, renderCursorCliRule,
+  windowsNodeCommand, renderAgyCliRule, renderCursorCliRule,
 } from './cli-surfaces.js';
 
 export const START = '<!-- vjp-harness:start -->';
@@ -163,14 +163,14 @@ export function codexHookCommand(scriptRel) {
 }
 
 // Merge idempotente dos hooks do Codex. Preserva hooks alheios.
-// sessionCommand (opcional) acrescenta SessionStart do mapa de worktrees / alerta do daemon.
-export function mergeCodexHooks(currentText, command, sessionCommand = null) {
+// sessionCommand (opcional) acrescenta SessionStart com o mapa das duas worktrees.
+export function mergeCodexHooks(currentText, command, sessionCommand = null, sessionCommandWindows = null) {
   let obj = {};
   if (currentText && currentText.trim()) {
     try { obj = JSON.parse(currentText); } catch (e) { throw new Error(`.codex/hooks.json inválido (não sobrescrevo): ${e.message}`); }
   } else {
     obj.comment = sessionCommand
-      ? 'V-JP: PreToolUse do orçamento de teste (só com VJP_CODEX=1 ou VJP_TEST_BUDGET=1) e SessionStart com o mapa de worktrees do Codex 0.162 e o alerta do daemon 0.157+ (não bloqueia).'
+      ? 'V-JP: PreToolUse do orçamento de teste (só com VJP_CODEX=1 ou VJP_TEST_BUDGET=1) e SessionStart com o mapa das worktrees do Codex e do Maestro (não bloqueia).'
       : 'V-JP: PreToolUse recusa runner de teste e patch em spec quando o orçamento mecânico esgotou. Só age com VJP_CODEX=1 ou VJP_TEST_BUDGET=1. Stop-continue NÃO zera o contador.';
   }
   obj.hooks = obj.hooks || {};
@@ -185,7 +185,7 @@ export function mergeCodexHooks(currentText, command, sessionCommand = null) {
     }
   }
   if (!found) obj.hooks.PreToolUse.push({ matcher: HOOK_MATCHER, hooks: [{ type: 'command', command }] });
-  if (sessionCommand) mergeCodexSessionHook(obj, sessionCommand);
+  if (sessionCommand) mergeCodexSessionHook(obj, sessionCommand, sessionCommandWindows);
   return JSON.stringify(obj, null, 2) + '\n';
 }
 
@@ -266,11 +266,13 @@ export function planProject(core, target, { repoRoot = null } = {}) {
       if (fs.existsSync(src)) ops.push({ path: path.join(target, '.harness/tools/hooks', name), kind: 'copy', src, mode });
     }
   }
+  const sessionMjs = path.join(target, '.harness/tools/hooks', SESSION_HOOK_MODULE);
   ops.push({
     path: path.join(target, '.codex/hooks.json'),
     kind: 'hooks',
     command: codexHookCommand(hookRel),
     sessionCommand: sessionHookCommand(sessionRel, 'codex'),
+    sessionCommandWindows: windowsNodeCommand(sessionMjs, 'codex'),
   });
   ops.push({ path: path.join(target, '.codex/config.toml'), kind: 'codex-config' });
   ops.push({ path: path.join(target, '.codex/vjp-cli.json'), kind: 'file', content: renderCodexWorktreeMap() });
@@ -316,7 +318,12 @@ export function planGlobal(core, repoRoot, home) {
     if (fs.existsSync(src)) ops.push({ path: path.join(globalHookDir, name), kind: 'copy', src, mode });
   }
   const globalScript = path.join(globalHookDir, SESSION_HOOK_SCRIPT);
-  ops.push({ path: path.join(home, '.codex/hooks.json'), kind: 'codex-session', sessionCommand: absoluteSessionCommand(globalScript, 'codex') });
+  ops.push({
+    path: path.join(home, '.codex/hooks.json'),
+    kind: 'codex-session',
+    sessionCommand: absoluteSessionCommand(globalScript, 'codex'),
+    sessionCommandWindows: windowsNodeCommand(path.join(globalHookDir, SESSION_HOOK_MODULE), 'codex'),
+  });
   ops.push({ path: path.join(home, '.claude/settings.json'), kind: 'claude-settings', command: absoluteSessionCommand(globalScript, 'claude') });
   return ops;
 }
@@ -332,8 +339,8 @@ function desiredOf(op) {
     if (op.mustExist && !exists) throw new Error(`arquivo esperado não existe: ${op.path}`);
     if (op.mustExist && !cur.toString('utf8').includes(op.start)) throw new Error(`marcador ${op.start} ausente em ${op.path}`);
     want = Buffer.from(upsertBlock(cur ? cur.toString('utf8') : null, op.inner, op.start || START, op.end || END), 'utf8');
-  } else if (op.kind === 'hooks') want = Buffer.from(mergeCodexHooks(cur ? cur.toString('utf8') : '', op.command, op.sessionCommand || null), 'utf8');
-  else if (op.kind === 'codex-session') want = Buffer.from(mergeCodexSessionFile(cur ? cur.toString('utf8') : '', op.sessionCommand), 'utf8');
+  } else if (op.kind === 'hooks') want = Buffer.from(mergeCodexHooks(cur ? cur.toString('utf8') : '', op.command, op.sessionCommand || null, op.sessionCommandWindows || null), 'utf8');
+  else if (op.kind === 'codex-session') want = Buffer.from(mergeCodexSessionFile(cur ? cur.toString('utf8') : '', op.sessionCommand, op.sessionCommandWindows || null), 'utf8');
   else if (op.kind === 'codex-config') want = Buffer.from(mergeCodexConfig(cur ? cur.toString('utf8') : ''), 'utf8');
   else if (op.kind === 'claude-settings') want = Buffer.from(mergeClaudeSessionHook(cur ? cur.toString('utf8') : '', op.command), 'utf8');
   else throw new Error(`op desconhecida: ${op.kind}`);
@@ -344,6 +351,8 @@ function desiredOf(op) {
     modeDrift = ((fs.statSync(op.path).mode & 0o777) & 0o111) !== (op.mode & 0o111);
   }
   const same = cur != null && cur.equals(want) && !modeDrift;
+  // Arquivo novo e vazio: não cria config.toml só para dizer que não há chave a gravar.
+  if (op.kind === 'codex-config' && !exists && want.length === 0) return { want, same: true, exists };
   return { want, same, exists };
 }
 

@@ -1,28 +1,22 @@
 /**
  * Superfícies de CLI do V-JP Harness (escopo clis).
  * O sync-rules.js é o roteador: ao instalar, grava o destino de cada CLI.
- * Não inventa chave de config. Codex só recebe features.worktrees (oficial, estável,
- * default true desde o CLI 0.162). O mapa de caminhos fica em .codex/vjp-cli.json
- * porque --strict-config rejeita campo desconhecido no config.toml.
+ * A config reference do Codex (learn.chatgpt.com/docs/config-file/config-reference,
+ * consultada em 2026-10-16) não lista features.worktrees. O instalador não grava
+ * essa chave: --strict-config recusa campo desconhecido. Um bloco antigo com os
+ * marcadores abaixo é removido na próxima aplicação. O mapa de caminhos fica em
+ * .codex/vjp-cli.json, que o Codex não lê como config.
  */
 export const SESSION_HOOK_SCRIPT = 'cli-session-start.sh';
 export const SESSION_HOOK_MODULE = 'cli-session-start.mjs';
 export const CODEX_CONFIG_START = '# vjp-harness:codex:start';
 export const CODEX_CONFIG_END = '# vjp-harness:codex:end';
-export const CODEX_SESSION_MATCHER = 'startup|resume|clear|compact';
+export const CODEX_SESSION_MATCHER = 'startup|resume|clear|compact|fork';
 export const CLAUDE_SESSION_MATCHER = 'startup|resume|clear|compact|fork';
 export const CLAUDE_MIN_VERSION = '2.1.296';
 export const OFFICIAL_PLUGINS = ['claude-code-setup', 'receipts'];
 export const OFFICIAL_MARKETPLACE = 'claude-plugins-official';
 export const OFFICIAL_MARKETPLACE_REPO = 'anthropics/claude-plugins-official';
-
-const CODEX_BLOCK = `${CODEX_CONFIG_START}
-# features.worktrees — Codex CLI >= 0.162, chave oficial, estágio estável, default true.
-# Mapa de caminhos: .codex/vjp-cli.json (não entra no config.toml: --strict-config recusa chave desconhecida).
-[features]
-worktrees = true
-${CODEX_CONFIG_END}
-`;
 
 export function versionAtLeast(found, min) {
   const parse = (s) => String(s || '').split('.').map((n) => {
@@ -44,28 +38,11 @@ export function renderCodexWorktreeMap() {
   return JSON.stringify({
     surface: 'codex',
     router: 'sync-rules destino codex',
-    minCli: '0.162.0',
-    feature: 'worktrees',
-    featureStage: 'stable',
-    featureDefault: true,
-    invoke: {
-      flag: '--worktree',
-      slash: '/worktree',
-      tools: ['create_worktree', 'get_worktree_creation_status', 'list_worktrees'],
-    },
     managedRoot: '$CODEX_HOME/worktrees',
     managedCheckout: 'detached HEAD',
+    managedHow: 'No app do Codex, a thread nova escolhe Worktree no compositor. A config reference oficial não lista features.worktrees; o instalador não grava essa chave.',
     maestroRoot: '.bsd/worktrees/<feature>',
     maestroCheckout: 'branch própria do Maestro (bsd.js)',
-    daemon: {
-      since: '0.157.0',
-      feature: 'daemon_auto_start',
-      featureStage: 'stable',
-      defaultEnabled: true,
-      sessionFlag: '--no-daemon',
-      disable: 'codex features disable daemon_auto_start',
-      stop: 'codex app-server daemon stop',
-    },
   }, null, 2) + '\n';
 }
 
@@ -73,19 +50,20 @@ function ensureNl(s) {
   return s.replace(/\n*$/, '\n');
 }
 
-// Acrescenta features.worktrees = true só quando a chave ainda não existe.
-// Opt-out do usuário (worktrees = false) permanece.
+// Remove o bloco gerenciado que chegou a gravar [features] worktrees.
+// Chave fora da config reference oficial. Conteúdo do usuário fora dos marcadores fica.
 export function mergeCodexConfig(currentText) {
   const raw = currentText == null ? '' : String(currentText);
+  if (!raw.trim()) return '';
   const cur = raw.replace(/\r\n?/g, '\n');
   const i = cur.indexOf(CODEX_CONFIG_START);
   const j = i >= 0 ? cur.indexOf(CODEX_CONFIG_END, i) : -1;
-  if (i >= 0 && j >= 0) {
-    return ensureNl(cur.slice(0, i) + CODEX_BLOCK + cur.slice(j + CODEX_CONFIG_END.length));
-  }
-  if (/^\s*worktrees\s*=/m.test(cur)) return raw === '' ? raw : (raw.endsWith('\n') ? raw : raw + '\n');
-  const base = cur.trim() ? cur.replace(/\n*$/, '\n\n') : '';
-  return base + CODEX_BLOCK;
+  if (i < 0 || j < 0) return ensureNl(cur);
+  const next = (cur.slice(0, i) + cur.slice(j + CODEX_CONFIG_END.length))
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return next ? `${next}\n` : '';
 }
 
 export function sessionHookCommand(scriptRel, surface) {
@@ -99,7 +77,15 @@ export function absoluteSessionCommand(scriptAbs, surface) {
   return `[ -f ${q} ] || exit 0; exec bash ${q} ${surface}`;
 }
 
-function mergeNamedHook(obj, event, matcher, command, marker) {
+// commandWindows é campo oficial do hook do Codex (a doc chama de override só no Windows).
+// node resolve o .mjs sem depender de bash, que o cmd/PowerShell não tem.
+export function windowsNodeCommand(mjsAbs, surface) {
+  if (surface !== 'codex' && surface !== 'claude') throw new Error(`superfície desconhecida: ${surface}`);
+  const q = '"' + String(mjsAbs).replace(/\\/g, '/').replace(/"/g, '\\"') + '"';
+  return `node ${q} ${surface}`;
+}
+
+function mergeNamedHook(obj, event, matcher, command, marker, commandWindows = null) {
   obj.hooks = obj.hooks || {};
   obj.hooks[event] = obj.hooks[event] || [];
   let found = false;
@@ -109,27 +95,32 @@ function mergeNamedHook(obj, event, matcher, command, marker) {
         if (found) continue;
         h.type = 'command';
         h.command = command;
+        if (commandWindows) h.commandWindows = commandWindows;
         if (!group.matcher) group.matcher = matcher;
         found = true;
       }
     }
   }
-  if (!found) obj.hooks[event].push({ matcher, hooks: [{ type: 'command', command }] });
+  if (!found) {
+    const hook = { type: 'command', command };
+    if (commandWindows) hook.commandWindows = commandWindows;
+    obj.hooks[event].push({ matcher, hooks: [hook] });
+  }
 }
 
-export function mergeCodexSessionHook(obj, sessionCommand) {
-  mergeNamedHook(obj, 'SessionStart', CODEX_SESSION_MATCHER, sessionCommand, SESSION_HOOK_SCRIPT);
+export function mergeCodexSessionHook(obj, sessionCommand, sessionCommandWindows = null) {
+  mergeNamedHook(obj, 'SessionStart', CODEX_SESSION_MATCHER, sessionCommand, SESSION_HOOK_SCRIPT, sessionCommandWindows);
 }
 
 // Só SessionStart. Não cria PreToolUse (o hook global não tem o script do orçamento).
-export function mergeCodexSessionFile(currentText, sessionCommand) {
+export function mergeCodexSessionFile(currentText, sessionCommand, sessionCommandWindows = null) {
   let obj = {};
   if (currentText && String(currentText).trim()) {
     try { obj = JSON.parse(currentText); } catch (e) {
       throw new Error(`.codex/hooks.json inválido (não sobrescrevo): ${e.message}`);
     }
   }
-  mergeCodexSessionHook(obj, sessionCommand);
+  mergeCodexSessionHook(obj, sessionCommand, sessionCommandWindows);
   return JSON.stringify(obj, null, 2) + '\n';
 }
 
@@ -180,8 +171,7 @@ export function renderCursorCliRule() {
     '',
     'Superfície Cursor, já ativa (alwaysApply). Não espere o usuário pedir.',
     '',
-    '- Codex CLI >= 0.162: worktrees gerenciadas em `$CODEX_HOME/worktrees` (detached HEAD; `codex --worktree`, `/worktree`). O Maestro usa `.bsd/worktrees/<feature>` com branch própria. São checkouts diferentes. Mapa gerado: `.codex/vjp-cli.json`.',
-    '- Codex >= 0.157: `daemon_auto_start` (default ligado) pode deixar `codex app-server` em segundo plano depois que a janela fecha. Aviso ao usuário, sem bloquear. Opt-out oficial: `codex features disable daemon_auto_start`. Sessão avulsa: `--no-daemon`. Parar: `codex app-server daemon stop`.',
+    '- Codex: a worktree gerenciada fica em `$CODEX_HOME/worktrees` (detached HEAD). No app, a thread nova escolhe Worktree no compositor. O Maestro usa `.bsd/worktrees/<feature>` com branch própria. São checkouts diferentes. Mapa gerado: `.codex/vjp-cli.json`. A config reference oficial não lista `features.worktrees`; o instalador não grava essa chave.',
     '- AGY: comando `agy`. Gemini CLI de conta individual descontinuado em 18/06/2026. Gemini 4 Argon não é o default documentado; `/model` ou `agy --model="Gemini 4 Argon"` quando o plano permitir.',
     '- Claude Code: plugins oficiais `claude-code-setup` e `receipts` (`@claude-plugins-official`) só entram se `claude` for >= 2.1.296. O hook SessionStart sugere auditoria periódica e não bloqueia.',
     '- Headroom comprime tool output do Claude Code via proxy local. Não empilhe rtk, lean-ctx nem um segundo proxy. Não abaixe `autoCompactWindow` só porque o Headroom já comprimiu a ferramenta: o auto-compact resume o histórico, é outra camada.',

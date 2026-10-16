@@ -1,8 +1,9 @@
 /**
  * SessionStart do V-JP (Codex e Claude Code).
  * stdout: um JSON. exit 0. Não bloqueia.
- * additionalContext entra no modelo. systemMessage avisa a pessoa, no máximo
- * 1x/dia (daemon Codex) ou 1x/7 dias (auditoria Claude).
+ * additionalContext entra no modelo. systemMessage do Claude avisa a pessoa
+ * no máximo 1x/7 dias (auditoria). Codex não recebe systemMessage: os comandos
+ * de daemon que circularam não estão na config reference oficial.
  * Segunda invocação na mesma session_id devolve {} para não duplicar
  * quando o hook global e o do projeto disparam juntos.
  */
@@ -43,14 +44,10 @@ function loadMap() {
 function codexContext(map) {
   const managed = map?.managedRoot || '$CODEX_HOME/worktrees';
   const maestro = map?.maestroRoot || '.bsd/worktrees/<feature>';
-  const flag = map?.invoke?.flag || '--worktree';
-  const daemon = map?.daemon || {};
   return [
-    'Codex CLI >= 0.162: worktrees gerenciadas (feature worktrees, estável, default true).',
-    `Invocação oficial: ${flag}, /worktree, ferramentas create_worktree, get_worktree_creation_status, list_worktrees.`,
-    `Checkout gerenciado: ${managed} (detached HEAD). Checkout do Maestro: ${maestro} (branch própria). São diretórios diferentes.`,
-    `Desde o Codex ${daemon.since || '0.157.0'} a feature ${daemon.feature || 'daemon_auto_start'} (default ligada) pode manter o app-server em segundo plano depois da sessão.`,
-    `Opt-out oficial: ${daemon.disable || 'codex features disable daemon_auto_start'}. Sessão avulsa: ${daemon.sessionFlag || '--no-daemon'}. Parar: ${daemon.stop || 'codex app-server daemon stop'}.`,
+    `Codex cria a worktree gerenciada em ${managed} (detached HEAD, sem branch).`,
+    'No app, a thread nova escolhe Worktree no compositor. O manual oficial não documenta uma flag de CLI para isso, e a config reference não lista features.worktrees. Este harness não grava essa chave.',
+    `O Maestro do harness usa ${maestro} com branch própria. São checkouts diferentes.`,
   ].join(' ');
 }
 
@@ -92,9 +89,6 @@ function main() {
   const out = { continue: true, hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: '' } };
   if (surface === 'codex') {
     out.hookSpecificOutput.additionalContext = codexContext(loadMap());
-    if (due(path.join(cache, 'daemon-alert-at'), 24 * 3600 * 1000)) {
-      out.systemMessage = 'V-JP: Codex 0.157+ pode deixar o app-server em segundo plano (daemon_auto_start, default ligado). Para desligar: codex features disable daemon_auto_start. Esta sessão não foi bloqueada.';
-    }
   } else {
     out.hookSpecificOutput.additionalContext = claudeContext();
     if (due(path.join(cache, 'audit-suggest-at'), 7 * 24 * 3600 * 1000)) {

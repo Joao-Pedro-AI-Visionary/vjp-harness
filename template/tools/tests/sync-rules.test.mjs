@@ -103,7 +103,7 @@ test('mergeCodexHooks: preserva hook alheio, migra o caminho relativo antigo e �
   assert.throws(() => mergeCodexHooks('{quebrado', cmd), /não sobrescrevo/);
   assert.equal(JSON.parse(mergeCodexHooks('', cmd)).hooks.PreToolUse.length, 1);
   const withSession = JSON.parse(mergeCodexHooks('', cmd, 'exec bash cli-session-start.sh codex'));
-  assert.equal(withSession.hooks.SessionStart[0].matcher, 'startup|resume|clear|compact');
+  assert.equal(withSession.hooks.SessionStart[0].matcher, 'startup|resume|clear|compact|fork');
   assert.equal(withSession.hooks.PreToolUse.length, 1);
   assert.equal(mergeCodexHooks(JSON.stringify(withSession), cmd, 'exec bash cli-session-start.sh codex'), JSON.stringify(withSession, null, 2) + '\n');
 });
@@ -122,16 +122,21 @@ test('modo projeto: aplica, segunda rodada não muda nada e --check fica verde',
   const claude = fs.readFileSync(path.join(d, 'CLAUDE.md'), 'utf8');
   for (const m of claude.matchAll(/^@(\S+)$/gm)) assert.ok(fs.existsSync(path.join(d, m[1])), `import quebrado: ${m[1]}`);
   for (const p of ['.agents/rules/vjp-projeto-novo.md', '.agents/rules/vjp-cli.md', '.cursor/rules/vjp-projeto-novo.mdc', '.cursor/rules/vjp-cli.mdc', '.agents/skills/projeto-novo/SKILL.md',
-    '.claude/skills/projeto-novo/SKILL.md', `.harness/tools/hooks/${HOOK_SCRIPT}`, '.harness/tools/hooks/cli-session-start.sh', '.codex/hooks.json', '.codex/config.toml', '.codex/vjp-cli.json', '.claude/settings.json']) {
+    '.claude/skills/projeto-novo/SKILL.md', `.harness/tools/hooks/${HOOK_SCRIPT}`, '.harness/tools/hooks/cli-session-start.sh', '.codex/hooks.json', '.codex/vjp-cli.json', '.claude/settings.json']) {
     assert.ok(fs.existsSync(path.join(d, p)), p);
   }
+  assert.equal(fs.existsSync(path.join(d, '.codex/config.toml')), false, 'config.toml não é criado sem chave oficial para gravar');
   if (process.platform !== 'win32') assert.ok(fs.statSync(path.join(d, `.harness/tools/hooks/${HOOK_SCRIPT}`)).mode & 0o100, 'hook executável');
   const codexHooks = JSON.parse(fs.readFileSync(path.join(d, '.codex/hooks.json'), 'utf8'));
-  assert.equal(codexHooks.hooks.SessionStart[0].matcher, 'startup|resume|clear|compact');
+  assert.equal(codexHooks.hooks.SessionStart[0].matcher, 'startup|resume|clear|compact|fork');
   assert.match(codexHooks.hooks.SessionStart[0].hooks[0].command, /cli-session-start\.sh/);
   assert.match(codexHooks.hooks.SessionStart[0].hooks[0].command, / codex$/);
-  assert.doesNotMatch(fs.readFileSync(path.join(d, '.codex/config.toml'), 'utf8'), /daemon_auto_start/);
-  assert.match(fs.readFileSync(path.join(d, '.codex/config.toml'), 'utf8'), /^\[features\]\nworktrees = true$/m);
+  assert.match(codexHooks.hooks.SessionStart[0].hooks[0].commandWindows, /cli-session-start\.mjs/);
+  assert.match(codexHooks.hooks.SessionStart[0].hooks[0].commandWindows, /^node /);
+  const legacyToml = '# vjp-harness:codex:start\n[features]\nworktrees = true\n# vjp-harness:codex:end\n';
+  fs.writeFileSync(path.join(d, '.codex/config.toml'), legacyToml);
+  applyOps(planProject(core, d, { repoRoot: REPO }));
+  assert.doesNotMatch(fs.readFileSync(path.join(d, '.codex/config.toml'), 'utf8'), /worktrees\s*=/);
   const map = JSON.parse(fs.readFileSync(path.join(d, '.codex/vjp-cli.json'), 'utf8'));
   assert.equal(map.managedRoot, '$CODEX_HOME/worktrees');
   assert.equal(map.maestroRoot, '.bsd/worktrees/<feature>');
@@ -157,6 +162,7 @@ test('modo global (HOME temporário): ~/.codex/AGENTS.md, GEMINI.md, HARNESS.md 
   const userHooks = JSON.parse(fs.readFileSync(path.join(home, '.codex/hooks.json'), 'utf8'));
   assert.equal(userHooks.hooks.PreToolUse, undefined);
   assert.match(userHooks.hooks.SessionStart[0].hooks[0].command, /cli-session-start\.sh/);
+  assert.match(userHooks.hooks.SessionStart[0].hooks[0].commandWindows, /cli-session-start\.mjs/);
   assert.match(userHooks.hooks.SessionStart[0].hooks[0].command, / codex$/);
   const userClaude = JSON.parse(fs.readFileSync(path.join(home, '.claude/settings.json'), 'utf8'));
   assert.match(userClaude.hooks.SessionStart[0].hooks[0].command, / claude$/);
