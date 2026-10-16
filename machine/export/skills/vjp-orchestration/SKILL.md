@@ -78,8 +78,6 @@ EOF
 #    Prompt: "Implemente orders API. Use o context bundle em /tmp/context-bundle-orders.md.
 #             Despache backend-specialist + frontend-specialist em paralelo."
 
-# 2b. Pipeline headless (BSD): o EXECUTOR já recebe AGENT_RULES + .gbrain/*
-#     Estender passando o bundle via prompt override em tools/agents.js
 
 # 3. Validar output: o EXECUTOR deve CITAR o bundle no report
 #    E respeitar os stop_conditions
@@ -199,7 +197,6 @@ Output final: tabela de findings + código corrigido + diff vs. A.
 ## Referências
 
 - `template/AGENT_RULES.md` §0 (Constitution 9 artigos) e §0.1 (OWASP Security)
-- `template/tools/agents.md` — definição dos 4 agentes e camada LLM
 - `template/tools/bsd.md` — Maestro (orquestrador) e comandos
 - `template/agents/` — specialists Nível 3 (v1.10.0)
 - `~/Desktop/MANIFESTO-DEV-SOLO-ARQUITETO.md` — Manifesto base

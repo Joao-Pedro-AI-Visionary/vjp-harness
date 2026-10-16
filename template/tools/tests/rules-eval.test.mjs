@@ -24,13 +24,12 @@ test('respostas normalizam espaço antes de comparar', () => {
   assert.equal(compareAnswers('sim', 'não').identical, false);
 });
 
-test('core real: cada always-on entra no par e --llm fica desligado', async () => {
+test('core real: cada always-on entra no par sem chamada de modelo', async () => {
   const core = loadCore(coreDir);
   const units = ruleUnits(core);
   assert.ok(units.some((u) => u.id === '10-principios.md'));
   assert.ok(units.some((u) => u.id.startsWith('conditional:')));
-  const report = await evaluateRules(core, { llm: false });
-  assert.equal(report.llm, false);
+  const report = await evaluateRules(core);
   assert.equal(report.rows.length, units.length);
   assert.ok(report.rows.every((r) => r.promptIdentical === false && r.deltaChars > 0));
   assert.equal(JSON.stringify(report).includes('sk-'), false);

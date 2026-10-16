@@ -8,7 +8,7 @@
 - **GSD-2:** `Milestone → Slice → Task`, com cada task cabendo numa janela de contexto e gates de plano, execução, verificação e validação.
 - **TDD (Superpowers):** `RED → GREEN → REFACTOR` em feature, bugfix e refactor, com teste falhando antes do código de produção, salvo autorização. A classe `config` do Dial não exige teste.
 - **Contrato-primeiro:** antes de back ou front, defina entrada, estado esperado e saída/persistência (endpoint, DTO, status). Back e front consomem o mesmo contrato.
-- **Spec-driven:** feature de verdade nasce de `specs/<feature>/spec.md` + `tasks.md`, executada pelo Maestro (`bsd.js --execute`).
+- **Spec-driven:** feature de verdade nasce de `specs/<feature>/spec.md` + `tasks.md`, executada pelas CLIs (Claude Code, Codex, AGY, Cursor) com os subagentes da fase.
 - **Headroom:** compressão de contexto (`cch` = `headroom wrap claude`), desde que preserve requisitos, contratos e evidência. Saída completa vai para arquivo quando for preciso auditar.
 - **GBrain:** consulte `.gbrain/` antes de propor design. Decisão relevante vira ADR em `.gbrain/decisions.md`.
 

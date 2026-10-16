@@ -1,7 +1,7 @@
 # V-JP Harness
 
 > **Autor:** João Pedro (V-JP) · [github.com/Joao-Pedro-AI-Visionary](https://github.com/Joao-Pedro-AI-Visionary)
-> **Versão:** 2.1.0 (fonte: [`VERSION`](./VERSION); histórico em [`CHANGELOG.md`](./CHANGELOG.md)) · Licença MIT · *método de engenharia de software orientado a IA*
+> **Versão:** 2.2.0 (fonte: [`VERSION`](./VERSION); histórico em [`CHANGELOG.md`](./CHANGELOG.md)) · Licença MIT · *método de engenharia de software orientado a IA*
 
 Ecossistema de engenharia de software orientado a IA — empacotado para instalação **determinística** em qualquer projeto.
 
@@ -100,15 +100,15 @@ node .harness/tools/bsd.js --doctor --strict # AVISO também falha o processo
 node .harness/tools/bsd.js --doctor --json   # sem cor; valores de env não saem
 ```
 
-Cada linha é **OK**, **FALTA** (sai com código 1: Node &lt; 18 ou ausente, Repomix fora do pin) ou **AVISO** (não bloqueia), com o comando de correção da plataforma (`win32` / `darwin` / `linux`). O relatório cobre Node, Python, git, Claude Code (`claude --version`), Codex (`codex --version`), Antigravity (`agy --version`), Cursor CLI (`agent --version`), skills/plugins nos diretórios que o harness grava, `config/mcp.json`, Headroom, GBrain, Repomix, Playwright MCP, Postgres MCP Pro (opcional; o pacote não tem `--version`) e as variáveis `VJP_LLM_API_KEY`, `HEADROOM_BEACON`, `DATABASE_URI` — só "ausente" ou "definida", nunca o valor.
+Cada linha é **OK**, **FALTA** (sai com código 1: Node &lt; 18 ou ausente, Repomix fora do pin) ou **AVISO** (não bloqueia), com o comando de correção da plataforma (`win32` / `darwin` / `linux`). O relatório cobre Node, Python, git, Claude Code (`claude --version`), Codex (`codex --version`), Antigravity (`agy --version`), Cursor CLI (`agent --version`), skills/plugins nos diretórios que o harness grava, `config/mcp.json`, Headroom, GBrain, Repomix, Playwright MCP, Postgres MCP Pro (opcional; o pacote não tem `--version`) e as variáveis `HEADROOM_BEACON`, `DATABASE_URI` — só "ausente" ou "definida", nunca o valor.
 
 Não há versão mínima pinada no registry para os quatro CLIs. O checklist confere presença e o `--version` documentado. `claude doctor` existe na documentação do Claude Code e checa a instalação deles; não substitui este relatório. Não há flag não-interativa verificada para listar plugins do Codex, do AGY ou do Cursor: o checklist olha os diretórios de skill.
 
-Eval de regras (opt-in, não roda na instalação nem no doctor): o mesmo prompt com e sem cada módulo de `core/`. Sem `--llm` só compara o texto. Com `--llm` chama o provider já configurado e gasta API.
+Eval de regras (opt-in, não roda na instalação nem no doctor): o mesmo prompt com e sem cada módulo de `core/`. Só compara o texto; não chama modelo (o `--llm` saiu na v2.2.0).
 
 ```bash
 node template/tools/sync-rules.js --eval
-node template/tools/sync-rules.js --eval --llm --only 10-principios.md
+node template/tools/sync-rules.js --eval --only 10-principios.md
 ```
 
 ## Instalação determinística
@@ -199,7 +199,7 @@ meu-projeto/
 │   ├── AGENT_RULES.md            # regras dos 4 agentes (bloco R1–R9 gerado de core/)
 │   ├── core/                     # FONTE ÚNICA das regras (v2) — cópia de core/
 │   ├── tools/
-│   │   ├── bsd.js                # orquestrador (--execute/--continue/--status/--reset/--doctor)
+│   │   ├── bsd.js                # painel e utilitários (--status/--reset/--doctor/--vendor)
 │   │   ├── verify.js             # verificador de determinismo
 │   │   ├── sync-rules.js         # gera AGENTS.md/CLAUDE.md/.agents/.cursor de core/ (--check)
 │   │   ├── package.json + lock   # tools pinadas (npm ci)
@@ -227,10 +227,9 @@ PLANEJADOR → NFR → CONTRATO → PESQUISADOR → EXECUTOR(back→db→front) 
 ```
 
 > O comando segue sendo `bsd.js` (CLI/IDs estáveis por compatibilidade); "Maestro" é o nome de papel.
+> **v2.2.0:** o pipeline headless (`--execute`/`--continue`/`--check-llm`) e a camada LLM própria saíram. O fluxo acima roda pelas CLIs (Claude Code, Codex, AGY, Cursor) com os subagentes de `.claude/agents`, `.cursor/agents` e `.codex/agents`.
 
 ```bash
-node .harness/tools/bsd.js --execute <feature>
-node .harness/tools/bsd.js --continue
 node .harness/tools/bsd.js --status
 node .harness/tools/bsd.js --reset
 ```
@@ -246,7 +245,7 @@ Resolve a falha clássica: *"o back foi feito, mas no front dá erro / não pers
 - **Planejador de NFR** no início: decide fila/assíncrono/paralelismo/idempotência (operação pesada/lote não pode ser síncrona).
 - **Verificador de Integração:** roda o fluxo real e confirma a **linha persistida no banco** (Postgres MCP) + UI sem erro (Playwright) + caminhos ruins + performance. Aprovação do LLM não substitui esse sinal.
 
-Na **camada interativa** (Claude Code/Cursor — onde os MCPs funcionam), os especialistas vêm como **subagentes** instalados em `.claude/agents/`: `backend-specialist`, `frontend-specialist`, `db-migration-specialist`, `nfr-performance-planner`, `integration-verifier`. No **pipeline headless**, os builders recebem contrato+NFR e o frontend gera o teste E2E que o `testCommand` roda.
+Na **camada interativa** (Claude Code/Cursor — onde os MCPs funcionam), os especialistas vêm como **subagentes** instalados em `.claude/agents/`: `backend-specialist`, `frontend-specialist`, `db-migration-specialist`, `nfr-performance-planner`, `integration-verifier`. 
 
 ---
 
@@ -256,39 +255,6 @@ Na **camada interativa** (Claude Code/Cursor — onde os MCPs funcionam), os esp
 3. Pesquisar antes de modificar. 4. Revisar antes de aprovar.
 5. Registrar decisões. 6. Aprender com erros. 7. Automatizar o repetitivo.
 8. Agentes especializados. 9. Preservar histórico. 10. Evoluir o conhecimento.
-
----
-
-## Agentes de IA (integração real)
-
-Os 4 agentes rodam de verdade (`tools/agents.js` + `tools/llm.js`), **provider-agnostic**:
-use **qualquer** provider — OpenAI, DeepSeek, Kimi, GLM, MiniMax, Groq, OpenRouter,
-Together (todos via adapter `openai`), Anthropic ou Ollama local. Presets prontos +
-override por ENV, sem fixar nada globalmente.
-
-```bash
-# 1. escolha o provider via ENV (sem editar arquivo) — troque quando quiser
-export VJP_LLM_PRESET=deepseek            # ou kimi, glm, openrouter, ollama, cliproxy...
-export VJP_LLM_MODEL=deepseek-chat
-export VJP_LLM_API_KEY=sk-...             # ollama não precisa
-
-# 2. valide a conectividade
-node .harness/tools/bsd.js --check-llm
-
-# 3. rode uma feature (EXECUTOR escreve+commita na worktree; merge se os testes passarem)
-node .harness/tools/bsd.js --execute minha-feature
-
-# (mecânica sem LLM, para testar o fluxo)
-node .harness/tools/bsd.js --execute minha-feature --dry-run
-```
-
-> Fixar um modelo é **opcional** (só pra reproduzir um projeto) — não há provider
-> default obrigatório. Presets em [`template/config/agents.json`](./template/config/agents.json).
-
-Cada agente recebe `AGENT_RULES.md` + `.gbrain/*.md` como contexto e devolve JSON
-estruturado. O EXECUTOR não recebe shell — só conteúdo de arquivos, aplicados na
-git worktree isolada com proteção contra path traversal; o merge só acontece após
-os testes verdes (`pipeline.testCommand`). Detalhes em [`template/tools/agents.md`](./template/tools/agents.md).
 
 ---
 

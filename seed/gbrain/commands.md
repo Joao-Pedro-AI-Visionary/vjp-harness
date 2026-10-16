@@ -5,14 +5,6 @@ Receitas de comandos CLI validadas para operar no projeto de forma segura e repe
 ---
 
 ## 1. Comandos de Orquestração do Harness (BSD)
-- **Executar uma feature**:
-  ```bash
-  node .harness/tools/bsd.js --execute <nome-da-feature>
-  ```
-- **Retomar pipeline interrompido**:
-  ```bash
-  node .harness/tools/bsd.js --continue
-  ```
 - **Dashboard de progresso e histórico**:
   ```bash
   node .harness/tools/bsd.js --status

@@ -2,6 +2,28 @@
 
 Formato: versão · data · o que mudou. Histórico anterior à v2: `README.md` (Novidades), `machine/MACHINE.md` §6 e o `git log`.
 
+## 2.2.0 — 2026-10-16 — remoção da camada LLM própria
+
+O João não usa a camada LLM do harness: a execução fica com as CLIs (Claude Code, Codex, AGY, Cursor) e seus subagentes por fase.
+
+### Removido
+- `template/tools/llm.js` (adapters openai/anthropic/ollama e presets cliproxy, openai, deepseek, kimi, glm, minimax, openrouter, groq, together, anthropic, ollama).
+- `template/config/agents.json` inteiro (bloco `llm`, `presets` e os blocos `agents`/`pipeline`, que só o pipeline headless lia).
+- `template/tools/agents.js` + `agents.md` (os 4 agentes HTTP do Maestro).
+- `bsd.js --execute`, `--continue`, `--check-llm` e o `--dry-run` deles. Ficam `--status`, `--reset`, `--doctor`/`--check` e `--vendor`.
+- `template/tools/sombra-llm.js` + `sombra-llm.md` + `config/canary-llm.json` e o componente `sombra-llm` do registry.
+- `rules-eval.js --llm` / `sync-rules.js --eval --llm`. O eval de texto (sem modelo) continua.
+- Checagem `VJP_LLM_API_KEY` no checklist/doctor; menções em README, `bsd.md`, `core/20-operacao.md`, `install.sh` e seed do GBrain.
+- Testes do pipeline headless (integração `--execute --dry-run`, `nfr-contract`, `sombra-llm`, partes de agents/model-router).
+
+### Mantido
+- `model-router.js` (modelos por fase das CLIs) não dependia de `llm.js`.
+- Helpers puros do `bsd.js` (`applyFiles`, `mergeGate`, `parseTasks`, `findFeatureSpec`, `markTaskDone`) e os módulos `gates.js`, `dial.js`, `aferidor-*.js`, `sombra.js` (usados por skills/regras ou testados à parte).
+
+### Checklist
+- A correção sugerida para `superpowers` agora é a que funciona: `vendor.js --only superpowers` + cópia para `~/.claude/plugins/superpowers` + `claude plugin marketplace add` / `claude plugin install superpowers@superpowers-dev`.
+- GBrain é encontrado também em `<repo>/.harness/tools/gbrain` (onde o `vendor.js` grava quando roda a partir do clone), além do PATH.
+
 ## 2.1.0 — 2026-10-16 — modelos por fase, superfícies de CLI e checklist
 
 Três frentes entraram juntas. Nenhuma depende de o usuário pedir o recurso numa conversa: `install.sh` e `machine/bootstrap.sh` disparam.

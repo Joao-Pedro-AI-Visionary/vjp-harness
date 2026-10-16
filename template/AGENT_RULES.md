@@ -98,8 +98,8 @@ OWASP LLM Top 10 + OWASP Top 10 web na checklist de **toda** feature. Razão: de
 
 ## 1. Princípios Gerais de Operação
 
-1. **Determinismo e Isolamento**: Nunca modifique a branch principal diretamente sem validação completa. O EXECUTOR do Maestro (`bsd.js`) sempre trabalha em Git Worktree isolada; na camada interativa, quando usar worktree é a regra R2 (§1.1).
-2. **Orientação a Especificação (Spec-driven)**: O código só deve ser gerado a partir de especificações claras e previamente mapeadas (`spec.md` e `tasks.md`). **Aplicado de fato pelo `bsd.js` desde v1.10.3**: `--execute <feature>` procura `.planning/phases/<feature>/` ou `specs/<feature>/`; se achar `tasks.md`, executa task por task e marca `[x]` no arquivo real conforme aprovação. Sem esses arquivos, cai no modo autônomo (LLM decide o plano sozinho) — recomendado só para exploração rápida, não para features de verdade.
+1. **Determinismo e Isolamento**: Nunca modifique a branch principal diretamente sem validação completa. Na camada interativa (CLIs), quando usar worktree é a regra R2 (§1.1).
+2. **Orientação a Especificação (Spec-driven)**: O código só deve ser gerado a partir de especificações claras e previamente mapeadas (`spec.md` e `tasks.md`). A execução task por task (lendo `specs/<feature>/tasks.md` ou `.planning/phases/<feature>/tasks.md` e marcando `[x]`) roda nas CLIs desde a v2.2.0; o `--execute` headless do `bsd.js` saiu.
 3. **Persistência de Aprendizado (GBrain)**: Sempre consulte `.gbrain/` antes de propor qualquer design técnico para evitar repetição de erros passados ou violações arquiteturais.
 4. **Crash-Safe e Auditoria**: Toda transação de agente deve registrar logs imediatos no `.bsd/history.jsonl` e atualizar o dashboard `.bsd/STATE.md`.
 5. **Documentação Diátaxis**: Nenhuma feature está completa sem documentação no quadrante apropriado (Tutorial, How-to, Reference, ou Explanation). Consulte `.harness/tools/diataxis-docs.md` para o framework completo.

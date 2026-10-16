@@ -128,6 +128,21 @@ function skillDirs(probes, name) {
   ];
 }
 
+// superpowers não vem do bootstrap nem do sync-rules: é o clone pinado (vendor.js) registrado como
+// marketplace local do Claude Code. As demais skills do harness vêm do bootstrap/sync-rules.
+export function skillsFix(missing, platform) {
+  const fixes = [];
+  if (missing.includes('superpowers')) {
+    const dest = platform === 'win32' ? '$env:USERPROFILE\\.claude\\plugins\\superpowers' : '~/.claude/plugins/superpowers';
+    const copy = platform === 'win32'
+      ? `Copy-Item -Recurse .harness/tools/superpowers ${dest}`
+      : `cp -R .harness/tools/superpowers ${dest}`;
+    fixes.push(`node .harness/tools/vendor.js --only superpowers && ${copy} && claude plugin marketplace add ${dest} && claude plugin install superpowers@superpowers-dev --scope user`);
+  }
+  if (missing.some((m) => m !== 'superpowers')) fixes.push('bash machine/bootstrap.sh   # ou node template/tools/sync-rules.js --global');
+  return fixes.join('  |  ');
+}
+
 function pkgVersion(probes, rel) {
   const j = probes.readJson(path.join(probes.harnessDir, rel));
   return j && typeof j.version === 'string' ? j.version : null;
@@ -192,7 +207,12 @@ export function evaluateChecklist(probes, { strict = false, pins } = {}) {
     ? [['gbrain', ['--version']], [path.join(probes.home, '.bun', 'bin', 'gbrain.exe'), ['--version']]]
     : [['gbrain', ['--version']], [path.join(probes.home, '.bun', 'bin', 'gbrain'), ['--version']]];
   const gbrainHit = probeBins(probes, gbrainBins);
-  const gbrainVendored = probes.exists(path.join(probes.harnessDir, 'tools', 'gbrain'));
+  // vendor.js grava em <projeto>/.harness/tools/gbrain. No projeto instalado harnessDir já é .harness;
+  // no clone do repo harnessDir é template/, então o destino real fica em ../.harness/tools/gbrain.
+  const gbrainVendored = [
+    path.join(probes.harnessDir, 'tools', 'gbrain'),
+    path.resolve(probes.harnessDir, '..', '.harness', 'tools', 'gbrain'),
+  ].some((d) => probes.exists(d));
   if (gbrainHit.ok && gbrainHit.line.includes(p.gbrain)) {
     push({ id: 'gbrain', name: 'GBrain', status: STATUS.OK, version: gbrainHit.line, detail: `pin ${p.gbrain}` });
   } else if (gbrainHit.ok) {
@@ -254,18 +274,11 @@ export function evaluateChecklist(probes, { strict = false, pins } = {}) {
     push({
       id: 'plugins', name: 'Plugins / skills', status: STATUS.AVISO,
       detail: `faltam: ${missingSkills.join(', ')}`,
-      fix: 'bash machine/bootstrap.sh   # ou node template/tools/sync-rules.js --global',
+      fix: skillsFix(missingSkills, probes.platform),
     });
   }
 
   const env = probes.env || {};
-  const llm = presence(env, 'VJP_LLM_API_KEY');
-  push({
-    id: 'env-llm', name: 'VJP_LLM_API_KEY',
-    status: llm === 'definida' ? STATUS.OK : STATUS.AVISO,
-    detail: llm === 'definida' ? 'definida (valor oculto)' : 'ausente — pipeline com LLM não autentica; --dry-run funciona',
-    fix: platform === 'win32' ? '$env:VJP_LLM_API_KEY="<sua chave>"' : 'export VJP_LLM_API_KEY="<sua chave>"',
-  });
 
   if (!env.HEADROOM_BEACON) {
     push({ id: 'env-headroom', name: 'HEADROOM_BEACON', status: STATUS.AVISO, detail: 'ausente — a telemetria do Headroom vem ligada', fix: platform === 'win32' ? '$env:HEADROOM_BEACON="off"' : 'export HEADROOM_BEACON=off' });

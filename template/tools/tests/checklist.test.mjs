@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'path';
-import { evaluateChecklist, formatChecklist, liveProbes, parseVersion, runCommand, versionBelow, pinsFromRegistry, STATUS } from '../checklist.js';
+import { evaluateChecklist, formatChecklist, liveProbes, parseVersion, runCommand, versionBelow, pinsFromRegistry, STATUS, skillsFix } from '../checklist.js';
 
 const pins = pinsFromRegistry({
   components: [
@@ -85,7 +85,7 @@ test('não vaza valor de chave, URI nem beacon', () => {
   const uri = 'postgresql://example:example@localhost/db';
   const r = evaluateChecklist(probes({
     commands: { ...okNode, ...okPy, ...okGit },
-    env: { VJP_LLM_API_KEY: marcador, DATABASE_URI: uri, HEADROOM_BEACON: 'ligado-nao-imprimir' },
+    env: { CURSOR_API_KEY: marcador, DATABASE_URI: uri, HEADROOM_BEACON: 'ligado-nao-imprimir' },
     readJson: (p) => (p.endsWith('mcp.json')
       ? { mcpServers: { postgres: { env: { DATABASE_URI: uri } } } }
       : p.endsWith('package.json') ? { version: '1.16.0' } : null),
@@ -131,8 +131,30 @@ test('probe ao vivo não imprime valor de ambiente e reconhece o Node', () => {
   const r = evaluateChecklist(liveProbes());
   assert.equal(r.rows.find((x) => x.id === 'node').status, STATUS.OK);
   const blob = JSON.stringify(r);
-  for (const key of ['VJP_LLM_API_KEY', 'DATABASE_URI', 'CURSOR_API_KEY', 'SUPABASE_ACCESS_TOKEN']) {
+  for (const key of ['DATABASE_URI', 'CURSOR_API_KEY', 'SUPABASE_ACCESS_TOKEN']) {
     const val = process.env[key];
     if (val && val.length > 8) assert.equal(blob.includes(val), false, key);
   }
+});
+
+test('superpowers ausente indica vendor.js + marketplace local do Claude Code', () => {
+  const fix = skillsFix(['superpowers'], 'linux');
+  assert.match(fix, /vendor\.js --only superpowers/);
+  assert.match(fix, /claude plugin marketplace add ~\/\.claude\/plugins\/superpowers/);
+  assert.match(fix, /claude plugin install superpowers@superpowers-dev/);
+  assert.equal(fix.includes('sync-rules'), false);
+  assert.match(skillsFix(['prepush', 'superpowers'], 'win32'), /sync-rules/);
+});
+
+test('gbrain vendorizado no clone do repo (../.harness/tools/gbrain) conta como OK', () => {
+  const r = evaluateChecklist(probes({
+    commands: { ...okNode, ...okPy, ...okGit },
+    exists: (p) => p.replace(/\\/g, '/').endsWith('.harness/tools/gbrain'),
+  }), { pins });
+  assert.equal(r.rows.find((x) => x.id === 'gbrain').status, STATUS.OK);
+});
+
+test('VJP_LLM_API_KEY saiu do checklist (camada LLM removida na v2.2.0)', () => {
+  const r = evaluateChecklist(probes({ commands: { ...okNode, ...okPy, ...okGit } }), { pins });
+  assert.equal(r.rows.some((x) => x.id === 'env-llm'), false);
 });

@@ -2,16 +2,14 @@
 /**
  * Eval opt-in das regras de core/. NÃO roda na instalação, no --doctor nem no npm test.
  *
- * Sem --llm: monta o mesmo prompt de usuário com e sem o texto de cada regra always-on
+ * Monta o mesmo prompt de usuário com e sem o texto de cada regra always-on
  * (e cada conditionalRule) e compara o system prompt (delta de caracteres). Não chama API.
- * Com --llm: chama tools/llm.js duas vezes por regra e compara as respostas. Exige
- * VJP_LLM_* / config/agents.json. Gasta cota. Use --only <id> para uma regra.
+ * (O modo --llm saiu na v2.2.0 junto com a camada LLM própria.) Use --only <id> para uma regra.
  *
  *   node template/tools/rules-eval.js
  *   node template/tools/sync-rules.js --eval
- *   node template/tools/sync-rules.js --eval --llm --only 10-principios.md
+ *   node template/tools/sync-rules.js --eval --only 10-principios.md
  */
-import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { detectLayout, loadCore } from './sync-rules.js';
@@ -51,11 +49,10 @@ export function compareAnswers(a, b) {
 }
 
 function parseArgs(argv) {
-  const out = { llm: false, json: false, only: null, core: null };
+  const out = { json: false, only: null, core: null };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
-    if (k === '--llm') out.llm = true;
-    else if (k === '--json') out.json = true;
+    if (k === '--json') out.json = true;
     else if (k === '--only') out.only = argv[++i];
     else if (k === '--core') out.core = argv[++i];
     else if (k === '--help' || k === '-h') out.help = true;
@@ -64,14 +61,7 @@ function parseArgs(argv) {
   return out;
 }
 
-async function answerPair(pair, cfg) {
-  const { chat } = await import('./llm.js');
-  const without = await chat({ system: pair.without.system, user: pair.without.user, cfg, agentId: 'planner' });
-  const withRule = await chat({ system: pair.with.system, user: pair.with.user, cfg, agentId: 'planner' });
-  return compareAnswers(without, withRule);
-}
-
-export async function evaluateRules(core, { llm = false, only = null, cfg = null } = {}) {
+export async function evaluateRules(core, { only = null } = {}) {
   let units = ruleUnits(core);
   if (only) {
     units = units.filter((u) => u.id === only);
@@ -82,19 +72,11 @@ export async function evaluateRules(core, { llm = false, only = null, cfg = null
   for (const pair of pairs) {
     const prompt = compareTexts(pair.without.system, pair.with.system);
     const row = { id: pair.id, promptIdentical: prompt.identical, deltaChars: prompt.deltaChars };
-    if (llm) {
-      const answers = await answerPair(pair, cfg);
-      row.answerIdentical = answers.identical;
-      row.answerDeltaChars = answers.deltaChars;
-    }
     rows.push(row);
   }
   return {
-    llm,
     prompt: PROBE_USER,
-    note: llm
-      ? 'respostas comparadas via llm.js; valores de API não são impressos'
-      : 'só o system prompt foi comparado. Passe --llm para comparar respostas (opt-in, gasta API).',
+    note: 'só o system prompt foi comparado (sem chamada de modelo).',
     rows,
   };
 }
@@ -103,28 +85,18 @@ export async function main(argv = process.argv.slice(2), scriptDir = path.dirnam
   let args;
   try { args = parseArgs(argv); } catch (e) { console.error(`✗ ${e.message}`); return 2; }
   if (args.help) {
-    console.log('rules-eval.js [--json] [--llm] [--only <id>] [--core <dir>]\nOpt-in. Sem --llm não chama modelo.');
+    console.log('rules-eval.js [--json] [--only <id>] [--core <dir>]\nOpt-in. Não chama modelo.');
     return 0;
   }
   try {
     const lay = detectLayout(scriptDir, { core: args.core });
     if (!lay.coreDir) throw new Error('não achei core/ (use --core)');
-    let cfg = null;
-    if (args.llm) {
-      const { loadLlmConfig } = await import('./llm.js');
-      const harnessDir = lay.repoRoot ? path.join(lay.repoRoot, 'template') : path.resolve(scriptDir, '..');
-      if (!fs.existsSync(path.join(harnessDir, 'config', 'agents.json'))) {
-        throw new Error(`config/agents.json ausente em ${harnessDir}`);
-      }
-      cfg = loadLlmConfig(harnessDir);
-    }
-    const report = await evaluateRules(loadCore(lay.coreDir), { llm: args.llm, only: args.only, cfg });
+    const report = await evaluateRules(loadCore(lay.coreDir), { only: args.only });
     if (args.json) console.log(JSON.stringify(report, null, 2));
     else {
       console.log(`eval de regras — ${report.note}`);
       for (const r of report.rows) {
-        const ans = report.llm ? `  respostas ${r.answerIdentical ? 'iguais' : 'diferentes'}` : '';
-        console.log(`${r.id}  prompt ${r.promptIdentical ? 'igual' : `+${r.deltaChars} chars`}${ans}`);
+        console.log(`${r.id}  prompt ${r.promptIdentical ? 'igual' : `+${r.deltaChars} chars`}`);
       }
     }
     return 0;
