@@ -16,6 +16,8 @@
  *                          ~/.gemini/antigravity-cli/skills
  * Opções:
  *   --check                não escreve nada; sai 1 se houver drift (idempotência verificável)
+ *   --eval                 opt-in: delega a rules-eval.js (mesmo prompt com e sem cada regra).
+ *                          Não roda na instalação nem no --check. --llm compara respostas (gasta API).
  *   --list                 só lista o plano (caminhos)
  *   --core <dir>           fonte alternativa (default: auto-detecta core/ ou .harness/core/)
  *   --repo-root <dir>      raiz do vjp-harness (default: auto-detecta)
@@ -25,6 +27,7 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 export const START = '<!-- vjp-harness:start -->';
@@ -351,6 +354,11 @@ function parseArgs(argv) {
 }
 
 export function main(argv = process.argv.slice(2), scriptDir = path.dirname(fileURLToPath(import.meta.url))) {
+  if (argv.includes('--eval')) {
+    const extra = argv.filter((a) => a !== '--eval');
+    const r = spawnSync(process.execPath, [path.join(scriptDir, 'rules-eval.js'), ...extra], { stdio: 'inherit' });
+    return r.status == null ? 2 : r.status;
+  }
   let args;
   try { args = parseArgs(argv); } catch (e) { console.error(`✗ ${e.message} (use --help)`); return 2; }
   if (args.help) {
