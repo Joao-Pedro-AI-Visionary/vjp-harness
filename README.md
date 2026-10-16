@@ -1,7 +1,7 @@
 # V-JP Harness
 
 > **Autor:** João Pedro (V-JP) · [github.com/Joao-Pedro-AI-Visionary](https://github.com/Joao-Pedro-AI-Visionary)
-> **Versão:** 2.0.0 (fonte: [`VERSION`](./VERSION); histórico em [`CHANGELOG.md`](./CHANGELOG.md)) · Licença MIT · *método de engenharia de software orientado a IA*
+> **Versão:** 2.1.0 (fonte: [`VERSION`](./VERSION); histórico em [`CHANGELOG.md`](./CHANGELOG.md)) · Licença MIT · *método de engenharia de software orientado a IA*
 
 Ecossistema de engenharia de software orientado a IA — empacotado para instalação **determinística** em qualquer projeto.
 
@@ -70,9 +70,15 @@ cd meu-projeto
 bash /caminho/para/vjp-harness/install.sh --name meu-projeto --yes
 ```
 
-No fim, o instalador roda o doctor sozinho (`verify.js`: pinagem do `registry.json` + checklist de ambiente). Não é preciso pedir o checklist numa conversa com Claude Code, Codex, AGY ou Cursor: o mesmo relatório volta em `node .harness/tools/bsd.js --doctor` (alias `--check`). As regras geradas de `core/` já mandam o agente usar esse comando.
+No fim, o instalador roda o doctor sozinho (`verify.js`: pinagem do `registry.json` + checklist de ambiente). Não é preciso pedir o checklist numa conversa: o mesmo relatório volta em `node .harness/tools/bsd.js --doctor` (alias `--check`). As regras geradas de `core/` já mandam o agente usar esse comando.
 
-Máquina nova (CLIs, Headroom, skills globais): `bash machine/bootstrap.sh` também imprime o checklist no final. Detalhe em [`template/INSTALL.md`](./template/INSTALL.md).
+O mesmo `install.sh` aciona, sem pedido na conversa:
+
+- `model-router.js --apply` grava o modelo da fase nos subagentes (`.claude/agents`, `.cursor/agents`, `.codex/agents`).
+- `sync-rules.js --target` grava regras, o hook SessionStart e `.codex/vjp-cli.json`. Não grava `features.worktrees` no `config.toml`.
+- se `claude` estiver no PATH e a versão for ≥ 2.1.296, instala os plugins oficiais `claude-code-setup` e `receipts`.
+
+Máquina nova (CLIs, Headroom, skills globais, os mesmos três passos no escopo do usuário): `bash machine/bootstrap.sh` também imprime o checklist no final. Detalhe em [`template/INSTALL.md`](./template/INSTALL.md).
 
 | Flag | Efeito |
 |---|---|
@@ -117,10 +123,10 @@ Desde a **v2.0.0**, toda regra, guardrail e checklist mora em [`core/`](./core/)
 
 | Ferramenta | Projeto (`install.sh`) | Máquina (`machine/bootstrap.sh`) |
 |---|---|---|
-| **Codex** | `AGENTS.md` (bloco gerenciado) · `.agents/skills/` · `.codex/hooks.json` (orçamento de testes) | `~/.codex/AGENTS.md` · `~/.agents/skills/` |
-| **Claude Code** | `CLAUDE.md` com `@.harness/core/…` (imports) · `.claude/skills/` | `~/.claude/HARNESS.md` · `~/.claude/skills/` |
-| **Antigravity** | `AGENTS.md` · `.agents/rules/vjp-projeto-novo.md` (`model_decision`) · `.agents/skills/` | `~/.gemini/GEMINI.md` · `~/.gemini/config/skills/` · `~/.gemini/antigravity-cli/skills/` |
-| **Cursor** | `AGENTS.md` · `.cursor/rules/vjp-projeto-novo.mdc` | — (User Rules só pela interface) |
+| **Codex** | `AGENTS.md` · `.agents/skills/` · `.codex/agents/` · `.codex/hooks.json` (orçamento + SessionStart) · `.codex/vjp-cli.json` | `~/.codex/AGENTS.md` · `~/.codex/agents/` · `~/.codex/hooks.json` · `~/.agents/skills/` |
+| **Claude Code** | `CLAUDE.md` com `@.harness/core/…` · `.claude/agents/` · `.claude/skills/` · SessionStart em `.claude/settings.json` | `~/.claude/HARNESS.md` · `~/.claude/agents/` · `~/.claude/skills/` · SessionStart em `~/.claude/settings.json` |
+| **Antigravity** | `AGENTS.md` · `.agents/rules/vjp-projeto-novo.md` e `vjp-cli.md` (`always_on`) · `.agents/skills/` | `~/.gemini/GEMINI.md` · `~/.gemini/config/skills/` · `~/.gemini/antigravity-cli/skills/` |
+| **Cursor** | `AGENTS.md` · `.cursor/agents/` · `.cursor/rules/vjp-projeto-novo.mdc` e `vjp-cli.mdc` (`alwaysApply`) | `~/.cursor/agents/` (o `bootstrap.sh` grava; User Rules da IDE continuam pela interface) |
 
 - **Projeto novo:** skill `projeto-novo` nas três ferramentas (Fase 0 Ambiente → descoberta → arquitetura → **benchmark tecnológico global** → … → entrega verificada), com um único gate de aprovação antes da implementação.
 - **Regras de execução unificadas (R1–R9):** paralelismo, worktree, tentativas, precedência dos portões de conclusão, browser, versões, arquivos de regra, git e limpeza — ver [`core/30-execucao.md`](./core/30-execucao.md).
@@ -206,7 +212,9 @@ meu-projeto/
 ├── .agents/{rules,skills}/   # Antigravity/Codex (gerado)
 ├── .claude/skills/           # Claude Code (gerado)
 ├── .cursor/rules/            # Cursor (gerado)
-└── .codex/                 # Codex: hooks.json (orçamento + SessionStart), config.toml (features.worktrees), vjp-cli.json
+├── .claude/agents/           # subagentes com modelo da fase (install.sh)
+├── .cursor/agents/           # o mesmo papel, com id de modelo do Cursor
+└── .codex/                   # agents/, hooks.json (orçamento + SessionStart), vjp-cli.json
 ```
 
 ---

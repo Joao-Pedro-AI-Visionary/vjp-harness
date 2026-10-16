@@ -1,5 +1,5 @@
 <!-- GERADO por sync-rules.js a partir de core/ (always-on) — não edite aqui: edite core/ e rode sync-rules. -->
-# V-JP Harness — Regras Globais (geradas de core/) — v2.0.0
+# V-JP Harness — Regras Globais (geradas de core/) — v2.1.0
 
 # V-JP Harness v2 — precedência e fonte única
 

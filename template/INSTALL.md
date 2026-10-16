@@ -24,7 +24,7 @@ bash /caminho/para/vjp-harness/install.sh --name meu-projeto
 
 Isso, de forma determinística:
 1. Copia o motor para `.harness/` (BSD + configs + registry).
-1b. (v2.0.0) Renderiza as regras da fonte única `core/` com `tools/sync-rules.js`: `AGENTS.md` e `CLAUDE.md` (blocos gerenciados), `.harness/core/`, `.agents/rules/`, `.cursor/rules/`, skill `projeto-novo`, `.codex/hooks.json` (orçamento + SessionStart), `.codex/config.toml` (`features.worktrees`) e `.codex/vjp-cli.json`. Drift: `node .harness/tools/sync-rules.js --check`.
+1b. (v2.1.0) Renderiza as regras da fonte única `core/` com `tools/sync-rules.js`: `AGENTS.md` e `CLAUDE.md` (blocos gerenciados), `.harness/core/`, `.agents/rules/`, `.cursor/rules/`, skill `projeto-novo`, `.codex/hooks.json` (orçamento + SessionStart) e `.codex/vjp-cli.json` (mapa das worktrees). Não grava `features.worktrees` no `config.toml`: essa chave não está na config reference oficial do Codex. Drift: `node .harness/tools/sync-rules.js --check`.
 1c. Se `claude` estiver no PATH e a versão for >= 2.1.296, instala os plugins oficiais `claude-code-setup` e `receipts` (`claude plugin install …@claude-plugins-official --scope user -y`). Abaixo disso, ou sem rede, o install segue e só avisa.
 2. Roda **`npm ci`** em `.harness/tools` (instala Repomix `1.16.0`, GSD Redux `1.1.0`, Playwright MCP `0.0.75`, codebase-memory-mcp `0.10.8` a partir do `package-lock.json` — árvore idêntica byte-a-byte). Postgres MCP Pro não entra no npm: é `uvx`/`Docker`, opcional.
 3. Faz o scaffold de `.gbrain/` (memória) e `.bsd/` (estado).
