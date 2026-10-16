@@ -97,6 +97,11 @@ echo "skills instaladas: $(ls "$CLAUDE_DIR/skills" | wc -l)"
 # v2.0.0 — fonte única core/ → regras globais de cada CLI + skills reais (não-symlink) em
 # ~/.claude/skills, ~/.agents/skills (Codex), ~/.gemini/config/skills e ~/.gemini/antigravity-cli/skills (AGY).
 # Blocos gerenciados preservam o que já existir em ~/.codex/AGENTS.md e ~/.gemini/GEMINI.md.
+# Plugins oficiais antes do sync-rules: o merge do settings.json preserva enabledPlugins.
+PLUGIN_INSTALL="$HERE/hooks/install-claude-plugins.sh"
+if [ -f "$PLUGIN_INSTALL" ]; then
+  bash "$PLUGIN_INSTALL" || echo "⚠️  plugins oficiais (claude-code-setup, receipts) não instalados"
+fi
 SYNC_RULES="$HERE/../template/tools/sync-rules.js"
 if [ -f "$SYNC_RULES" ]; then
   node "$SYNC_RULES" --global --quiet || echo "⚠️  sync-rules --global falhou (rode: node $SYNC_RULES --global)"

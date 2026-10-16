@@ -20,7 +20,8 @@ bash /caminho/para/vjp-harness/install.sh --name meu-projeto
 
 Isso, de forma determinística:
 1. Copia o motor para `.harness/` (BSD + configs + registry).
-1b. (v2.0.0) Renderiza as regras da fonte única `core/` com `tools/sync-rules.js`: `AGENTS.md` e `CLAUDE.md` (blocos gerenciados), `.harness/core/`, `.agents/rules/`, `.cursor/rules/`, skill `projeto-novo` e o hook do Codex em `.codex/hooks.json`. Drift: `node .harness/tools/sync-rules.js --check`.
+1b. (v2.0.0) Renderiza as regras da fonte única `core/` com `tools/sync-rules.js`: `AGENTS.md` e `CLAUDE.md` (blocos gerenciados), `.harness/core/`, `.agents/rules/`, `.cursor/rules/`, skill `projeto-novo`, `.codex/hooks.json` (orçamento + SessionStart), `.codex/config.toml` (`features.worktrees`) e `.codex/vjp-cli.json`. Drift: `node .harness/tools/sync-rules.js --check`.
+1c. Se `claude` estiver no PATH e a versão for >= 2.1.296, instala os plugins oficiais `claude-code-setup` e `receipts` (`claude plugin install …@claude-plugins-official --scope user -y`). Abaixo disso, ou sem rede, o install segue e só avisa.
 2. Roda **`npm ci`** em `.harness/tools` (instala Repomix `0.2.14`, GSD Redux `1.1.0`, Postgres MCP `0.6.2`, Playwright MCP `0.0.75` a partir do `package-lock.json` — árvore idêntica byte-a-byte).
 3. Faz o scaffold de `.gbrain/` (memória) e `.bsd/` (estado).
 4. Roda o **doctor** (`verify.js`) e reporta o determinismo.
